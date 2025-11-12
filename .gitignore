@@ -1,0 +1,44 @@
+# Maven
+target/        # Ignore the Maven build output directory and all its contents
+pom.xml.tag
+pom.xml.next
+pom.xml.bak
+release.properties
+dependency-reduced-pom.xml
+builddirectory/
+*.[jw]ar      # Ignore Java archive files (jar, war)
+*.ear        # Ignore Enterprise Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# Java
+*.class      # Ignore compiled Java class files
+*.log        # Ignore log files
+
+# Eclipse
+.project     # Eclipse project files
+.classpath   # Eclipse classpath files
+.settings/   # Eclipse settings directory
+bin/         # Eclipse build output directory
+
+# IntelliJ IDEA
+.idea/       # IntelliJ project directory
+*.iml        # IntelliJ module files
+*.ipr        # IntelliJ project files
+*.iws        # IntelliJ workspace files
+
+# NetBeans
+nbproject/
+.nbattrs
+nbbuild/
+dist/
+nbdist/
+.netbeans/
+
+# Visual Studio Code
+.vscode/
+
+# OS and other files
+.DS_Store    # macOS files
+Thumbs.db    # Windows files
