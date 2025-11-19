@@ -10,4 +10,12 @@
         <maven.compiler.release>24</maven.compiler.release>
         <exec.mainClass>pseudopad.Main</exec.mainClass>
     </properties>
+    <dependencies>
+        <!-- Look-and-Feel -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.6.2</version>
+        </dependency>
+    </dependencies>
 </project>
