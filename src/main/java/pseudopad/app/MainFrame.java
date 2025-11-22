@@ -1,6 +1,7 @@
 package pseudopad.app;
 
 import javax.swing.JFrame;
+import pseudopad.ui.components.LineNumberHeader;
 
 /**
  *
@@ -8,13 +9,12 @@ import javax.swing.JFrame;
  */
 public class MainFrame extends javax.swing.JFrame {
     
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(MainFrame.class.getName());
-
     /**
      * Creates new form MainFrame
      */
     public MainFrame() {
         initComponents();
+        setupTextEditor();
     }
     
     public void launchApplication() {
@@ -31,6 +31,19 @@ public class MainFrame extends javax.swing.JFrame {
 //        idePanel.openInitialTab();
     }
     
+    private void setupTextEditor() {
+        LineNumberHeader lines = new LineNumberHeader(EditorPane);
+        EditorScrollPane.setRowHeaderView(lines);
+    }
+    
+    public String getEditorText() {
+        return EditorPane.getText();
+    }
+    
+    public void setOutputText(String text) {
+        OutputTextPane.setText(text);
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -40,48 +53,249 @@ public class MainFrame extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        TextEditorSplitPane = new javax.swing.JSplitPane();
+        EditorScrollPane = new javax.swing.JScrollPane();
+        EditorPane = new javax.swing.JEditorPane();
+        OutputScrollPane = new javax.swing.JScrollPane();
+        OutputTextPane = new javax.swing.JTextPane();
+        MenuBar = new javax.swing.JMenuBar();
+        FileMenu = new javax.swing.JMenu();
+        NewProjectMenuItem = new javax.swing.JMenuItem();
+        NewFileMenuItem = new javax.swing.JMenuItem();
+        MenuBarSeparator1 = new javax.swing.JPopupMenu.Separator();
+        OpenProjectMenuItem = new javax.swing.JMenuItem();
+        jMenu3 = new javax.swing.JMenu();
+        CloseProjectMenuItem = new javax.swing.JMenuItem();
+        OpenFileMenuItem = new javax.swing.JMenuItem();
+        OpenRecentFileMenuItem = new javax.swing.JMenu();
+        MenuBarSeparator2 = new javax.swing.JPopupMenu.Separator();
+        SaveMenuItem = new javax.swing.JMenuItem();
+        SaveAsMenuItem = new javax.swing.JMenuItem();
+        SaveAllMenuItem = new javax.swing.JMenuItem();
+        MenuBarSeparator3 = new javax.swing.JPopupMenu.Separator();
+        ExitMenuItem = new javax.swing.JMenuItem();
+        EditMenu = new javax.swing.JMenu();
+        UndoMenuItem = new javax.swing.JMenuItem();
+        RedoMenuItem = new javax.swing.JMenuItem();
+        MenuBarSeparator4 = new javax.swing.JPopupMenu.Separator();
+        CutMenuItem = new javax.swing.JMenuItem();
+        CopyMenuItem = new javax.swing.JMenuItem();
+        PasteMenuItem = new javax.swing.JMenuItem();
+        DeleteMenuItem = new javax.swing.JMenuItem();
+        MenuBarSeparator5 = new javax.swing.JPopupMenu.Separator();
+        FindMenuItem = new javax.swing.JMenuItem();
+        ReplaceMenuItem = new javax.swing.JMenuItem();
+        HelpMenu = new javax.swing.JMenu();
+        AboutMenuItem = new javax.swing.JMenuItem();
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("PseudoCode v0");
         setMinimumSize(new java.awt.Dimension(720, 405));
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 1080, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 608, Short.MAX_VALUE)
-        );
+        TextEditorSplitPane.setDividerLocation(1900);
+        TextEditorSplitPane.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
+
+        EditorScrollPane.setColumnHeader(null);
+        EditorScrollPane.setColumnHeaderView(null);
+        EditorScrollPane.setViewportView(EditorPane);
+
+        TextEditorSplitPane.setLeftComponent(EditorScrollPane);
+
+        OutputScrollPane.setViewportView(OutputTextPane);
+
+        TextEditorSplitPane.setRightComponent(OutputScrollPane);
+
+        getContentPane().add(TextEditorSplitPane, java.awt.BorderLayout.CENTER);
+
+        FileMenu.setText("File");
+        FileMenu.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        NewProjectMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        NewProjectMenuItem.setText("New Project");
+        NewProjectMenuItem.setToolTipText("");
+        NewProjectMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        NewProjectMenuItem.addActionListener(this::NewProjectMenuItemActionPerformed);
+        FileMenu.add(NewProjectMenuItem);
+
+        NewFileMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        NewFileMenuItem.setText("New File...");
+        NewFileMenuItem.setToolTipText("");
+        NewFileMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        FileMenu.add(NewFileMenuItem);
+        FileMenu.add(MenuBarSeparator1);
+
+        OpenProjectMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        OpenProjectMenuItem.setText("Open Project...");
+        OpenProjectMenuItem.setToolTipText("");
+        OpenProjectMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        OpenProjectMenuItem.addActionListener(this::OpenProjectMenuItemActionPerformed);
+        FileMenu.add(OpenProjectMenuItem);
+
+        jMenu3.setText("Open Recent Project");
+        FileMenu.add(jMenu3);
+
+        CloseProjectMenuItem.setText("Close Project");
+        CloseProjectMenuItem.setToolTipText("");
+        CloseProjectMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        CloseProjectMenuItem.addActionListener(this::CloseProjectMenuItemActionPerformed);
+        FileMenu.add(CloseProjectMenuItem);
+
+        OpenFileMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        OpenFileMenuItem.setText("Open File...");
+        OpenFileMenuItem.setToolTipText("");
+        OpenFileMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        OpenFileMenuItem.addActionListener(this::OpenFileMenuItemActionPerformed);
+        FileMenu.add(OpenFileMenuItem);
+
+        OpenRecentFileMenuItem.setText("Open Recent File");
+        FileMenu.add(OpenRecentFileMenuItem);
+        FileMenu.add(MenuBarSeparator2);
+
+        SaveMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        SaveMenuItem.setText("Save");
+        SaveMenuItem.setToolTipText("");
+        SaveMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        SaveMenuItem.addActionListener(this::SaveMenuItemActionPerformed);
+        FileMenu.add(SaveMenuItem);
+
+        SaveAsMenuItem.setText("Save as...");
+        SaveAsMenuItem.setToolTipText("");
+        SaveAsMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        SaveAsMenuItem.addActionListener(this::SaveAsMenuItemActionPerformed);
+        FileMenu.add(SaveAsMenuItem);
+
+        SaveAllMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        SaveAllMenuItem.setText("Save All");
+        SaveAllMenuItem.setToolTipText("");
+        SaveAllMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        SaveAllMenuItem.addActionListener(this::SaveAllMenuItemActionPerformed);
+        FileMenu.add(SaveAllMenuItem);
+        FileMenu.add(MenuBarSeparator3);
+
+        ExitMenuItem.setText("Exit");
+        ExitMenuItem.setToolTipText("");
+        ExitMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        ExitMenuItem.addActionListener(this::ExitMenuItemActionPerformed);
+        FileMenu.add(ExitMenuItem);
+
+        MenuBar.add(FileMenu);
+
+        EditMenu.setText("Edit");
+
+        UndoMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        UndoMenuItem.setText("Undo");
+        EditMenu.add(UndoMenuItem);
+
+        RedoMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        RedoMenuItem.setText("Redo");
+        EditMenu.add(RedoMenuItem);
+        EditMenu.add(MenuBarSeparator4);
+
+        CutMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_X, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        CutMenuItem.setText("Cut");
+        EditMenu.add(CutMenuItem);
+
+        CopyMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        CopyMenuItem.setText("Copy");
+        EditMenu.add(CopyMenuItem);
+
+        PasteMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_V, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        PasteMenuItem.setText("Paste");
+        EditMenu.add(PasteMenuItem);
+
+        DeleteMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DELETE, 0));
+        DeleteMenuItem.setText("Delete");
+        EditMenu.add(DeleteMenuItem);
+        EditMenu.add(MenuBarSeparator5);
+
+        FindMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        FindMenuItem.setText("Find...");
+        EditMenu.add(FindMenuItem);
+
+        ReplaceMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.CTRL_DOWN_MASK));
+        ReplaceMenuItem.setText("Replace...");
+        EditMenu.add(ReplaceMenuItem);
+
+        MenuBar.add(EditMenu);
+
+        HelpMenu.setText("Help");
+
+        AboutMenuItem.setText("About");
+        HelpMenu.add(AboutMenuItem);
+
+        MenuBar.add(HelpMenu);
+
+        setJMenuBar(MenuBar);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
+    private void NewProjectMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NewProjectMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_NewProjectMenuItemActionPerformed
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new MainFrame().setVisible(true));
-    }
+    private void OpenProjectMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpenProjectMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_OpenProjectMenuItemActionPerformed
+
+    private void ExitMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExitMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_ExitMenuItemActionPerformed
+
+    private void SaveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_SaveMenuItemActionPerformed
+
+    private void SaveAsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveAsMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_SaveAsMenuItemActionPerformed
+
+    private void SaveAllMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveAllMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_SaveAllMenuItemActionPerformed
+
+    private void CloseProjectMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CloseProjectMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_CloseProjectMenuItemActionPerformed
+
+    private void OpenFileMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpenFileMenuItemActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_OpenFileMenuItemActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JMenuItem AboutMenuItem;
+    private javax.swing.JMenuItem CloseProjectMenuItem;
+    private javax.swing.JMenuItem CopyMenuItem;
+    private javax.swing.JMenuItem CutMenuItem;
+    private javax.swing.JMenuItem DeleteMenuItem;
+    private javax.swing.JMenu EditMenu;
+    private javax.swing.JEditorPane EditorPane;
+    private javax.swing.JScrollPane EditorScrollPane;
+    private javax.swing.JMenuItem ExitMenuItem;
+    private javax.swing.JMenu FileMenu;
+    private javax.swing.JMenuItem FindMenuItem;
+    private javax.swing.JMenu HelpMenu;
+    private javax.swing.JMenuBar MenuBar;
+    private javax.swing.JPopupMenu.Separator MenuBarSeparator1;
+    private javax.swing.JPopupMenu.Separator MenuBarSeparator2;
+    private javax.swing.JPopupMenu.Separator MenuBarSeparator3;
+    private javax.swing.JPopupMenu.Separator MenuBarSeparator4;
+    private javax.swing.JPopupMenu.Separator MenuBarSeparator5;
+    private javax.swing.JMenuItem NewFileMenuItem;
+    private javax.swing.JMenuItem NewProjectMenuItem;
+    private javax.swing.JMenuItem OpenFileMenuItem;
+    private javax.swing.JMenuItem OpenProjectMenuItem;
+    private javax.swing.JMenu OpenRecentFileMenuItem;
+    private javax.swing.JScrollPane OutputScrollPane;
+    private javax.swing.JTextPane OutputTextPane;
+    private javax.swing.JMenuItem PasteMenuItem;
+    private javax.swing.JMenuItem RedoMenuItem;
+    private javax.swing.JMenuItem ReplaceMenuItem;
+    private javax.swing.JMenuItem SaveAllMenuItem;
+    private javax.swing.JMenuItem SaveAsMenuItem;
+    private javax.swing.JMenuItem SaveMenuItem;
+    private javax.swing.JSplitPane TextEditorSplitPane;
+    private javax.swing.JMenuItem UndoMenuItem;
+    private javax.swing.JMenu jMenu3;
     // End of variables declaration//GEN-END:variables
 }
