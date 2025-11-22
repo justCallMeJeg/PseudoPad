@@ -1,6 +1,6 @@
 package pseudopad.services;
 
-import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
 import java.awt.Font;
 import javax.swing.UIManager;
 
@@ -11,7 +11,7 @@ import javax.swing.UIManager;
 public class ThemeManager {
     public static void init() {
         try {
-            FlatDarkLaf.setup();
+            FlatLightLaf.setup();
             
             // Design System Variables
             UIManager.put("defaultFont", new Font("Segoe UI", Font.PLAIN, 14));

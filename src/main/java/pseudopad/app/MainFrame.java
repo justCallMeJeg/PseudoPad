@@ -1,5 +1,7 @@
 package pseudopad.app;
 
+import javax.swing.JFrame;
+
 /**
  *
  * @author Geger John Paul Gabayeron
@@ -14,7 +16,21 @@ public class MainFrame extends javax.swing.JFrame {
     public MainFrame() {
         initComponents();
     }
-
+    
+    public void launchApplication() {
+        // 1. Make the frame visible (maximized)
+        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        
+        this.setVisible(true);
+        this.toFront();
+        this.requestFocus();
+        // 2. Call the logic to decide what tab to open (Welcome Tab or recent project)
+        // You'll need access to the IdePanel here, which is assumed to be part of MainFrame
+//        IdePanel idePanel = (IdePanel) this.mainContentPanel; // Assuming you store IdePanel
+//        idePanel.openInitialTab();
+    }
+    
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -25,16 +41,17 @@ public class MainFrame extends javax.swing.JFrame {
     private void initComponents() {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setMinimumSize(new java.awt.Dimension(720, 405));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addGap(0, 1080, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addGap(0, 608, Short.MAX_VALUE)
         );
 
         pack();

@@ -1,19 +1,32 @@
 package pseudopad;
 
+import javax.swing.SwingUtilities;
+import pseudopad.app.AppStartupWorker;
 import pseudopad.app.MainFrame;
+import pseudopad.app.SplashScreenWindow;
 import pseudopad.services.ThemeManager;
 
 /**
  *
  * @author Geger John Paul Gabayeron
  */
-public class Main {
-
+public class Main {   
     public static void main(String[] args) {
-        System.out.println("Hello World!");
-        
-        ThemeManager.init();
-        
-        java.awt.EventQueue.invokeLater(() -> new MainFrame().setVisible(true));
+        SwingUtilities.invokeLater(() -> {
+            ThemeManager.init();
+            
+            // 1. Create and Show the Splash Screen (A JWindow)
+            SplashScreenWindow splashScreen = new SplashScreenWindow();
+            // We set the splash visible immediately for instant feedback
+            splashScreen.setVisible(true);
+            
+            // 2. Create the Main Frame (Invisible initially, but initialized)
+            MainFrame mainFrame = new MainFrame();
+            
+            // 3. Execute the Worker
+            // The worker takes charge of the timeline from this point on.
+            AppStartupWorker worker = new AppStartupWorker(splashScreen, mainFrame);
+            worker.execute();
+        });
     }
 }
