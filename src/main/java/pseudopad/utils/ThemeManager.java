@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.awt.Window;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 /**
  *
@@ -37,9 +38,9 @@ public class ThemeManager {
             applyTheme(currentTheme);
             
             UIManager.put("defaultFont", new Font("Segoe UI", Font.PLAIN, 12));
-            UIManager.put("SplitPane.showsTypeZeroStub", false);
+//            UIManager.put("SplitPane.showsTypeZeroStub", false);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Failed to initialize FlatLaf: " + e);
         }
     }
     
@@ -80,7 +81,7 @@ public class ThemeManager {
             for (Window window : Window.getWindows()) {
                 SwingUtilities.updateComponentTreeUI(window);
             }
-        } catch (Exception ex) {
+        } catch (UnsupportedLookAndFeelException ex) {
             System.err.println("Failed to set LookAndFeel: " + ex);
         }
     }

@@ -22,19 +22,20 @@ public class AppActionsManager {
     
     public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
         {
-            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
         @Override
         public void actionPerformed(ActionEvent e) {
             // Show the dialog
-            new NewProjectDialog(appFrame).setVisible(true);
+            NewProjectDialog newProject = new NewProjectDialog(appFrame);
+            newProject.setLocationRelativeTo(null);
+            newProject.setVisible(true);
         }
     };
     
-    // <editor-fold defaultstate="collapsed" desc="Theme Related Actions">
     public final Action OPEN_PROJECT = new AbstractAction("Open Project...", IconManager.get("open_project")) {
         {
-            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
             putValue(Action.SHORT_DESCRIPTION, "Open an existing project");
         }
         @Override
@@ -45,6 +46,19 @@ public class AppActionsManager {
         }
     };
     
+    public final Action CLOSE_PROJECT = new AbstractAction("Close Project") {
+        {
+            putValue(Action.SHORT_DESCRIPTION, "Close the current opened project");
+        }
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("Action: Open Project");
+            // Now valid: accessing instance variable from instance context
+            appFrame.closeProject();
+        }
+    };
+    
+    // <editor-fold defaultstate="collapsed" desc="Theme Related Actions">
     public final Action THEME_LIGHT = new AbstractAction("Light") {
         {
             putValue(Action.SHORT_DESCRIPTION, "Change UI theme to Light Mode");

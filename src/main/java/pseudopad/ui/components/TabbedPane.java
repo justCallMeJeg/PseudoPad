@@ -30,6 +30,8 @@ import pseudopad.utils.IconManager;
  * * @author Geger John Paul Gabayeron
  */
 public class TabbedPane extends JTabbedPane {
+    public static final String PROP_IS_CLOSABLE = "is_closable";
+    
     private boolean dragging = false;
     private int draggedTabIndex = -1;
     private int targetTabIndex = -1; 
@@ -139,11 +141,22 @@ public class TabbedPane extends JTabbedPane {
     private void updateCloseButtons() {
         int selectedIndex = getSelectedIndex();
         int tabCount = getTabCount();
+
         for (int i = 0; i < tabCount; i++) {
-            Component c = getComponentAt(i);
+            java.awt.Component c = getComponentAt(i);
             if (c instanceof JComponent jComponent) {
                 boolean isSelected = (i == selectedIndex);
-                jComponent.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, isSelected);
+                
+                // NEW LOGIC: Check if the tab is marked as NOT closable
+                Object closableProp = jComponent.getClientProperty(PROP_IS_CLOSABLE);
+                
+                if (closableProp != null && Boolean.FALSE.equals(closableProp)) {
+                    // Force hide close button, even if selected
+                    jComponent.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, false);
+                } else {
+                    // Standard logic: Only show close button if selected
+                    jComponent.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, isSelected);
+                }
             }
         }
     }

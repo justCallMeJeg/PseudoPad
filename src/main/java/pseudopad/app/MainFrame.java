@@ -7,8 +7,9 @@ import java.awt.Dimension;
 import java.awt.Image;
 import java.awt.Taskbar;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import javax.swing.ImageIcon;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -19,12 +20,13 @@ import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import pseudopad.ui.components.AppMenuBar;
-import pseudopad.ui.FallbackPanel;
 import pseudopad.ui.components.EditorTabbedPane;
 import pseudopad.ui.components.FileExplorer;
+import pseudopad.ui.components.FileTabPane;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
 import pseudopad.utils.AppActionsManager;
+import pseudopad.utils.FileManager;
 import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ProjectManager;
 import pseudopad.utils.ThemeManager;
@@ -84,10 +86,14 @@ public class MainFrame extends JFrame {
         if (currentProjectPath != null) {
             this.setTitle(this.currentProjectPath.getName() + " - PseudoPad v0");
             this.fileExplorer.openProject(projectPath);
-            this.editorSplitPane.setTopComponent(editorTabbedPane);
+//            this.editorSplitPane.setTopComponent(editorTabbedPane);
         } else {
             this.setTitle("PseudoPad v0");
-            this.editorSplitPane.setTopComponent(new FallbackPanel());
+//            this.editorSplitPane.setTopComponent(new FallbackPanel(INSTANCE));
+        }
+        
+        if (this.editorTabbedPane != null) {
+            this.editorTabbedPane.refreshFallbackState();
         }
 
         // 3. Set Divider Locations LAST, inside invokeLater
@@ -143,6 +149,7 @@ public class MainFrame extends JFrame {
                         // Note: This helper needs to support 'initializing existing dir'
                         // ProjectManager.initializeExisting(selectedFolder); 
                         MainFrame newWindow = new MainFrame();
+                        newWindow.setupAppIcon(themeManager.isDarkMode());
                         newWindow.launchAppInstance(selectedFolder);
                     } catch (Exception e) {
                         // handle error
@@ -150,6 +157,21 @@ public class MainFrame extends JFrame {
                 }
             }
         }
+    }
+    
+    public void closeProject() {
+        this.currentProjectPath = null;
+        this.setTitle("PseudoPad v0");
+        
+        // 1. Clear the File Explorer
+        // (Assuming FileExplorer has a clear() method)
+        this.fileExplorer.clear(); 
+        
+        // 2. Close all open tabs
+        this.editorTabbedPane.removeAll(); 
+        
+        // 3. Force Fallback Panel to update (It's now visible because we removed all tabs)
+        this.editorTabbedPane.refreshFallbackState();
     }
     
     public void changeTheme(ThemeManager.THEMES theme) {
@@ -164,10 +186,14 @@ public class MainFrame extends JFrame {
         return INSTANCE;
     }
     
+    public AppActionsManager getAppActionInstance() {
+        return this.AppActions;
+    }
+    
     private void initUIComponents() {
         initComponents();
         
-        Border lineBorder = BorderFactory.createLineBorder(UIManager.getColor("Panel.background").darker(), 1);
+        Border lineBorder = BorderFactory.createLineBorder(UIManager.getColor("Panel.foreground").darker(), 1);
         
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -183,6 +209,17 @@ public class MainFrame extends JFrame {
         this.navigationSplitPane.setBorder(lineBorder);
         this.navigationSplitPane.setResizeWeight(0.5);
         this.navigationSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        
+        this.fileExplorer.setOnFileOpenListener((File file) -> {
+            try {
+                // This calls your tabbed pane to open the file
+                // You might need to read the file content using FileOperation logic here
+                String content = FileManager.readFile(file); // Implement this helper
+                editorTabbedPane.openFileTab(file.getName(), content);
+            } catch (IOException ex) {
+                System.err.println("Failed to open file: " + ex);
+            }
+        });
         
         this.topNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
         this.topNavigationTabbedPane.add("Projects", projectExplorer);
@@ -219,6 +256,7 @@ public class MainFrame extends JFrame {
         this.editorSplitPane.setBorder(lineBorder);
         this.editorSplitPane.setResizeWeight(1.0);
         this.editorSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        this.editorSplitPane.setTopComponent(editorTabbedPane);
         
         this.bottomEditorTabbedPane.add("Output", terminalTextPane);
         this.bottomEditorTabbedPane.add("Logs", logTextPane);
@@ -248,7 +286,7 @@ public class MainFrame extends JFrame {
         this.bottomNavigationTabbedPane = new TabbedPane();
         this.fileExplorer = new FileExplorer();
         this.projectExplorer = new FileExplorer();
-        this.editorTabbedPane = new EditorTabbedPane();
+        this.editorTabbedPane = new EditorTabbedPane(this);
         this.bottomEditorTabbedPane = new TabbedPane();
         this.terminalTextPane = new TextPane();
         this.logTextPane = new TextPane();

@@ -31,12 +31,14 @@ public class FileTreeCellRenderer extends DefaultTreeCellRenderer {
                 // 2. Set Icon: Folder or File?
                 if (file.isDirectory()) {
                     // You might want to add a "FOLDER" (closed) icon to IconManager too
-                    setIcon(IconManager.get(expanded ? "folder" : "folder_open"));
+                    if (file.getName().equals(".pseudocode")) {
+                        setIcon(IconManager.get(expanded ? "folder_settings_open" : "folder_settings"));
+                    } else {
+                        setIcon(IconManager.get(expanded ? "folder_open" : "folder"));
+                    }
                 } else {
                     // Check extension for specific icons
-                    if (file.getName().equals(".pseudocode")) {
-                        setIcon(IconManager.get(expanded ? "folder_settings" : "folder_settings_open"));
-                    } else if (file.getName().endsWith(".pc")) {
+                    if (file.getName().endsWith(".pc")) {
                         setIcon(IconManager.get("file_pseudocode"));
                     } else {
                         setIcon(IconManager.get("file"));

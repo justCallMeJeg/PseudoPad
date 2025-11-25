@@ -75,6 +75,11 @@ public class FileExplorer extends JPanel {
         add(new JScrollPane(fileTree), BorderLayout.CENTER);
     }
     
+    public void clear() {
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode("No Project Opened");
+        treeModel.setRoot(root);
+    }
+    
     public void setOnFileOpenListener(Consumer<File> listener) {
         this.onFileOpen = listener;
     }
