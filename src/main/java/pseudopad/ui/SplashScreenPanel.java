@@ -1,5 +1,7 @@
 package pseudopad.ui;
 
+import pseudopad.utils.ThemeManager;
+
 /**
  *
  * @author Geger John Paul Gabayeron
@@ -11,6 +13,12 @@ public class SplashScreenPanel extends javax.swing.JPanel {
      */
     public SplashScreenPanel() {
         initComponents();
+        
+        if (ThemeManager.getInstance().isDarkMode()) {
+            ImagePanel.setImageResourcePath("/img/PseudoPad_SplashScreenTitle_Dark.png");
+        } else {
+            ImagePanel.setImageResourcePath("/img/PseudoPad_SplashScreenTitle.png");
+        }
     }
     
     public void setDebugText(String message) {
@@ -30,7 +38,7 @@ public class SplashScreenPanel extends javax.swing.JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        imagePanel3 = new pseudopad.ui.components.ImagePanel();
+        ImagePanel = new pseudopad.ui.components.ImagePanel();
         jPanel2 = new javax.swing.JPanel();
         SplashScreenProgressBar = new javax.swing.JProgressBar();
         jPanel3 = new javax.swing.JPanel();
@@ -44,22 +52,22 @@ public class SplashScreenPanel extends javax.swing.JPanel {
         setPreferredSize(new java.awt.Dimension(600, 375));
         setLayout(new java.awt.BorderLayout());
 
-        imagePanel3.setAlignmentX(0.0F);
-        imagePanel3.setAlignmentY(0.0F);
-        imagePanel3.setImageResourcePath("/img/PseudoPad_SplashScreenTitle.png");
+        ImagePanel.setAlignmentX(0.0F);
+        ImagePanel.setAlignmentY(0.0F);
+        ImagePanel.setImageResourcePath("");
 
-        javax.swing.GroupLayout imagePanel3Layout = new javax.swing.GroupLayout(imagePanel3);
-        imagePanel3.setLayout(imagePanel3Layout);
-        imagePanel3Layout.setHorizontalGroup(
-            imagePanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        javax.swing.GroupLayout ImagePanelLayout = new javax.swing.GroupLayout(ImagePanel);
+        ImagePanel.setLayout(ImagePanelLayout);
+        ImagePanelLayout.setHorizontalGroup(
+            ImagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 600, Short.MAX_VALUE)
         );
-        imagePanel3Layout.setVerticalGroup(
-            imagePanel3Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+        ImagePanelLayout.setVerticalGroup(
+            ImagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 300, Short.MAX_VALUE)
         );
 
-        add(imagePanel3, java.awt.BorderLayout.CENTER);
+        add(ImagePanel, java.awt.BorderLayout.CENTER);
 
         jPanel2.setAlignmentX(0.0F);
         jPanel2.setAlignmentY(0.0F);
@@ -88,9 +96,9 @@ public class SplashScreenPanel extends javax.swing.JPanel {
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private pseudopad.ui.components.ImagePanel ImagePanel;
     private javax.swing.JProgressBar SplashScreenProgressBar;
     private javax.swing.JLabel SplashScreenText;
-    private pseudopad.ui.components.ImagePanel imagePanel3;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     // End of variables declaration//GEN-END:variables

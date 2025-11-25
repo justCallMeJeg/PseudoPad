@@ -3,6 +3,7 @@ package pseudopad.app;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import javax.swing.SwingWorker;
+import pseudopad.utils.IconManager;
 
 /**
  *
@@ -49,10 +50,9 @@ public class AppStartupWorker extends SwingWorker<Boolean, StartupProgress> {
         currentStep++;
         publish(new StartupProgress(
             (currentStep * 100) / totalSteps, // 20%
-            "Caching syntax definitions..."
+            "Caching UI icons..."
         ));
-        // Example: load keywords from a file or hardcoded set
-        Thread.sleep(2500); // Simulate task time
+        IconManager.preloadCoreIcons();
         
         currentStep++;
         publish(new StartupProgress(
@@ -60,7 +60,7 @@ public class AppStartupWorker extends SwingWorker<Boolean, StartupProgress> {
             "Loading example templates..."
         ));
         // Example: check resource directory for example files
-        Thread.sleep(2500); // Simulate task time
+//        Thread.sleep(2500); // Simulate task time
 
         // --- 4. Final Application State Check ---
         currentStep++;
@@ -70,7 +70,7 @@ public class AppStartupWorker extends SwingWorker<Boolean, StartupProgress> {
         ));
         
         // Simulate a final brief delay for visual effect
-        Thread.sleep(5000); 
+        Thread.sleep(3000); 
 
         return true; // Return success
     }
@@ -88,7 +88,7 @@ public class AppStartupWorker extends SwingWorker<Boolean, StartupProgress> {
             // Check for successful completion
             if (get()) {
                 // 1. Launch the Main Frame
-                mainFrame.launchApplication(); 
+                mainFrame.launchAppInstance(null);
             } else {
                 // Handle case where startup failed (e.g., show an error dialog)
                 System.err.println("Startup failed.");

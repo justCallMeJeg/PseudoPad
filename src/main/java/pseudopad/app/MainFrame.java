@@ -1,301 +1,270 @@
 package pseudopad.app;
 
+import javax.swing.border.Border;
+import javax.swing.BorderFactory;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Image;
+import java.awt.Taskbar;
+import java.io.File;
+import javax.swing.ImageIcon;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
-import pseudopad.ui.components.LineNumberHeader;
+import javax.swing.JLabel;
+import javax.swing.JMenuBar;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import pseudopad.ui.components.AppMenuBar;
+import pseudopad.ui.FallbackPanel;
+import pseudopad.ui.components.EditorTabbedPane;
+import pseudopad.ui.components.FileExplorer;
+import pseudopad.ui.components.TabbedPane;
+import pseudopad.ui.components.TextPane;
+import pseudopad.utils.AppActionsManager;
+import pseudopad.utils.PreferenceManager;
+import pseudopad.utils.ProjectManager;
+import pseudopad.utils.ThemeManager;
 
 /**
  *
  * @author Geger John Paul Gabayeron
  */
-public class MainFrame extends javax.swing.JFrame {
+public class MainFrame extends JFrame {
+    private static MainFrame INSTANCE;
     
-    /**
-     * Creates new form MainFrame
-     */
+    private File currentProjectPath;
+    private final ThemeManager themeManager = ThemeManager.getInstance();
+    private final PreferenceManager AppPref = PreferenceManager.getInstance();
+    private final AppActionsManager AppActions = new AppActionsManager(this);
+    
     public MainFrame() {
-        initComponents();
-        setupTextEditor();
+        INSTANCE = this;
+        initUIComponents();
+        
+        UIManager.addPropertyChangeListener(e -> {
+            if ("lookAndFeel".equals(e.getPropertyName())) {
+               Boolean isDark = ThemeManager.getInstance().isDarkMode();
+               setupAppIcon(isDark);
+            }
+        });
     }
     
-    public void launchApplication() {
-        // 1. Make the frame visible (maximized)
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    public void setupAppIcon(Boolean isDark) {
+        Image icon = new ImageIcon(MainFrame.class.getResource(isDark ? "/img/icon_dark.png" : "/img/icon.png")).getImage();
         
+        // macOS app icon setup
+        // Check if the Taskbar API is supported on the current OS
+        if (Taskbar.isTaskbarSupported()) {
+            Taskbar taskbar = Taskbar.getTaskbar();
+            try {
+                // Set the icon for the application's global taskbar/dock icon
+                taskbar.setIconImage(icon);
+            } catch (UnsupportedOperationException e) {
+                System.err.println("The taskbar setIconImage feature is not supported on this platform.");
+            }
+        }
+        
+        // Windows/Linux app icon setup
+        setIconImage(icon);
+    }
+    
+    public void launchAppInstance(File projectPath) {
+        this.currentProjectPath = projectPath;
+        
+        // 1. Show the window FIRST so components get their sizes
         this.setVisible(true);
         this.toFront();
         this.requestFocus();
-        // 2. Call the logic to decide what tab to open (Welcome Tab or recent project)
-        // You'll need access to the IdePanel here, which is assumed to be part of MainFrame
-//        IdePanel idePanel = (IdePanel) this.mainContentPanel; // Assuming you store IdePanel
-//        idePanel.openInitialTab();
+        
+        // 2. Configure components
+        if (currentProjectPath != null) {
+            this.setTitle(this.currentProjectPath.getName() + " - PseudoPad v0");
+            this.fileExplorer.openProject(projectPath);
+            this.editorSplitPane.setTopComponent(editorTabbedPane);
+        } else {
+            this.setTitle("PseudoPad v0");
+            this.editorSplitPane.setTopComponent(new FallbackPanel());
+        }
+
+        // 3. Set Divider Locations LAST, inside invokeLater
+        // This places the request at the end of the Event Queue, ensuring
+        // the window is fully drawn before the dividers try to move.
+        SwingUtilities.invokeLater(() -> {
+            // Set Main Split (Navigation vs Editor)
+            this.mainSplitPane.setDividerLocation(0.25); // e.g. 25% for file tree
+            
+            // Set Editor Split (Editor vs Console)
+            if (currentProjectPath != null) {
+                this.editorSplitPane.setDividerLocation(0.75);
+            } else {
+                this.editorSplitPane.setDividerLocation(1.0);
+            }
+            
+            // Set Navigation Split (Files vs Outline)
+            this.navigationSplitPane.setDividerLocation(0.5);
+        });
     }
     
-    private void setupTextEditor() {
-        LineNumberHeader lines = new LineNumberHeader(EditorPane);
-        EditorScrollPane.setRowHeaderView(lines);
+    public void showOpenProjectDialog() {
+        JFileChooser chooser = new JFileChooser();
+
+        // 1. CRITICAL: Allow selecting DIRECTORIES only
+        chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        chooser.setDialogTitle("Open Project Folder");
+
+        // Optional: Start in a sensible location (like Documents)
+        chooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+
+        int result = chooser.showOpenDialog(this);
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFolder = chooser.getSelectedFile();
+
+            // THE NEW CHECK
+            if (ProjectManager.isValidProject(selectedFolder)) {
+                // It has the .pseudocode folder -> Open it!
+                MainFrame newWindow = new MainFrame();
+                newWindow.setupAppIcon(themeManager.isDarkMode());
+                newWindow.launchAppInstance(selectedFolder);
+            } else {
+                // It's just a random folder -> Error or Prompt to Initialize
+                int choice = JOptionPane.showConfirmDialog(this,
+                        "This folder is not a PseudoPad project.\nDo you want to initialize it?",
+                        "Project Not Found",
+                        JOptionPane.YES_NO_OPTION);
+
+                if (choice == JOptionPane.YES_OPTION) {
+                    // Call init logic (maybe assume folder name is project name)
+                    try {
+                        // Note: This helper needs to support 'initializing existing dir'
+                        // ProjectManager.initializeExisting(selectedFolder); 
+                        MainFrame newWindow = new MainFrame();
+                        newWindow.launchAppInstance(selectedFolder);
+                    } catch (Exception e) {
+                        // handle error
+                    }
+                }
+            }
+        }
     }
     
-    public String getEditorText() {
-        return EditorPane.getText();
+    public void changeTheme(ThemeManager.THEMES theme) {
+        ThemeManager.getInstance().changeTheme(theme);
     }
     
-    public void setOutputText(String text) {
-        OutputTextPane.setText(text);
+    public File getCurrentProjectPath() {
+        return currentProjectPath;
     }
     
-    /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
-     */
-    @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    public MainFrame getAppInstance() {
+        return INSTANCE;
+    }
+    
+    private void initUIComponents() {
+        initComponents();
+        
+        Border lineBorder = BorderFactory.createLineBorder(UIManager.getColor("Panel.background").darker(), 1);
+        
+        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.setMinimumSize(new Dimension(900, 506));
+        
+        this.setJMenuBar(menuBar);
+        
+        this.mainSplitPane.setResizeWeight(0.0);
+        this.mainSplitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
+        
+        this.getContentPane().add(mainSplitPane, BorderLayout.CENTER);
+        
+        this.navigationSplitPane.setBorder(lineBorder);
+        this.navigationSplitPane.setResizeWeight(0.5);
+        this.navigationSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        
+        this.topNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
+        this.topNavigationTabbedPane.add("Projects", projectExplorer);
+        this.topNavigationTabbedPane.add("Files", fileExplorer);
+        this.topNavigationTabbedPane.setMinimizeAction(e -> {
+            // Toggle Logic:
+            if (this.navigationSplitPane.getDividerLocation() >= this.editorSplitPane.getMaximumDividerLocation() - 50) {
+                // Restore (If explicitly closed) -> Set to 70%
+                this.navigationSplitPane.setDividerLocation(0.5);
+            } else {
+                // Minimize -> Set to bottom (1.0 means 100%)
+                this.navigationSplitPane.setDividerLocation(0);
+            }
+        });
+        
+        this.bottomNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
+        this.bottomNavigationTabbedPane.add("Navigation", new JPanel().add(new JLabel("File Navigation Panel")));
+        this.bottomNavigationTabbedPane.setMinimizeAction(e -> {
+            // Toggle Logic:
+            if (this.navigationSplitPane.getDividerLocation() >= this.editorSplitPane.getMaximumDividerLocation() - 50) {
+                // Restore (If explicitly closed) -> Set to 70%
+                this.navigationSplitPane.setDividerLocation(0.5);
+            } else {
+                // Minimize -> Set to bottom (1.0 means 100%)
+                this.navigationSplitPane.setDividerLocation(1.0);
+            }
+        });
+        
+        this.navigationSplitPane.setTopComponent(this.topNavigationTabbedPane);
+        this.navigationSplitPane.setBottomComponent(this.bottomNavigationTabbedPane);
+        
+        this.mainSplitPane.setLeftComponent(this.navigationSplitPane);
+        
+        this.editorSplitPane.setBorder(lineBorder);
+        this.editorSplitPane.setResizeWeight(1.0);
+        this.editorSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
+        
+        this.bottomEditorTabbedPane.add("Output", terminalTextPane);
+        this.bottomEditorTabbedPane.add("Logs", logTextPane);
+        
+        this.editorSplitPane.setBottomComponent(bottomEditorTabbedPane);
+        
+        this.mainSplitPane.setRightComponent(this.editorSplitPane);
+        
+        this.bottomEditorTabbedPane.setMinimizeAction(e -> {
+            // Toggle Logic:
+            if (this.editorSplitPane.getDividerLocation() >= this.editorSplitPane.getMaximumDividerLocation() - 50) {
+                // Restore (If explicitly closed) -> Set to 70%
+                this.editorSplitPane.setDividerLocation(0.7);
+            } else {
+                // Minimize -> Set to bottom (1.0 means 100%)
+                this.editorSplitPane.setDividerLocation(1.0);
+            }
+        });
+    }
+    
     private void initComponents() {
-
-        TextEditorSplitPane = new javax.swing.JSplitPane();
-        EditorScrollPane = new javax.swing.JScrollPane();
-        EditorPane = new javax.swing.JEditorPane();
-        OutputScrollPane = new javax.swing.JScrollPane();
-        OutputTextPane = new javax.swing.JTextPane();
-        MenuBar = new javax.swing.JMenuBar();
-        FileMenu = new javax.swing.JMenu();
-        NewProjectMenuItem = new javax.swing.JMenuItem();
-        NewFileMenuItem = new javax.swing.JMenuItem();
-        MenuBarSeparator1 = new javax.swing.JPopupMenu.Separator();
-        OpenProjectMenuItem = new javax.swing.JMenuItem();
-        jMenu3 = new javax.swing.JMenu();
-        CloseProjectMenuItem = new javax.swing.JMenuItem();
-        OpenFileMenuItem = new javax.swing.JMenuItem();
-        OpenRecentFileMenuItem = new javax.swing.JMenu();
-        MenuBarSeparator2 = new javax.swing.JPopupMenu.Separator();
-        SaveMenuItem = new javax.swing.JMenuItem();
-        SaveAsMenuItem = new javax.swing.JMenuItem();
-        SaveAllMenuItem = new javax.swing.JMenuItem();
-        MenuBarSeparator3 = new javax.swing.JPopupMenu.Separator();
-        ExitMenuItem = new javax.swing.JMenuItem();
-        EditMenu = new javax.swing.JMenu();
-        UndoMenuItem = new javax.swing.JMenuItem();
-        RedoMenuItem = new javax.swing.JMenuItem();
-        MenuBarSeparator4 = new javax.swing.JPopupMenu.Separator();
-        CutMenuItem = new javax.swing.JMenuItem();
-        CopyMenuItem = new javax.swing.JMenuItem();
-        PasteMenuItem = new javax.swing.JMenuItem();
-        DeleteMenuItem = new javax.swing.JMenuItem();
-        MenuBarSeparator5 = new javax.swing.JPopupMenu.Separator();
-        FindMenuItem = new javax.swing.JMenuItem();
-        ReplaceMenuItem = new javax.swing.JMenuItem();
-        HelpMenu = new javax.swing.JMenu();
-        AboutMenuItem = new javax.swing.JMenuItem();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setTitle("PseudoCode v0");
-        setMinimumSize(new java.awt.Dimension(720, 405));
-
-        TextEditorSplitPane.setDividerLocation(1900);
-        TextEditorSplitPane.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
-
-        EditorScrollPane.setColumnHeader(null);
-        EditorScrollPane.setColumnHeaderView(null);
-        EditorScrollPane.setViewportView(EditorPane);
-
-        TextEditorSplitPane.setLeftComponent(EditorScrollPane);
-
-        OutputScrollPane.setViewportView(OutputTextPane);
-
-        TextEditorSplitPane.setRightComponent(OutputScrollPane);
-
-        getContentPane().add(TextEditorSplitPane, java.awt.BorderLayout.CENTER);
-
-        FileMenu.setText("File");
-        FileMenu.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-
-        NewProjectMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        NewProjectMenuItem.setText("New Project");
-        NewProjectMenuItem.setToolTipText("");
-        NewProjectMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        NewProjectMenuItem.addActionListener(this::NewProjectMenuItemActionPerformed);
-        FileMenu.add(NewProjectMenuItem);
-
-        NewFileMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_N, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        NewFileMenuItem.setText("New File...");
-        NewFileMenuItem.setToolTipText("");
-        NewFileMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        FileMenu.add(NewFileMenuItem);
-        FileMenu.add(MenuBarSeparator1);
-
-        OpenProjectMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        OpenProjectMenuItem.setText("Open Project...");
-        OpenProjectMenuItem.setToolTipText("");
-        OpenProjectMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        OpenProjectMenuItem.addActionListener(this::OpenProjectMenuItemActionPerformed);
-        FileMenu.add(OpenProjectMenuItem);
-
-        jMenu3.setText("Open Recent Project");
-        FileMenu.add(jMenu3);
-
-        CloseProjectMenuItem.setText("Close Project");
-        CloseProjectMenuItem.setToolTipText("");
-        CloseProjectMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        CloseProjectMenuItem.addActionListener(this::CloseProjectMenuItemActionPerformed);
-        FileMenu.add(CloseProjectMenuItem);
-
-        OpenFileMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        OpenFileMenuItem.setText("Open File...");
-        OpenFileMenuItem.setToolTipText("");
-        OpenFileMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        OpenFileMenuItem.addActionListener(this::OpenFileMenuItemActionPerformed);
-        FileMenu.add(OpenFileMenuItem);
-
-        OpenRecentFileMenuItem.setText("Open Recent File");
-        FileMenu.add(OpenRecentFileMenuItem);
-        FileMenu.add(MenuBarSeparator2);
-
-        SaveMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        SaveMenuItem.setText("Save");
-        SaveMenuItem.setToolTipText("");
-        SaveMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        SaveMenuItem.addActionListener(this::SaveMenuItemActionPerformed);
-        FileMenu.add(SaveMenuItem);
-
-        SaveAsMenuItem.setText("Save as...");
-        SaveAsMenuItem.setToolTipText("");
-        SaveAsMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        SaveAsMenuItem.addActionListener(this::SaveAsMenuItemActionPerformed);
-        FileMenu.add(SaveAsMenuItem);
-
-        SaveAllMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_S, java.awt.event.InputEvent.SHIFT_DOWN_MASK | java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        SaveAllMenuItem.setText("Save All");
-        SaveAllMenuItem.setToolTipText("");
-        SaveAllMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        SaveAllMenuItem.addActionListener(this::SaveAllMenuItemActionPerformed);
-        FileMenu.add(SaveAllMenuItem);
-        FileMenu.add(MenuBarSeparator3);
-
-        ExitMenuItem.setText("Exit");
-        ExitMenuItem.setToolTipText("");
-        ExitMenuItem.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
-        ExitMenuItem.addActionListener(this::ExitMenuItemActionPerformed);
-        FileMenu.add(ExitMenuItem);
-
-        MenuBar.add(FileMenu);
-
-        EditMenu.setText("Edit");
-
-        UndoMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        UndoMenuItem.setText("Undo");
-        EditMenu.add(UndoMenuItem);
-
-        RedoMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        RedoMenuItem.setText("Redo");
-        EditMenu.add(RedoMenuItem);
-        EditMenu.add(MenuBarSeparator4);
-
-        CutMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_X, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        CutMenuItem.setText("Cut");
-        EditMenu.add(CutMenuItem);
-
-        CopyMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        CopyMenuItem.setText("Copy");
-        EditMenu.add(CopyMenuItem);
-
-        PasteMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_V, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        PasteMenuItem.setText("Paste");
-        EditMenu.add(PasteMenuItem);
-
-        DeleteMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DELETE, 0));
-        DeleteMenuItem.setText("Delete");
-        EditMenu.add(DeleteMenuItem);
-        EditMenu.add(MenuBarSeparator5);
-
-        FindMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        FindMenuItem.setText("Find...");
-        EditMenu.add(FindMenuItem);
-
-        ReplaceMenuItem.setAccelerator(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.CTRL_DOWN_MASK));
-        ReplaceMenuItem.setText("Replace...");
-        EditMenu.add(ReplaceMenuItem);
-
-        MenuBar.add(EditMenu);
-
-        HelpMenu.setText("Help");
-
-        AboutMenuItem.setText("About");
-        HelpMenu.add(AboutMenuItem);
-
-        MenuBar.add(HelpMenu);
-
-        setJMenuBar(MenuBar);
-
-        pack();
-    }// </editor-fold>//GEN-END:initComponents
-
-    private void NewProjectMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NewProjectMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_NewProjectMenuItemActionPerformed
-
-    private void OpenProjectMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpenProjectMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_OpenProjectMenuItemActionPerformed
-
-    private void ExitMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ExitMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_ExitMenuItemActionPerformed
-
-    private void SaveMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_SaveMenuItemActionPerformed
-
-    private void SaveAsMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveAsMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_SaveAsMenuItemActionPerformed
-
-    private void SaveAllMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveAllMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_SaveAllMenuItemActionPerformed
-
-    private void CloseProjectMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_CloseProjectMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_CloseProjectMenuItemActionPerformed
-
-    private void OpenFileMenuItemActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_OpenFileMenuItemActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_OpenFileMenuItemActionPerformed
-
-    // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JMenuItem AboutMenuItem;
-    private javax.swing.JMenuItem CloseProjectMenuItem;
-    private javax.swing.JMenuItem CopyMenuItem;
-    private javax.swing.JMenuItem CutMenuItem;
-    private javax.swing.JMenuItem DeleteMenuItem;
-    private javax.swing.JMenu EditMenu;
-    private javax.swing.JEditorPane EditorPane;
-    private javax.swing.JScrollPane EditorScrollPane;
-    private javax.swing.JMenuItem ExitMenuItem;
-    private javax.swing.JMenu FileMenu;
-    private javax.swing.JMenuItem FindMenuItem;
-    private javax.swing.JMenu HelpMenu;
-    private javax.swing.JMenuBar MenuBar;
-    private javax.swing.JPopupMenu.Separator MenuBarSeparator1;
-    private javax.swing.JPopupMenu.Separator MenuBarSeparator2;
-    private javax.swing.JPopupMenu.Separator MenuBarSeparator3;
-    private javax.swing.JPopupMenu.Separator MenuBarSeparator4;
-    private javax.swing.JPopupMenu.Separator MenuBarSeparator5;
-    private javax.swing.JMenuItem NewFileMenuItem;
-    private javax.swing.JMenuItem NewProjectMenuItem;
-    private javax.swing.JMenuItem OpenFileMenuItem;
-    private javax.swing.JMenuItem OpenProjectMenuItem;
-    private javax.swing.JMenu OpenRecentFileMenuItem;
-    private javax.swing.JScrollPane OutputScrollPane;
-    private javax.swing.JTextPane OutputTextPane;
-    private javax.swing.JMenuItem PasteMenuItem;
-    private javax.swing.JMenuItem RedoMenuItem;
-    private javax.swing.JMenuItem ReplaceMenuItem;
-    private javax.swing.JMenuItem SaveAllMenuItem;
-    private javax.swing.JMenuItem SaveAsMenuItem;
-    private javax.swing.JMenuItem SaveMenuItem;
-    private javax.swing.JSplitPane TextEditorSplitPane;
-    private javax.swing.JMenuItem UndoMenuItem;
-    private javax.swing.JMenu jMenu3;
-    // End of variables declaration//GEN-END:variables
+        this.menuBar = new AppMenuBar(this.AppActions);
+        this.mainSplitPane = new JSplitPane();
+        this.navigationSplitPane = new JSplitPane();
+        this.editorSplitPane = new JSplitPane();
+        this.topNavigationTabbedPane = new TabbedPane();
+        this.bottomNavigationTabbedPane = new TabbedPane();
+        this.fileExplorer = new FileExplorer();
+        this.projectExplorer = new FileExplorer();
+        this.editorTabbedPane = new EditorTabbedPane();
+        this.bottomEditorTabbedPane = new TabbedPane();
+        this.terminalTextPane = new TextPane();
+        this.logTextPane = new TextPane();
+    }
+    
+    private JMenuBar menuBar;
+    private JSplitPane mainSplitPane;
+    private JSplitPane navigationSplitPane;
+    private JSplitPane editorSplitPane;
+    private TabbedPane topNavigationTabbedPane;
+    private TabbedPane bottomNavigationTabbedPane;
+    private FileExplorer fileExplorer;
+    private FileExplorer projectExplorer;
+    private EditorTabbedPane editorTabbedPane;
+    private TabbedPane bottomEditorTabbedPane;
+    
+    private TextPane terminalTextPane;
+    private TextPane logTextPane;
 }

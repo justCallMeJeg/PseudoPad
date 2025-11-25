@@ -1,10 +1,15 @@
 package pseudopad;
 
+import java.awt.Taskbar;
+import java.awt.Image;
+import javax.swing.ImageIcon;
 import javax.swing.SwingUtilities;
 import pseudopad.app.AppStartupWorker;
 import pseudopad.app.MainFrame;
+//import pseudopad.app.MainFrame2;
 import pseudopad.app.SplashScreenWindow;
-import pseudopad.services.ThemeManager;
+import pseudopad.utils.PreferenceManager;
+import pseudopad.utils.ThemeManager;
 
 /**
  *
@@ -22,6 +27,8 @@ public class Main {
             
             // 2. Create the Main Frame (Invisible initially, but initialized)
             MainFrame mainFrame = new MainFrame();
+            
+            mainFrame.setupAppIcon(ThemeManager.getInstance().isDarkMode());
             
             // 3. Execute the Worker
             // The worker takes charge of the timeline from this point on.

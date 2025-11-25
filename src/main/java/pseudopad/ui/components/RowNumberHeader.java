@@ -19,10 +19,10 @@ import javax.swing.text.Element;
  *
  * @author Geger John Paul Gabayeron
  */
-public class LineNumberHeader extends JPanel {
+public class RowNumberHeader extends JPanel {
     private final JEditorPane textPane;
 
-    public LineNumberHeader(JEditorPane textPane) {
+    public RowNumberHeader(JEditorPane textPane) {
         this.textPane = textPane;
         
         // Visual Polish
