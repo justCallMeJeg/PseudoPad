@@ -22,6 +22,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import pseudopad.app.MainFrame;
 import pseudopad.utils.ProjectManager;
+import pseudopad.utils.ThemeManager;
 
 /**
  * 
@@ -119,6 +120,7 @@ public class NewProjectDialog extends JDialog {
             
             File newProjectRoot = new File(location, name);
             MainFrame newFrame = new MainFrame();
+            newFrame.setupAppIcon(ThemeManager.getInstance().isDarkMode());
             newFrame.launchAppInstance(newProjectRoot);
             
             // Close the current "Welcome" window if it was empty and show the chosen project instead

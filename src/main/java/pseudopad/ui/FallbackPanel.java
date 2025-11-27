@@ -63,7 +63,7 @@ public class FallbackPanel extends JPanel {
         this.repaint();
     }
     
-    private JButton createButton(String title, String shortcut, Action action) {
+    private JButton createButton(String title, Action action) {
         JButton button = new JButton();
         button.setLayout(new FlowLayout(FlowLayout.LEFT, 24, 8));
         
@@ -78,7 +78,13 @@ public class FallbackPanel extends JPanel {
         
         JLabel shortcutLabel = new JLabel();
         shortcutLabel.setForeground(UIManager.getColor("Component.accentColor"));
-        shortcutLabel.setText(shortcut);
+        
+        if (action != null) {
+            String actionShortcut = (String) action.getValue(Action.ACTION_COMMAND_KEY);
+            shortcutLabel.setText(actionShortcut != null ? actionShortcut : "-");
+        } else {
+            shortcutLabel.setText("-");
+        }
         
         textContainer.add(titleLabel);
         textContainer.add(shortcutLabel);
@@ -107,9 +113,9 @@ public class FallbackPanel extends JPanel {
         
         AppActionsManager actionManager = appFrame.getAppActionInstance();
         
-        gridPanel.add(createButton("New Project...", "Ctrl + Shift + N", actionManager.NEW_PROJECT));
-        gridPanel.add(createButton("Open Project...", "Ctrl + Shift + O", actionManager.OPEN_PROJECT));
-        gridPanel.add(createButton("Open File...", "-", null));
+        gridPanel.add(createButton("New Project...", actionManager.NEW_PROJECT));
+        gridPanel.add(createButton("Open Project...", actionManager.OPEN_PROJECT));
+        gridPanel.add(createButton("Open File...", null));
         
         body.add(gridPanel, BorderLayout.EAST);
         body.setMinimumSize(new Dimension(350, 250));

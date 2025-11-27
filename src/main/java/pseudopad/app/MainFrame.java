@@ -8,7 +8,6 @@ import java.awt.Image;
 import java.awt.Taskbar;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -20,9 +19,9 @@ import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import pseudopad.ui.components.AppMenuBar;
+import pseudopad.ui.components.AppToolBar;
 import pseudopad.ui.components.EditorTabbedPane;
 import pseudopad.ui.components.FileExplorer;
-import pseudopad.ui.components.FileTabPane;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
 import pseudopad.utils.AppActionsManager;
@@ -201,9 +200,11 @@ public class MainFrame extends JFrame {
         
         this.setJMenuBar(menuBar);
         
+        AppToolBar toolBar = new AppToolBar(this.AppActions);
+        this.getContentPane().add(toolBar, BorderLayout.NORTH);
+        
         this.mainSplitPane.setResizeWeight(0.0);
         this.mainSplitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
-        
         this.getContentPane().add(mainSplitPane, BorderLayout.CENTER);
         
         this.navigationSplitPane.setBorder(lineBorder);

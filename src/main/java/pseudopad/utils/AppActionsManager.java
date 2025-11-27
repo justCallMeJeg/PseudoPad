@@ -22,26 +22,26 @@ public class AppActionsManager {
     
     public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
         {
-            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+            setup(this, "new_project", "Create a new PseudoCode project", 
+                  KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
         @Override
         public void actionPerformed(ActionEvent e) {
-            // Show the dialog
+            System.out.println("Action: New Project");
             NewProjectDialog newProject = new NewProjectDialog(appFrame);
             newProject.setLocationRelativeTo(null);
             newProject.setVisible(true);
         }
     };
     
-    public final Action OPEN_PROJECT = new AbstractAction("Open Project...", IconManager.get("open_project")) {
+    public final Action OPEN_PROJECT = new AbstractAction("Open Project...") {
         {
-            putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
-            putValue(Action.SHORT_DESCRIPTION, "Open an existing project");
+            setup(this, "open_project", "Open an existing PseudoCode project", 
+                  KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Open Project");
-            // Now valid: accessing instance variable from instance context
             appFrame.showOpenProjectDialog();
         }
     };
@@ -52,8 +52,7 @@ public class AppActionsManager {
         }
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Open Project");
-            // Now valid: accessing instance variable from instance context
+            System.out.println("Action: Close Project");
             appFrame.closeProject();
         }
     };
@@ -94,5 +93,27 @@ public class AppActionsManager {
             appFrame.changeTheme(ThemeManager.THEMES.SYSTEM);
         }
     };
+    // </editor-fold>
+    
+    // <editor-fold defaultstate="collapsed" desc="Helper Functions">
+    private void setup(Action a, String iconName, String desc, KeyStroke key) {
+        // 1. Menu Icon (16x16)
+        a.putValue(Action.SMALL_ICON, IconManager.get(iconName, 16));
+
+        // 2. Toolbar Icon (24x24) - Saved under a special key
+        a.putValue(Action.LARGE_ICON_KEY, IconManager.get(iconName, 32));
+
+        // 3. Metadata
+        a.putValue(Action.SHORT_DESCRIPTION, desc + (key != null ? " (" + getKeyString(key) + ")" : ""));
+        a.putValue(Action.ACTION_COMMAND_KEY, getKeyString(key));
+        if (key != null) {
+            a.putValue(Action.ACCELERATOR_KEY, key);
+        }
+    }
+
+    private String getKeyString(KeyStroke key) {
+        // Simple helper to format tooltip text (e.g., "Ctrl+O")
+        return KeyEvent.getKeyModifiersText(key.getModifiers()) + "+" + KeyEvent.getKeyText(key.getKeyCode());
+    }
     // </editor-fold>
 }

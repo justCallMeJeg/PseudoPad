@@ -1,0 +1,72 @@
+package pseudopad.ui.components;
+
+import com.formdev.flatlaf.FlatClientProperties;
+import javax.swing.JButton;
+import javax.swing.JToolBar;
+import pseudopad.utils.AppActionsManager;
+
+/**
+ *
+ * @author Geger John Paul Gabayeron
+ */
+public class AppToolBar extends JToolBar {
+    private final AppActionsManager actions;
+
+    public AppToolBar(AppActionsManager actions) {
+        this.actions = actions;
+        initToolbar();
+    }
+
+    private void initToolbar() {
+        // 1. Setup Basic Properties
+        setFloatable(false); // Modern apps don't let you drag the toolbar out
+        setRollover(true);   // Highlight buttons on hover
+
+        // Optional: FlatLaf styling for a cleaner look
+        // putClientProperty(FlatClientProperties.STYLE, "padding: 4,4,4,4;");
+        // 2. Add Actions
+        // Just adding the Action object automatically creates a JButton 
+        // with the correct Icon and Tooltip!
+        // --- File Group ---
+        add(createButton(actions.NEW_PROJECT));
+        add(createButton(actions.OPEN_PROJECT));
+//        add(createButton(actions.SAVE)); // Ensure you add SAVE to AppActionsManager
+
+        addSeparator();
+
+        // --- Edit Group ---
+//        add(createButton(actions.UNDO)); // Ensure UNDO exists
+//        add(createButton(actions.REDO)); // Ensure REDO exists
+//        add(createButton(actions.CUT));
+//        add(createButton(actions.COPY));
+//        add(createButton(actions.PASTE));
+
+        addSeparator();
+
+        // --- Run Group ---
+//        add(createButton(actions.RUN));  // Ensure RUN exists
+    }
+
+    /**
+     * Helper to create a button from an Action. We wrap this to apply specific
+     * toolbar styling if needed.
+     */
+    private JButton createButton(javax.swing.Action action) {
+        if (action == null) {
+            // Fallback for actions you haven't implemented yet
+            JButton placeHolder = new JButton("?");
+            placeHolder.setEnabled(false);
+            return placeHolder;
+        }
+
+        JButton btn = new JButton(action);
+
+        // Hide the text, show only the icon (standard for toolbars)
+        btn.setText("");
+
+        // Force FlatLaf Toolbar style (removes borders until hovered)
+        btn.putClientProperty(FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON);
+
+        return btn;
+    }
+}
