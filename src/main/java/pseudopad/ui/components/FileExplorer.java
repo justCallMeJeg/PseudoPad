@@ -1,10 +1,23 @@
 package pseudopad.ui.components;
 
 import java.awt.BorderLayout;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionEvent;
+
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.swing.BorderFactory;
@@ -14,6 +27,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeWillExpandListener;
@@ -39,6 +53,10 @@ public class FileExplorer extends JPanel {
 
     // Callback to tell the main app a file was deleted
     private Consumer<File> onFileDeleted;
+
+    // Clipboard State
+    private List<File> clipboardFiles = new ArrayList<>();
+    private boolean isCutOperation = false;
 
     public FileExplorer() {
         super(new BorderLayout());
@@ -75,6 +93,48 @@ public class FileExplorer extends JPanel {
         JMenuItem deleteItem = new JMenuItem("Delete");
         deleteItem.addActionListener(e -> deleteSelectedFile());
         contextMenu.add(deleteItem);
+
+        contextMenu.addSeparator();
+
+        JMenuItem copyItem = new JMenuItem("Copy");
+        copyItem.addActionListener(e -> copy());
+        contextMenu.add(copyItem);
+
+        JMenuItem cutItem = new JMenuItem("Cut");
+        cutItem.addActionListener(e -> cut());
+        contextMenu.add(cutItem);
+
+        JMenuItem pasteItem = new JMenuItem("Paste");
+        pasteItem.addActionListener(e -> paste());
+        contextMenu.add(pasteItem);
+
+        // Keyboard Shortcuts for Tree
+        fileTree.getInputMap().put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()), "copy");
+        fileTree.getActionMap().put("copy", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                copy();
+            }
+        });
+
+        fileTree.getInputMap().put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()), "cut");
+        fileTree.getActionMap().put("cut", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                cut();
+            }
+        });
+
+        fileTree.getInputMap().put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()), "paste");
+        fileTree.getActionMap().put("paste", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                paste();
+            }
+        });
 
         fileTree.addMouseListener(new MouseAdapter() {
             @Override
@@ -283,6 +343,168 @@ public class FileExplorer extends JPanel {
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error deleting file: " + ex.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void copy() {
+        File selectedFile = getSelectedFile();
+        if (selectedFile != null) {
+            setClipboard(Arrays.asList(selectedFile), false);
+        }
+    }
+
+    public void cut() {
+        File selectedFile = getSelectedFile();
+        if (selectedFile != null) {
+            setClipboard(Arrays.asList(selectedFile), true);
+        }
+    }
+
+    public void paste() {
+        File targetDir = getSelectedFile();
+        if (targetDir == null) {
+            targetDir = currentProjectRoot;
+        } else if (!targetDir.isDirectory()) {
+            targetDir = targetDir.getParentFile();
+        }
+
+        if (targetDir == null || !targetDir.exists()) {
+            return;
+        }
+
+        List<File> filesToPaste = getClipboardFiles();
+        if (filesToPaste == null || filesToPaste.isEmpty()) {
+            return;
+        }
+
+        for (File srcFile : filesToPaste) {
+            if (!srcFile.exists())
+                continue;
+
+            File destFile = new File(targetDir, srcFile.getName());
+
+            // Auto-rename if exists and not moving (or even if moving, to avoid overwrite)
+            if (destFile.exists()) {
+                String name = srcFile.getName();
+                String baseName = name;
+                String ext = "";
+                int dotIndex = name.lastIndexOf('.');
+                if (dotIndex > 0) {
+                    baseName = name.substring(0, dotIndex);
+                    ext = name.substring(dotIndex);
+                }
+                int counter = 1;
+                while (destFile.exists()) {
+                    destFile = new File(targetDir, baseName + " (" + counter++ + ")" + ext);
+                }
+            }
+
+            try {
+                if (isCutOperation) {
+                    Files.move(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                } else {
+                    copyRecursive(srcFile, destFile);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error pasting file: " + e.getMessage());
+            }
+        }
+
+        // If it was a cut operation, clear the clipboard state after paste
+        if (isCutOperation) {
+            isCutOperation = false;
+            clipboardFiles.clear();
+        }
+
+        refresh();
+    }
+
+    private void copyRecursive(File src, File dest) throws IOException {
+        if (src.isDirectory()) {
+            if (!dest.exists()) {
+                dest.mkdir();
+            }
+            String[] children = src.list();
+            if (children != null) {
+                for (String child : children) {
+                    copyRecursive(new File(src, child), new File(dest, child));
+                }
+            }
+        } else {
+            Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private File getSelectedFile() {
+        DefaultMutableTreeNode node = (DefaultMutableTreeNode) fileTree.getLastSelectedPathComponent();
+        if (node == null)
+            return null;
+        Object userObject = node.getUserObject();
+        if (userObject instanceof File) {
+            return (File) userObject;
+        }
+        return null;
+    }
+
+    // --- Clipboard Helpers ---
+
+    private void setClipboard(List<File> files, boolean isCut) {
+        this.clipboardFiles = new ArrayList<>(files);
+        this.isCutOperation = isCut;
+
+        // Also set to System Clipboard for external paste
+        FileTransferable transferable = new FileTransferable(files);
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(transferable, null);
+    }
+
+    private List<File> getClipboardFiles() {
+        // First check system clipboard to see if we have external files
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Transferable contents = clipboard.getContents(null);
+        if (contents != null && contents.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+            try {
+                @SuppressWarnings("unchecked")
+                List<File> sysFiles = (List<File>) contents.getTransferData(DataFlavor.javaFileListFlavor);
+
+                // If system clipboard matches our internal state, respect isCutOperation
+                // Otherwise, treat as new copy from external source
+                if (sysFiles.equals(clipboardFiles)) {
+                    return clipboardFiles;
+                } else {
+                    isCutOperation = false; // External paste is always a copy
+                    return sysFiles;
+                }
+            } catch (UnsupportedFlavorException | IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return clipboardFiles;
+    }
+
+    private static class FileTransferable implements Transferable {
+        private final List<File> files;
+
+        public FileTransferable(List<File> files) {
+            this.files = files;
+        }
+
+        @Override
+        public DataFlavor[] getTransferDataFlavors() {
+            return new DataFlavor[] { DataFlavor.javaFileListFlavor };
+        }
+
+        @Override
+        public boolean isDataFlavorSupported(DataFlavor flavor) {
+            return DataFlavor.javaFileListFlavor.equals(flavor);
+        }
+
+        @Override
+        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+            if (!isDataFlavorSupported(flavor)) {
+                throw new UnsupportedFlavorException(flavor);
+            }
+            return files;
         }
     }
 }

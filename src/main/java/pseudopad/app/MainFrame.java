@@ -26,7 +26,11 @@ import pseudopad.ui.dialogs.OpenProjectDialog;
 import pseudopad.utils.AppActionsManager;
 import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
+
 import pseudopad.utils.AppConstants;
+import pseudopad.utils.ProjectFileWatcher;
+import java.awt.KeyboardFocusManager;
+import java.awt.Component;
 
 /**
  *
@@ -38,7 +42,9 @@ public class MainFrame extends JFrame {
     private File currentProjectPath;
     private final ThemeManager themeManager = ThemeManager.getInstance();
     private final PreferenceManager AppPref = PreferenceManager.getInstance();
+
     private final AppActionsManager AppActions = new AppActionsManager(this);
+    private ProjectFileWatcher projectFileWatcher;
 
     public MainFrame() {
         INSTANCE = this;
@@ -85,6 +91,38 @@ public class MainFrame extends JFrame {
         if (currentProjectPath != null) {
             this.setTitle(this.currentProjectPath.getName() + " - " + AppConstants.APP_TITLE);
             this.fileExplorer.openProject(projectPath);
+
+            // Start File Watcher
+            if (projectFileWatcher != null) {
+                projectFileWatcher.stop();
+            }
+            projectFileWatcher = new ProjectFileWatcher(projectPath);
+            projectFileWatcher.setFileChangeListener(new ProjectFileWatcher.FileChangeListener() {
+                @Override
+                public void onFileCreated(File file) {
+                    // Do nothing specific, refresh handles it
+                }
+
+                @Override
+                public void onFileDeleted(File file) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (editorTabbedPane != null) {
+                            editorTabbedPane.closeFileTab(file);
+                        }
+                    });
+                }
+
+                @Override
+                public void onFileRenamed(File oldFile, File newFile) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (editorTabbedPane != null) {
+                            editorTabbedPane.handleFileRename(oldFile, newFile);
+                        }
+                    });
+                }
+            });
+            projectFileWatcher.start();
+
             // this.editorSplitPane.setTopComponent(editorTabbedPane);
         } else {
             this.setTitle(AppConstants.APP_TITLE);
@@ -145,18 +183,30 @@ public class MainFrame extends JFrame {
     }
 
     public void cut() {
-        if (editorTabbedPane != null)
+        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, fileExplorer)) {
+            fileExplorer.cut();
+        } else if (editorTabbedPane != null) {
             editorTabbedPane.cut();
+        }
     }
 
     public void copy() {
-        if (editorTabbedPane != null)
+        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, fileExplorer)) {
+            fileExplorer.copy();
+        } else if (editorTabbedPane != null) {
             editorTabbedPane.copy();
+        }
     }
 
     public void paste() {
-        if (editorTabbedPane != null)
+        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, fileExplorer)) {
+            fileExplorer.paste();
+        } else if (editorTabbedPane != null) {
             editorTabbedPane.paste();
+        }
     }
 
     public void refreshFileExplorer() {
@@ -167,7 +217,13 @@ public class MainFrame extends JFrame {
 
     public void closeProject() {
         this.currentProjectPath = null;
+
         this.setTitle(AppConstants.APP_TITLE);
+
+        if (projectFileWatcher != null) {
+            projectFileWatcher.stop();
+            projectFileWatcher = null;
+        }
 
         // 1. Clear the File Explorer
         // (Assuming FileExplorer has a clear() method)
