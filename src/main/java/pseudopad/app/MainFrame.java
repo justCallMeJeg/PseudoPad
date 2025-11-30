@@ -42,7 +42,6 @@ public class MainFrame extends JFrame {
     private File currentProjectPath;
     private final ThemeManager themeManager = ThemeManager.getInstance();
     private final PreferenceManager AppPref = PreferenceManager.getInstance();
-
     private final AppActionsManager AppActions = new AppActionsManager(this);
     private ProjectFileWatcher projectFileWatcher;
 
@@ -84,8 +83,6 @@ public class MainFrame extends JFrame {
 
         // 1. Show the window FIRST so components get their sizes
         this.setVisible(true);
-        this.toFront();
-        this.requestFocus();
 
         // 2. Configure components
         if (currentProjectPath != null) {
@@ -149,6 +146,10 @@ public class MainFrame extends JFrame {
 
             // Set Navigation Split (Files vs Outline)
             this.navigationSplitPane.setDividerLocation(0.5);
+
+            // Ensure window is on top and focused after UI setup
+            this.toFront();
+            this.requestFocus();
         });
     }
 
@@ -163,6 +164,18 @@ public class MainFrame extends JFrame {
     public void openProject() {
         OpenProjectDialog chooser = new OpenProjectDialog();
         chooser.showOpenDialog(this);
+    }
+
+    public void openProject(File projectPath) {
+        if (this.currentProjectPath == null) {
+            // Case 1: Current window is empty -> Use it
+            launchAppInstance(projectPath);
+        } else {
+            // Case 2: Current window is busy -> Create new window
+            MainFrame newFrame = new MainFrame();
+            newFrame.setupAppIcon(ThemeManager.getInstance().isDarkMode());
+            newFrame.launchAppInstance(projectPath);
+        }
     }
 
     public void saveCurrentFile() {

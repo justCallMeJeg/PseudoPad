@@ -28,9 +28,8 @@ public class OpenProjectDialog extends JFileChooser {
 
         // Checking if chosen project path is valid
         if (ProjectManager.isValidProject(selectedFolder)) {
-            MainFrame newWindow = new MainFrame();
-            newWindow.setupAppIcon(themeManager.isDarkMode());
-            newWindow.launchAppInstance(selectedFolder);
+
+            MainFrame.getInstance().openProject(selectedFolder);
         } else {
             // It's just a random folder -> Error or Prompt to Initialize
             int choice = JOptionPane.showConfirmDialog(this,
@@ -43,9 +42,8 @@ public class OpenProjectDialog extends JFileChooser {
                 try {
                     // Note: This helper needs to support 'initializing existing dir'
                     // ProjectManager.initializeExisting(selectedFolder);
-                    MainFrame newWindow = new MainFrame();
-                    newWindow.setupAppIcon(themeManager.isDarkMode());
-                    newWindow.launchAppInstance(selectedFolder);
+                    // ProjectManager.initializeExisting(selectedFolder);
+                    MainFrame.getInstance().openProject(selectedFolder);
                 } catch (Exception e) {
                     // handle error
                 }
