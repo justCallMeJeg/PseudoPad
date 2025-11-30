@@ -14,35 +14,39 @@ import pseudopad.app.MainFrame;
  */
 public class AppActionsManager {
     private final MainFrame appFrame;
-    
+
     public AppActionsManager(MainFrame appFrame) {
         this.appFrame = appFrame;
     }
-    
+
     public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
         {
-            setup(this, "new_project", 
-                  KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+            setup(this, "new_project",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_N,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: New Project");
             appFrame.newProject();
         }
     };
-    
+
     public final Action OPEN_PROJECT = new AbstractAction("Open Project...") {
         {
-            setup(this, "open_project", 
-                KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+            setup(this, "open_project",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_O,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Open Project");
             appFrame.openProject();
         }
     };
-    
+
     public final Action CLOSE_PROJECT = new AbstractAction("Close Project") {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -50,23 +54,88 @@ public class AppActionsManager {
             appFrame.closeProject();
         }
     };
-    
+
     public final Action SAVE = new AbstractAction("Save") {
         {
-            setup(this, "save", KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+            setup(this, "save",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
         }
+
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Close Project");
+            System.out.println("Action: Save");
             appFrame.saveCurrentFile();
         }
     };
-    
+
+    // <editor-fold defaultstate="collapsed" desc="Edit Actions">
+    public final Action UNDO = new AbstractAction("Undo") {
+        {
+            setup(this, "undo",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_Z, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.undo();
+        }
+    };
+
+    public final Action REDO = new AbstractAction("Redo") {
+        {
+            setup(this, "redo",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_Y, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.redo();
+        }
+    };
+
+    public final Action CUT = new AbstractAction("Cut") {
+        {
+            setup(this, "cut",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.cut();
+        }
+    };
+
+    public final Action COPY = new AbstractAction("Copy") {
+        {
+            setup(this, "copy",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.copy();
+        }
+    };
+
+    public final Action PASTE = new AbstractAction("Paste") {
+        {
+            setup(this, "paste",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.paste();
+        }
+    };
+    // </editor-fold>
+
     // <editor-fold defaultstate="collapsed" desc="Theme Related Actions">
     public final Action THEME_LIGHT = new AbstractAction("Light") {
         {
             putValue(Action.SHORT_DESCRIPTION, "Change UI theme to Light Mode");
         }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Change Theme to Light");
@@ -74,11 +143,12 @@ public class AppActionsManager {
             appFrame.changeTheme(ThemeManager.THEMES.LIGHT);
         }
     };
-    
+
     public final Action THEME_DARK = new AbstractAction("Dark") {
         {
             putValue(Action.SHORT_DESCRIPTION, "Change UI theme to Dark Mode");
         }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Change Theme to Dark");
@@ -86,11 +156,12 @@ public class AppActionsManager {
             appFrame.changeTheme(ThemeManager.THEMES.DARK);
         }
     };
-    
+
     public final Action THEME_SYSTEM = new AbstractAction("System") {
         {
             putValue(Action.SHORT_DESCRIPTION, "Change UI theme to OS's Preference");
         }
+
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Change Theme to System");
@@ -99,8 +170,8 @@ public class AppActionsManager {
         }
     };
     // </editor-fold>
-    
-    // <editor-fold defaultstate="collapsed" desc="Helper Functions">    
+
+    // <editor-fold defaultstate="collapsed" desc="Helper Functions">
     private void setup(Action a, String iconName, KeyStroke key) {
         // 1. Menu Icon (16x16)
         a.putValue(Action.SMALL_ICON, IconManager.get(iconName, 16));
@@ -109,7 +180,8 @@ public class AppActionsManager {
         a.putValue(Action.LARGE_ICON_KEY, IconManager.get(iconName, 32));
 
         // 3. Metadata
-        a.putValue(Action.SHORT_DESCRIPTION, a.getValue(Action.NAME) + (key != null ? " (" + getKeyString(key) + ")" : ""));
+        a.putValue(Action.SHORT_DESCRIPTION,
+                a.getValue(Action.NAME) + (key != null ? " (" + getKeyString(key) + ")" : ""));
         a.putValue(Action.ACTION_COMMAND_KEY, getKeyString(key));
         if (key != null) {
             a.putValue(Action.ACCELERATOR_KEY, key);

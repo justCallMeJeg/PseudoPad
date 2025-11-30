@@ -20,12 +20,12 @@ public class AppToolBar extends JToolBar {
     private void initToolbar() {
         // 1. Setup Basic Properties
         setFloatable(false); // Modern apps don't let you drag the toolbar out
-        setRollover(true);   // Highlight buttons on hover
+        setRollover(true); // Highlight buttons on hover
 
         // Optional: FlatLaf styling for a cleaner look
         // putClientProperty(FlatClientProperties.STYLE, "padding: 4,4,4,4;");
         // 2. Add Actions
-        // Just adding the Action object automatically creates a JButton 
+        // Just adding the Action object automatically creates a JButton
         // with the correct Icon and Tooltip!
         // --- File Group ---
         add(createButton(actions.NEW_PROJECT));
@@ -35,16 +35,16 @@ public class AppToolBar extends JToolBar {
         addSeparator();
 
         // --- Edit Group ---
-//        add(createButton(actions.UNDO)); // Ensure UNDO exists
-//        add(createButton(actions.REDO)); // Ensure REDO exists
-//        add(createButton(actions.CUT));
-//        add(createButton(actions.COPY));
-//        add(createButton(actions.PASTE));
+        add(createButton(actions.UNDO)); // Ensure UNDO exists
+        add(createButton(actions.REDO)); // Ensure REDO exists
+        add(createButton(actions.CUT));
+        add(createButton(actions.COPY));
+        add(createButton(actions.PASTE));
 
         addSeparator();
 
         // --- Run Group ---
-//        add(createButton(actions.RUN));  // Ensure RUN exists
+        // add(createButton(actions.RUN)); // Ensure RUN exists
     }
 
     /**

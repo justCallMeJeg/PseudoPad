@@ -13,69 +13,79 @@ import pseudopad.utils.ThemeManager;
  */
 public class AppMenuBar extends JMenuBar {
     private final AppActionsManager actions;
-    
+
     public AppMenuBar(AppActionsManager actions) {
         this.actions = actions;
-        
+
         initFileMenu();
         initEditMenu();
-//        initRunMenu();
+        // initRunMenu();
         initWindowMenu();
         initHelpMenu();
     }
-    
+
     private void initFileMenu() {
         JMenu fileMenu = new JMenu("File");
-        
-        // You just add the Action! Swing handles the Text, Icon, AND Shortcut automatically.
+
+        // You just add the Action! Swing handles the Text, Icon, AND Shortcut
+        // automatically.
         fileMenu.add(new JMenuItem(actions.NEW_PROJECT));
         fileMenu.addSeparator();
         fileMenu.add(new JMenuItem(actions.OPEN_PROJECT));
         fileMenu.add(new JMenuItem(actions.CLOSE_PROJECT));
-//        fileMenu.add(new JMenuItem(AppActionsManager.OPEN)); // Assuming you created this
+        // fileMenu.add(new JMenuItem(AppActionsManager.OPEN)); // Assuming you created
+        // this
         fileMenu.addSeparator();
         fileMenu.add(new JMenuItem(actions.SAVE));
-        
+
         add(fileMenu);
     }
-    
+
     private void initEditMenu() {
         JMenu editMenu = new JMenu("Edit");
+
+        editMenu.add(new JMenuItem(actions.UNDO));
+        editMenu.add(new JMenuItem(actions.REDO));
+        editMenu.addSeparator();
+        editMenu.add(new JMenuItem(actions.CUT));
+        editMenu.add(new JMenuItem(actions.COPY));
+        editMenu.add(new JMenuItem(actions.PASTE));
+
         add(editMenu);
     }
-    
+
     private void initWindowMenu() {
         JMenu windowMenu = new JMenu("Window");
         JMenu themeMenu = new JMenu("Theme");
-        
+
         javax.swing.ButtonGroup themeGroup = new javax.swing.ButtonGroup();
-        
+
         JRadioButtonMenuItem lightItem = new JRadioButtonMenuItem(actions.THEME_LIGHT);
         JRadioButtonMenuItem darkItem = new JRadioButtonMenuItem(actions.THEME_DARK);
         JRadioButtonMenuItem systemItem = new JRadioButtonMenuItem(actions.THEME_SYSTEM);
-        
+
         themeGroup.add(lightItem);
         themeGroup.add(darkItem);
         themeGroup.add(systemItem);
-        
+
         themeMenu.add(lightItem);
         themeMenu.add(darkItem);
         themeMenu.add(systemItem);
-//        themeMenu.addSeparator();
-//        themeMenu.add(new JMenuItem("Customize..."));
-        
+        // themeMenu.addSeparator();
+        // themeMenu.add(new JMenuItem("Customize..."));
+
         ThemeManager.THEMES currentTheme = ThemeManager.getInstance().getCurrentTheme();
-        
+
         switch (currentTheme) {
             case LIGHT -> lightItem.setSelected(true);
             case DARK -> darkItem.setSelected(true);
             case SYSTEM -> systemItem.setSelected(true);
         }
-        
+
         windowMenu.add(themeMenu);
         add(windowMenu);
     }
-    
+
     private void initHelpMenu() {
         JMenu helpMenu = new JMenu("Help");
         add(helpMenu);

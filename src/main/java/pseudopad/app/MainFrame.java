@@ -134,6 +134,31 @@ public class MainFrame extends JFrame {
         }
     }
 
+    public void undo() {
+        if (editorTabbedPane != null)
+            editorTabbedPane.undo();
+    }
+
+    public void redo() {
+        if (editorTabbedPane != null)
+            editorTabbedPane.redo();
+    }
+
+    public void cut() {
+        if (editorTabbedPane != null)
+            editorTabbedPane.cut();
+    }
+
+    public void copy() {
+        if (editorTabbedPane != null)
+            editorTabbedPane.copy();
+    }
+
+    public void paste() {
+        if (editorTabbedPane != null)
+            editorTabbedPane.paste();
+    }
+
     public void closeProject() {
         this.currentProjectPath = null;
         this.setTitle(AppConstants.APP_TITLE);

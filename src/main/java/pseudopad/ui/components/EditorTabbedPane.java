@@ -104,6 +104,41 @@ public class EditorTabbedPane extends TabbedPane {
         }
     }
 
+    public void undo() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            fileTabPane.undo();
+        }
+    }
+
+    public void redo() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            fileTabPane.redo();
+        }
+    }
+
+    public void cut() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            fileTabPane.cut();
+        }
+    }
+
+    public void copy() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            fileTabPane.copy();
+        }
+    }
+
+    public void paste() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            fileTabPane.paste();
+        }
+    }
+
     // ==========================================================================
     // FALLBACK LOGIC
     // ==========================================================================
