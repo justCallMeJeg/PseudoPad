@@ -7,7 +7,6 @@ import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.KeyStroke;
 import pseudopad.app.MainFrame;
-import pseudopad.ui.dialogs.NewProjectDialog;
 
 /**
  *
@@ -22,38 +21,44 @@ public class AppActionsManager {
     
     public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
         {
-            setup(this, "new_project", "Create a new PseudoCode project", 
+            setup(this, "new_project", 
                   KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: New Project");
-            NewProjectDialog newProject = new NewProjectDialog(appFrame);
-            newProject.setLocationRelativeTo(null);
-            newProject.setVisible(true);
+            appFrame.newProject();
         }
     };
     
     public final Action OPEN_PROJECT = new AbstractAction("Open Project...") {
         {
-            setup(this, "open_project", "Open an existing PseudoCode project", 
-                  KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+            setup(this, "open_project", 
+                KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Open Project");
-            appFrame.showOpenProjectDialog();
+            appFrame.openProject();
         }
     };
     
     public final Action CLOSE_PROJECT = new AbstractAction("Close Project") {
-        {
-            putValue(Action.SHORT_DESCRIPTION, "Close the current opened project");
-        }
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Close Project");
             appFrame.closeProject();
+        }
+    };
+    
+    public final Action SAVE = new AbstractAction("Save") {
+        {
+            setup(this, "save", KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("Action: Close Project");
+            appFrame.saveCurrentFile();
         }
     };
     
@@ -95,8 +100,8 @@ public class AppActionsManager {
     };
     // </editor-fold>
     
-    // <editor-fold defaultstate="collapsed" desc="Helper Functions">
-    private void setup(Action a, String iconName, String desc, KeyStroke key) {
+    // <editor-fold defaultstate="collapsed" desc="Helper Functions">    
+    private void setup(Action a, String iconName, KeyStroke key) {
         // 1. Menu Icon (16x16)
         a.putValue(Action.SMALL_ICON, IconManager.get(iconName, 16));
 
@@ -104,7 +109,7 @@ public class AppActionsManager {
         a.putValue(Action.LARGE_ICON_KEY, IconManager.get(iconName, 32));
 
         // 3. Metadata
-        a.putValue(Action.SHORT_DESCRIPTION, desc + (key != null ? " (" + getKeyString(key) + ")" : ""));
+        a.putValue(Action.SHORT_DESCRIPTION, a.getValue(Action.NAME) + (key != null ? " (" + getKeyString(key) + ")" : ""));
         a.putValue(Action.ACTION_COMMAND_KEY, getKeyString(key));
         if (key != null) {
             a.putValue(Action.ACCELERATOR_KEY, key);

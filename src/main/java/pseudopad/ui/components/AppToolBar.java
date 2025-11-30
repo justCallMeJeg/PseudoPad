@@ -30,7 +30,7 @@ public class AppToolBar extends JToolBar {
         // --- File Group ---
         add(createButton(actions.NEW_PROJECT));
         add(createButton(actions.OPEN_PROJECT));
-//        add(createButton(actions.SAVE)); // Ensure you add SAVE to AppActionsManager
+        add(createButton(actions.SAVE));
 
         addSeparator();
 

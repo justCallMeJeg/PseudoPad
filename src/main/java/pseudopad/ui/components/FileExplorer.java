@@ -138,4 +138,37 @@ public class FileExplorer extends JPanel {
 
         treeModel.nodeStructureChanged(node);
     }
+    
+    public void refresh() {
+        if (currentProjectRoot == null) {
+            return;
+        }
+
+        // Helper to recursively refresh only what is currently visible
+        refreshNode((DefaultMutableTreeNode) treeModel.getRoot());
+    }
+
+    private void refreshNode(DefaultMutableTreeNode node) {
+        // Only refresh if it has children (meaning it was loaded)
+        if (node.getChildCount() > 0) {
+            // Check if it's the "Loading..." dummy
+            if (node.getFirstChild().toString().equals("Loading...")) {
+                return; // Not expanded yet, ignore
+            }
+
+            // 1. Reload THIS node's children from disk
+            loadChildren(node);
+
+            // 2. Recursively check children (to find sub-folders that were expanded)
+            // Note: This simple recursion might lose selection of deep sub-files 
+            // if the object references change, but it keeps the structure updated.
+            for (int i = 0; i < node.getChildCount(); i++) {
+                DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
+                if (child.getUserObject() instanceof File && ((File) child.getUserObject()).isDirectory()) {
+                    // Ideally, check if 'child' corresponds to an expanded path in the JTree
+                    // and recurse only then.
+                }
+            }
+        }
+    }
 }

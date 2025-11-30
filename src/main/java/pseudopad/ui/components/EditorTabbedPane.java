@@ -3,99 +3,127 @@ package pseudopad.ui.components;
 import com.formdev.flatlaf.FlatClientProperties;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
+import java.io.File;
+import java.util.function.BiConsumer;
 import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.JTabbedPane;
 import pseudopad.app.MainFrame;
 import pseudopad.ui.FallbackPanel;
-import pseudopad.utils.IconManager; // Optional if you have it
+
+import pseudopad.utils.IconManager;
+import pseudopad.utils.AppConstants;
 
 /**
  * Specialized TabPane for Editors with an "Add" button.
  */
 public class EditorTabbedPane extends TabbedPane {
     private int untitledCount = 0;
-    
+
     // The panel to show when no files are open
     private final FallbackPanel fallback;
     private boolean isFallbackVisible = false;
-    
+
     public EditorTabbedPane(MainFrame mainFrame) {
         super();
         this.fallback = new FallbackPanel(mainFrame);
-        
+
         this.fallback.putClientProperty(TabbedPane.PROP_IS_CLOSABLE, false);
-        
+
+        this.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK,
+                (BiConsumer<JTabbedPane, Integer>) (tabPane, tabIndex) -> {
+                    Component c = tabPane.getComponentAt(tabIndex);
+
+                    // If it's a file tab, check for safety
+                    if (c instanceof FileTabPane fileTab) {
+                        if (fileTab.requestClose()) {
+                            tabPane.removeTabAt(tabIndex);
+                        }
+                    } else {
+                        // Not a file tab (e.g. Fallback), just close it
+                        tabPane.removeTabAt(tabIndex);
+                    }
+                });
+
         initAddButton();
         showFallback();
     }
-    
+
     public void refreshFallbackState() {
         if (isFallbackVisible) {
             fallback.updateState();
         }
     }
-    
+
     private void initAddButton() {
         JButton addBtn = new JButton("+");
-        
+
         // Optional: Use Icon if available
         if (IconManager.get("add") != null) {
             addBtn.setIcon(IconManager.get("add"));
             addBtn.setText("");
         }
-        
+
         addBtn.setToolTipText("New File");
         addBtn.addActionListener((ActionEvent e) -> addNewTab());
 
         // CRITICAL: Add to the LEFT side
-        addLeftHeaderButton(addBtn); 
+        addLeftHeaderButton(addBtn);
     }
-    
+
     public void addNewTab() {
         untitledCount++;
-        FileTabPane newEditor = new FileTabPane(""); 
-        this.addTab("Untitled" + untitledCount + ".pc", newEditor);
+        FileTabPane newEditor = new FileTabPane();
+        this.addTab(AppConstants.DEFAULT_TAB_TITLE + untitledCount + AppConstants.FILE_EXTENSION, newEditor);
         this.setSelectedIndex(this.getTabCount() - 1);
     }
-    
-    public void openFileTab(String title, String content) {
+
+    public void openFileTab(File file) {
         // 1. Check if a tab with this title already exists
         int tabCount = this.getTabCount();
         for (int i = 0; i < tabCount; i++) {
-            if (this.getTitleAt(i).equals(title)) {
+            if (this.getTitleAt(i).equals(file.getName())) {
                 // 2. If it exists, select that existing tab and stop
                 this.setSelectedIndex(i);
-                System.out.println("Tab '" + title + "' already open. Switched to existing tab.");
+                System.out.println("Tab '" + file.getName() + "' already open. Switched to existing tab.");
                 return; // Exit the method
             }
         }
 
         // 3. If the loop finishes without finding a match, create a new tab
-        FileTabPane newEditor = new FileTabPane(content);
-        this.addTab(title, newEditor);
+        FileTabPane newEditor = new FileTabPane(file);
+        this.addTab(file.getName(), newEditor);
         this.setSelectedComponent(newEditor);
-        System.out.println("Created new tab: '" + title + "'");
+        System.out.println("Created new tab: '" + file.getName() + "'");
+    }
+
+    public void saveActiveTab() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            fileTabPane.saveFile();
+        }
     }
 
     // ==========================================================================
-    //  FALLBACK LOGIC
+    // FALLBACK LOGIC
     // ==========================================================================
 
     /**
      * Shows the fallback panel and hides the tab header to make it look seamless.
      */
     private void showFallback() {
-        if (isFallbackVisible) return;
-        
+        if (isFallbackVisible)
+            return;
+
         untitledCount = 0;
-        
+
         // Add the fallback as a tab (index 0)
         // We pass 'null' for icon/tip as the header will be hidden anyway
         super.insertTab("Welcome", null, fallback, null, 0);
-        
+
         // VISUAL TRICK: Hide the tab strip so it looks like a regular panel
         putClientProperty(FlatClientProperties.TABBED_PANE_HIDE_TAB_AREA_WITH_ONE_TAB, false);
-        
+
         isFallbackVisible = true;
     }
 
@@ -110,14 +138,15 @@ public class EditorTabbedPane extends TabbedPane {
             return;
         }
 
-        // 2. If the fallback is currently showing, remove it to make room for the real tab
+        // 2. If the fallback is currently showing, remove it to make room for the real
+        // tab
         if (isFallbackVisible) {
             super.removeTabAt(0); // Remove the fallback
             isFallbackVisible = false;
-            
+
             // Restore the tab header visibility
             putClientProperty(FlatClientProperties.TABBED_PANE_HIDE_TAB_AREA_WITH_ONE_TAB, false);
-            
+
             // Reset index to 0 (since the pane is now empty)
             index = 0;
         }
@@ -132,7 +161,7 @@ public class EditorTabbedPane extends TabbedPane {
     @Override
     public void removeTabAt(int index) {
         super.removeTabAt(index);
-        
+
         // If the last tab was closed, show the fallback
         if (getTabCount() == 0) {
             showFallback();
