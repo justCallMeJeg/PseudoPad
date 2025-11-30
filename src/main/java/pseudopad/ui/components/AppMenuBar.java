@@ -50,6 +50,7 @@ public class AppMenuBar extends JMenuBar {
         editMenu.add(new JMenuItem(actions.CUT));
         editMenu.add(new JMenuItem(actions.COPY));
         editMenu.add(new JMenuItem(actions.PASTE));
+        editMenu.add(new JMenuItem(actions.DELETE));
 
         add(editMenu);
     }

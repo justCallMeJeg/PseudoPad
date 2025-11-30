@@ -77,7 +77,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.undo();
+            appFrame.undoAction();
         }
     };
 
@@ -89,7 +89,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.redo();
+            appFrame.redoAction();
         }
     };
 
@@ -101,7 +101,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.cut();
+            appFrame.cutContent();
         }
     };
 
@@ -113,7 +113,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.copy();
+            appFrame.copyContent();
         }
     };
 
@@ -125,7 +125,18 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.paste();
+            appFrame.pasteContent();
+        }
+    };
+
+    public final Action DELETE = new AbstractAction("Delete") {
+        {
+            setup(this, "delete", KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.deleteItem();
         }
     };
     // </editor-fold>

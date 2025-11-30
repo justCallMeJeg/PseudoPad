@@ -12,6 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -26,7 +27,6 @@ import pseudopad.ui.dialogs.OpenProjectDialog;
 import pseudopad.utils.AppActionsManager;
 import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
-
 import pseudopad.utils.AppConstants;
 import pseudopad.utils.ProjectFileWatcher;
 import java.awt.KeyboardFocusManager;
@@ -61,6 +61,14 @@ public class MainFrame extends JFrame {
                 setupAppIcon(isDark);
             }
         });
+    }
+
+    @Override
+    public void dispose() {
+        if (projectFileWatcher != null) {
+            projectFileWatcher.stop();
+        }
+        super.dispose();
     }
 
     public void setupAppIcon(Boolean isDark) {
@@ -195,17 +203,17 @@ public class MainFrame extends JFrame {
         }
     }
 
-    public void undo() {
+    public void undoAction() {
         if (editorTabbedPane != null)
             editorTabbedPane.undo();
     }
 
-    public void redo() {
+    public void redoAction() {
         if (editorTabbedPane != null)
             editorTabbedPane.redo();
     }
 
-    public void cut() {
+    public void cutContent() {
         Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
         if (focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, fileExplorer)) {
             fileExplorer.cut();
@@ -214,7 +222,7 @@ public class MainFrame extends JFrame {
         }
     }
 
-    public void copy() {
+    public void copyContent() {
         Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
         if (focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, fileExplorer)) {
             fileExplorer.copy();
@@ -223,12 +231,25 @@ public class MainFrame extends JFrame {
         }
     }
 
-    public void paste() {
+    public void pasteContent() {
         Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
         if (focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, fileExplorer)) {
             fileExplorer.paste();
         } else if (editorTabbedPane != null) {
             editorTabbedPane.paste();
+        }
+    }
+
+    public void deleteItem() {
+        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+        if (focusOwner != null && SwingUtilities.isDescendingFrom(focusOwner, fileExplorer)) {
+            fileExplorer.deleteSelectedFile();
+        } else {
+            // Optional: Handle deleteItem in editor (e.g. deleteItem text) if needed,
+            // but usually DELETE key is handled by text component directly.
+            // We could delegate to active tab if we want "Delete File" action globally,
+            // but that might be dangerous/confusing if user just wants to deleteItem text.
+            // For now, let's only delegate to FileExplorer if focused.
         }
     }
 
@@ -290,7 +311,9 @@ public class MainFrame extends JFrame {
             try {
                 doc.insertString(doc.getLength(), message + "\n", style);
                 // Scroll to bottom
-                logTextPane.setCaretPosition(doc.getLength());
+                SwingUtilities.invokeLater(() -> {
+                    logTextPane.setCaretPosition(doc.getLength());
+                });
             } catch (BadLocationException e) {
                 e.printStackTrace();
             }
@@ -377,9 +400,15 @@ public class MainFrame extends JFrame {
         this.editorSplitPane.setResizeWeight(AppConstants.EDITOR_SPLIT_RESIZE_WEIGHT);
         this.editorSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
         this.editorSplitPane.setTopComponent(editorTabbedPane);
-        
-        this.bottomEditorTabbedPane.add("Output", terminalTextPane);
-        this.bottomEditorTabbedPane.add("Logs", logTextPane);
+
+        this.logTextPane.setEditable(false);
+        this.terminalTextPane.setEditable(false);
+
+        JScrollPane logScrollPane = new JScrollPane(logTextPane);
+        JScrollPane terminalScrollPane = new JScrollPane(terminalTextPane);
+
+        this.bottomEditorTabbedPane.add("Output", terminalScrollPane);
+        this.bottomEditorTabbedPane.add("Logs", logScrollPane);
 
         this.editorSplitPane.setBottomComponent(bottomEditorTabbedPane);
 

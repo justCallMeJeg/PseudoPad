@@ -5,7 +5,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import pseudopad.app.MainFrame;
 import pseudopad.utils.ProjectManager;
-import pseudopad.utils.ThemeManager;
 import pseudopad.utils.AppConstants;
 
 /**

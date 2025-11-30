@@ -7,7 +7,6 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.Transferable;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
-
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -21,6 +20,8 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.swing.BorderFactory;
+import javax.swing.DropMode;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -29,12 +30,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
 import javax.swing.event.TreeExpansionEvent;
 import javax.swing.event.TreeWillExpandListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.ExpandVetoException;
 import javax.swing.tree.TreePath;
+import javax.swing.tree.TreeSelectionModel;
 import pseudopad.utils.AppLogger;
 
 /**
@@ -70,6 +73,12 @@ public class FileExplorer extends JPanel {
         // 2. Visual Polish
         fileTree.setCellRenderer(new FileTreeCellRenderer());
         fileTree.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        fileTree.getSelectionModel().setSelectionMode(TreeSelectionModel.DISCONTIGUOUS_TREE_SELECTION);
+
+        // Drag and Drop
+        fileTree.setDragEnabled(true);
+        fileTree.setDropMode(DropMode.ON);
+        fileTree.setTransferHandler(new FileTransferHandler());
 
         // 3. Lazy Loading Logic (Performance)
         fileTree.addTreeWillExpandListener(new TreeWillExpandListener() {
@@ -85,8 +94,22 @@ public class FileExplorer extends JPanel {
             }
         });
 
-        // 5. Context Menu for Rename
+        // 5. Context Menu
         JPopupMenu contextMenu = new JPopupMenu();
+
+        // New Submenu
+        JMenu newMenu = new JMenu("New");
+        JMenuItem newFolderItem = new JMenuItem("Folder");
+        newFolderItem.addActionListener(e -> createNewFolder());
+        newMenu.add(newFolderItem);
+
+        JMenuItem newFileItem = new JMenuItem("File (.pc)");
+        newFileItem.addActionListener(e -> createNewFile(".pc"));
+        newMenu.add(newFileItem);
+        contextMenu.add(newMenu);
+
+        contextMenu.addSeparator();
+
         JMenuItem renameItem = new JMenuItem("Rename");
         renameItem.addActionListener(e -> renameSelectedFile());
         contextMenu.add(renameItem);
@@ -137,6 +160,15 @@ public class FileExplorer extends JPanel {
             }
         });
 
+        fileTree.getInputMap().put(
+                KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), "delete");
+        fileTree.getActionMap().put("delete", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                deleteSelectedFile();
+            }
+        });
+
         fileTree.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -156,7 +188,21 @@ public class FileExplorer extends JPanel {
                 // Right Click for Context Menu
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int row = fileTree.getClosestRowForLocation(e.getX(), e.getY());
-                    fileTree.setSelectionRow(row);
+                    if (row != -1) {
+                        boolean isSelected = false;
+                        int[] selectedRows = fileTree.getSelectionRows();
+                        if (selectedRows != null) {
+                            for (int r : selectedRows) {
+                                if (r == row) {
+                                    isSelected = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!isSelected) {
+                            fileTree.setSelectionRow(row);
+                        }
+                    }
                     contextMenu.show(fileTree, e.getX(), e.getY());
                 }
             }
@@ -260,8 +306,6 @@ public class FileExplorer extends JPanel {
             loadChildren(node, true);
 
             // 2. Recursively check children (to find sub-folders that were expanded)
-            // Note: This simple recursion might lose selection of deep sub-files
-            // if the object references change, but it keeps the structure updated.
             for (int i = 0; i < node.getChildCount(); i++) {
                 DefaultMutableTreeNode child = (DefaultMutableTreeNode) node.getChildAt(i);
                 if (child.getUserObject() instanceof File && ((File) child.getUserObject()).isDirectory()) {
@@ -273,6 +317,11 @@ public class FileExplorer extends JPanel {
     }
 
     private void renameSelectedFile() {
+        // Rename only supports single selection
+        if (fileTree.getSelectionCount() != 1) {
+            return;
+        }
+
         DefaultMutableTreeNode node = (DefaultMutableTreeNode) fileTree.getLastSelectedPathComponent();
         if (node == null)
             return;
@@ -299,7 +348,6 @@ public class FileExplorer extends JPanel {
             }
 
             // Refresh Tree
-            // Ideally we should just update the node, but a full refresh is safer for now
             refresh();
 
         } catch (Exception ex) {
@@ -308,69 +356,138 @@ public class FileExplorer extends JPanel {
         }
     }
 
-    private void deleteSelectedFile() {
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode) fileTree.getLastSelectedPathComponent();
-        if (node == null)
+    private void createNewFolder() {
+        File parentDir = getTargetParentDir();
+        if (parentDir == null)
             return;
 
-        Object userObject = node.getUserObject();
-        if (!(userObject instanceof File))
+        String folderName = JOptionPane.showInputDialog(this, "Enter folder name:");
+        if (folderName == null || folderName.trim().isEmpty())
             return;
 
-        File fileToDelete = (File) userObject;
+        File newFolder = new File(parentDir, folderName);
+        if (newFolder.mkdir()) {
+            AppLogger.info("Created folder: " + newFolder.getAbsolutePath());
+            refresh();
+        } else {
+            JOptionPane.showMessageDialog(this, "Failed to create folder.", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void createNewFile(String extension) {
+        File parentDir = getTargetParentDir();
+        if (parentDir == null)
+            return;
+
+        String fileName = JOptionPane.showInputDialog(this, "Enter file name (without extension):");
+        if (fileName == null || fileName.trim().isEmpty())
+            return;
+
+        if (!fileName.endsWith(extension)) {
+            fileName += extension;
+        }
+
+        File newFile = new File(parentDir, fileName);
+        try {
+            if (newFile.createNewFile()) {
+                AppLogger.info("Created file: " + newFile.getAbsolutePath());
+                refresh();
+                if (onFileOpen != null) {
+                    onFileOpen.accept(newFile);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "File already exists or failed to create.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (IOException e) {
+            AppLogger.error("Error creating file", e);
+            JOptionPane.showMessageDialog(this, "Error creating file: " + e.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private File getTargetParentDir() {
+        File parentDir = currentProjectRoot;
+        List<File> selected = getSelectedFiles();
+        if (selected.size() == 1) {
+            File f = selected.get(0);
+            if (f.isDirectory()) {
+                parentDir = f;
+            } else {
+                parentDir = f.getParentFile();
+            }
+        }
+        return parentDir;
+    }
+
+    public void deleteSelectedFile() {
+        List<File> filesToDelete = getSelectedFiles();
+        if (filesToDelete.isEmpty())
+            return;
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete '" + fileToDelete.getName() + "'?",
+                "Are you sure you want to delete " + filesToDelete.size() + " item(s)?",
                 "Confirm Delete",
                 JOptionPane.YES_NO_OPTION);
 
         if (confirm != JOptionPane.YES_OPTION)
             return;
 
-        try {
-            if (fileToDelete.isDirectory()) {
-                pseudopad.utils.FileManager.deleteDirectoryForcefully(fileToDelete);
-            } else {
-                pseudopad.utils.FileManager.delete(fileToDelete);
+        for (File fileToDelete : filesToDelete) {
+            try {
+                if (fileToDelete.isDirectory()) {
+                    pseudopad.utils.FileManager.deleteDirectoryForcefully(fileToDelete);
+                } else {
+                    pseudopad.utils.FileManager.delete(fileToDelete);
+                }
+                AppLogger.info("Deleted file: " + fileToDelete.getAbsolutePath());
+
+                // Notify listeners
+                if (onFileDeleted != null) {
+                    onFileDeleted.accept(fileToDelete);
+                }
+
+            } catch (Exception ex) {
+                AppLogger.error("Error deleting file: " + fileToDelete.getName(), ex);
+                JOptionPane.showMessageDialog(this, "Error deleting file: " + ex.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
-            AppLogger.info("Deleted file: " + fileToDelete.getAbsolutePath());
-
-            // Notify listeners
-            if (onFileDeleted != null) {
-                onFileDeleted.accept(fileToDelete);
-            }
-
-            // Refresh Tree
-            refresh();
-
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error deleting file: " + ex.getMessage(), "Error",
-                    JOptionPane.ERROR_MESSAGE);
         }
+        // Refresh Tree
+        refresh();
     }
 
     public void copy() {
-        File selectedFile = getSelectedFile();
-        if (selectedFile != null) {
-            AppLogger.info("Copied to clipboard: " + selectedFile.getName());
-            setClipboard(Arrays.asList(selectedFile), false);
+        List<File> selectedFiles = getSelectedFiles();
+        if (!selectedFiles.isEmpty()) {
+            AppLogger.info("Copied " + selectedFiles.size() + " file(s) to clipboard");
+            setClipboard(selectedFiles, false);
         }
     }
 
     public void cut() {
-        File selectedFile = getSelectedFile();
-        if (selectedFile != null) {
-            AppLogger.info("Cut to clipboard: " + selectedFile.getName());
-            setClipboard(Arrays.asList(selectedFile), true);
+        List<File> selectedFiles = getSelectedFiles();
+        if (!selectedFiles.isEmpty()) {
+            AppLogger.info("Cut " + selectedFiles.size() + " file(s) to clipboard");
+            setClipboard(selectedFiles, true);
         }
     }
 
     public void paste() {
-        File targetDir = getSelectedFile();
-        if (targetDir == null) {
+        File targetDir = null;
+
+        // Try to get the single selected folder as target
+        List<File> selected = getSelectedFiles();
+        if (selected.size() == 1) {
+            File f = selected.get(0);
+            if (f.isDirectory()) {
+                targetDir = f;
+            } else {
+                targetDir = f.getParentFile();
+            }
+        } else {
+            // If multiple selected or none, use project root
             targetDir = currentProjectRoot;
-        } else if (!targetDir.isDirectory()) {
-            targetDir = targetDir.getParentFile();
         }
 
         if (targetDir == null || !targetDir.exists()) {
@@ -444,15 +561,19 @@ public class FileExplorer extends JPanel {
         }
     }
 
-    private File getSelectedFile() {
-        DefaultMutableTreeNode node = (DefaultMutableTreeNode) fileTree.getLastSelectedPathComponent();
-        if (node == null)
-            return null;
-        Object userObject = node.getUserObject();
-        if (userObject instanceof File) {
-            return (File) userObject;
+    private List<File> getSelectedFiles() {
+        List<File> files = new ArrayList<>();
+        TreePath[] paths = fileTree.getSelectionPaths();
+        if (paths != null) {
+            for (TreePath path : paths) {
+                DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                Object userObject = node.getUserObject();
+                if (userObject instanceof File) {
+                    files.add((File) userObject);
+                }
+            }
         }
-        return null;
+        return files;
     }
 
     // --- Clipboard Helpers ---
@@ -513,6 +634,108 @@ public class FileExplorer extends JPanel {
                 throw new UnsupportedFlavorException(flavor);
             }
             return files;
+        }
+    }
+
+    private class FileTransferHandler extends TransferHandler {
+        @Override
+        public int getSourceActions(javax.swing.JComponent c) {
+            return COPY_OR_MOVE;
+        }
+
+        @Override
+        protected Transferable createTransferable(javax.swing.JComponent c) {
+            List<File> files = getSelectedFiles();
+            if (files.isEmpty())
+                return null;
+            return new FileTransferable(files);
+        }
+
+        @Override
+        public boolean canImport(TransferSupport support) {
+            if (!support.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
+                return false;
+            }
+            // Don't allow dropping on itself (handled by JTree default logic usually, but
+            // good to check)
+            return true;
+        }
+
+        @Override
+        public boolean importData(TransferSupport support) {
+            if (!canImport(support)) {
+                return false;
+            }
+
+            try {
+                // Get dropped files
+                @SuppressWarnings("unchecked")
+                List<File> droppedFiles = (List<File>) support.getTransferable()
+                        .getTransferData(DataFlavor.javaFileListFlavor);
+
+                // Get target location
+                JTree.DropLocation dl = (JTree.DropLocation) support.getDropLocation();
+                TreePath path = dl.getPath();
+                if (path == null)
+                    return false;
+
+                DefaultMutableTreeNode targetNode = (DefaultMutableTreeNode) path.getLastPathComponent();
+                Object userObject = targetNode.getUserObject();
+
+                File targetDir;
+                if (userObject instanceof File f && f.isDirectory()) {
+                    targetDir = f;
+                } else if (userObject instanceof File f) {
+                    targetDir = f.getParentFile();
+                } else {
+                    targetDir = currentProjectRoot;
+                }
+
+                if (targetDir == null)
+                    return false;
+
+                // Perform Move (Default for DnD within app)
+                boolean isMove = (support.getDropAction() & MOVE) == MOVE;
+
+                for (File srcFile : droppedFiles) {
+                    if (srcFile.getParentFile().equals(targetDir))
+                        continue; // Same dir
+
+                    File destFile = new File(targetDir, srcFile.getName());
+
+                    // Auto-rename logic
+                    if (destFile.exists()) {
+                        String name = srcFile.getName();
+                        String baseName = name;
+                        String ext = "";
+                        int dotIndex = name.lastIndexOf('.');
+                        if (dotIndex > 0) {
+                            baseName = name.substring(0, dotIndex);
+                            ext = name.substring(dotIndex);
+                        }
+                        int counter = 1;
+                        while (destFile.exists()) {
+                            destFile = new File(targetDir, baseName + " (" + counter++ + ")" + ext);
+                        }
+                    }
+
+                    if (isMove) {
+                        Files.move(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                        AppLogger.info("Moved (DnD): " + srcFile.getName() + " -> " + destFile.getName());
+                    } else {
+                        copyRecursive(srcFile, destFile);
+                        AppLogger.info("Copied (DnD): " + srcFile.getName() + " -> " + destFile.getName());
+                    }
+                }
+
+                refresh();
+                return true;
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                AppLogger.error("Drag and Drop failed", e);
+            }
+            return false;
         }
     }
 }

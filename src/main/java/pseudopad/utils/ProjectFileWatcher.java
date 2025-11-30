@@ -21,7 +21,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.swing.SwingUtilities;
 import pseudopad.app.MainFrame;
-import pseudopad.utils.AppLogger;
 
 /**
  * Monitors the project directory for changes and triggers a refresh in the File
@@ -45,7 +44,11 @@ public class ProjectFileWatcher {
     private FileChangeListener listener;
 
     // Debouncing
-    private final ScheduledExecutorService debouncer = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService debouncer = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread t = new Thread(r);
+        t.setDaemon(true);
+        return t;
+    });
     private volatile long lastChangeTime = 0;
     private static final long DEBOUNCE_DELAY_MS = 500;
 
@@ -141,13 +144,15 @@ public class ProjectFileWatcher {
                 if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
                     pendingDeletes.add(childFile);
                 } else if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-                    // Check for rename (heuristic: delete + create in same directory usually,
-                    // but standard rename might be delete old + create new)
-                    // Simple heuristic: if we have a pending delete in the same directory, treat as
+                    // Check for rename (heuristic: deleteItem + create in same directory usually,
+                    // but standard rename might be deleteItem old + create new)
+                    // Simple heuristic: if we have a pending deleteItem in the same directory,
+                    // treat as
                     // rename
                     // NOTE: This is simplistic. A better approach tracks time or checks for exact
                     // swap.
-                    // But for now, let's check if there is ANY pending delete in the same parent
+                    // But for now, let's check if there is ANY pending deleteItem in the same
+                    // parent
                     // dir.
 
                     File renamedFrom = null;

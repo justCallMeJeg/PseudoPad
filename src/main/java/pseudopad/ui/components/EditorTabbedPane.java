@@ -8,6 +8,8 @@ import java.util.function.BiConsumer;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
+
 import pseudopad.app.MainFrame;
 import pseudopad.ui.FallbackPanel;
 
@@ -24,6 +26,7 @@ public class EditorTabbedPane extends TabbedPane {
     // The panel to show when no files are open
     private final FallbackPanel fallback;
     private boolean isFallbackVisible = false;
+    private boolean isRemovingAll = false;
 
     public EditorTabbedPane(MainFrame mainFrame) {
         super();
@@ -33,16 +36,18 @@ public class EditorTabbedPane extends TabbedPane {
 
         this.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK,
                 (BiConsumer<JTabbedPane, Integer>) (tabPane, tabIndex) -> {
-                    Component c = tabPane.getComponentAt(tabIndex);
+                    if (tabIndex >= 0 && tabIndex < tabPane.getTabCount()) {
+                        Component c = tabPane.getComponentAt(tabIndex);
 
-                    // If it's a file tab, check for safety
-                    if (c instanceof FileTabPane fileTab) {
-                        if (fileTab.requestClose()) {
+                        // If it's a file tab, check for safety
+                        if (c instanceof FileTabPane fileTab) {
+                            if (fileTab.requestClose()) {
+                                tabPane.removeTabAt(tabIndex);
+                            }
+                        } else {
+                            // Not a file tab (e.g. Fallback), just close it
                             tabPane.removeTabAt(tabIndex);
                         }
-                    } else {
-                        // Not a file tab (e.g. Fallback), just close it
-                        tabPane.removeTabAt(tabIndex);
                     }
                 });
 
@@ -236,10 +241,14 @@ public class EditorTabbedPane extends TabbedPane {
      */
     @Override
     public void removeTabAt(int index) {
+        if (index < 0 || index >= getTabCount()) {
+            return;
+        }
         super.removeTabAt(index);
 
         // If the last tab was closed, show the fallback
-        if (getTabCount() == 0) {
+        // But NOT if we are in the middle of a bulk remove (removeAll)
+        if (getTabCount() == 0 && !isRemovingAll) {
             showFallback();
         }
     }
@@ -249,7 +258,16 @@ public class EditorTabbedPane extends TabbedPane {
      */
     @Override
     public void removeAll() {
-        super.removeAll();
-        showFallback();
+        isRemovingAll = true;
+        try {
+            super.removeAll();
+        } finally {
+            isRemovingAll = false;
+        }
+        isFallbackVisible = false; // Reset flag
+
+        // Defer adding the fallback to ensure the pane is fully cleared and events
+        // processed
+        SwingUtilities.invokeLater(this::showFallback);
     }
 }
