@@ -95,7 +95,7 @@ public class AppActionsManager {
 
     public final Action CUT = new AbstractAction("Cut") {
         {
-            setup(this, "cut",
+            setup(this, "content_cut",
                     KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
         }
 
@@ -107,7 +107,7 @@ public class AppActionsManager {
 
     public final Action COPY = new AbstractAction("Copy") {
         {
-            setup(this, "copy",
+            setup(this, "content_copy",
                     KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
         }
 
@@ -119,7 +119,7 @@ public class AppActionsManager {
 
     public final Action PASTE = new AbstractAction("Paste") {
         {
-            setup(this, "paste",
+            setup(this, "content_paste",
                     KeyStroke.getKeyStroke(KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
         }
 
