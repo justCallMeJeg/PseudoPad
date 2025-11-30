@@ -36,6 +36,7 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import javax.swing.text.BadLocationException;
+import pseudopad.utils.AppLogger;
 
 /**
  *
@@ -91,6 +92,7 @@ public class MainFrame extends JFrame {
 
         // 2. Configure components
         if (currentProjectPath != null) {
+            AppLogger.info("Launching project: " + currentProjectPath.getAbsolutePath());
             this.setTitle(this.currentProjectPath.getName() + " - " + AppConstants.APP_TITLE);
             this.fileExplorer.openProject(projectPath);
 
@@ -174,9 +176,11 @@ public class MainFrame extends JFrame {
     public void openProject(File projectPath) {
         if (this.currentProjectPath == null) {
             // Case 1: Current window is empty -> Use it
+            AppLogger.info("Opening project in current window: " + projectPath.getAbsolutePath());
             launchAppInstance(projectPath);
         } else {
             // Case 2: Current window is busy -> Create new window
+            AppLogger.info("Opening project in new window: " + projectPath.getAbsolutePath());
             MainFrame newFrame = new MainFrame();
             newFrame.setupAppIcon(ThemeManager.getInstance().isDarkMode());
             newFrame.launchAppInstance(projectPath);
@@ -185,6 +189,7 @@ public class MainFrame extends JFrame {
 
     public void saveCurrentFile() {
         if (editorTabbedPane != null) {
+            AppLogger.info("Saving current file...");
             // Delegate deeper to the specific component
             editorTabbedPane.saveActiveTab();
         }
@@ -234,6 +239,7 @@ public class MainFrame extends JFrame {
     }
 
     public void closeProject() {
+        AppLogger.info("Closing project: " + (currentProjectPath != null ? currentProjectPath.getName() : "Unknown"));
         this.currentProjectPath = null;
 
         this.setTitle(AppConstants.APP_TITLE);
@@ -279,7 +285,7 @@ public class MainFrame extends JFrame {
         if (logTextPane != null) {
             StyledDocument doc = logTextPane.getStyledDocument();
             Style style = logTextPane.addStyle("LogStyle", null);
-            StyleConstants.setForeground(style, color != null ? color : Color.BLACK);
+            StyleConstants.setForeground(style, color != null ? color : UIManager.getColor("Panel.foreground"));
 
             try {
                 doc.insertString(doc.getLength(), message + "\n", style);
@@ -371,7 +377,7 @@ public class MainFrame extends JFrame {
         this.editorSplitPane.setResizeWeight(AppConstants.EDITOR_SPLIT_RESIZE_WEIGHT);
         this.editorSplitPane.setOrientation(JSplitPane.VERTICAL_SPLIT);
         this.editorSplitPane.setTopComponent(editorTabbedPane);
-
+        
         this.bottomEditorTabbedPane.add("Output", terminalTextPane);
         this.bottomEditorTabbedPane.add("Logs", logTextPane);
 

@@ -13,6 +13,7 @@ import pseudopad.ui.FallbackPanel;
 
 import pseudopad.utils.IconManager;
 import pseudopad.utils.AppConstants;
+import pseudopad.utils.AppLogger;
 
 /**
  * Specialized TabPane for Editors with an "Add" button.
@@ -94,6 +95,7 @@ public class EditorTabbedPane extends TabbedPane {
         FileTabPane newEditor = new FileTabPane(file);
         this.addTab(file.getName(), newEditor);
         this.setSelectedComponent(newEditor);
+        AppLogger.info("Opened file: " + file.getName());
         System.out.println("Created new tab: '" + file.getName() + "'");
     }
 
@@ -101,6 +103,9 @@ public class EditorTabbedPane extends TabbedPane {
         java.awt.Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             fileTabPane.saveFile();
+            if (fileTabPane.getFile() != null) {
+                AppLogger.info("Saved file: " + fileTabPane.getFile().getName());
+            }
         }
     }
 
@@ -166,6 +171,7 @@ public class EditorTabbedPane extends TabbedPane {
                 if (tabFile != null) {
                     if (tabFile.equals(file)
                             || tabFile.getAbsolutePath().startsWith(file.getAbsolutePath() + File.separator)) {
+                        AppLogger.info("Closed tab due to deletion: " + tabFile.getName());
                         removeTabAt(i);
                         i--; // Adjust index since we removed a tab
                     }

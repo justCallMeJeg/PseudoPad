@@ -18,7 +18,7 @@ public class AppLogger {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     public static void info(String message) {
-        log("INFO", message, null, Color.BLACK); // Or a neutral color depending on theme
+        log("INFO", message, null, null);
     }
 
     public static void warn(String message) {

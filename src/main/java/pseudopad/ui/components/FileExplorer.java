@@ -35,6 +35,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.ExpandVetoException;
 import javax.swing.tree.TreePath;
+import pseudopad.utils.AppLogger;
 
 /**
  *
@@ -290,6 +291,7 @@ public class FileExplorer extends JPanel {
 
         try {
             pseudopad.utils.FileManager.rename(fileToRename, newFile);
+            AppLogger.info("Renamed file: " + fileToRename.getName() + " -> " + newFile.getName());
 
             // Notify listeners
             if (onFileRenamed != null) {
@@ -331,6 +333,7 @@ public class FileExplorer extends JPanel {
             } else {
                 pseudopad.utils.FileManager.delete(fileToDelete);
             }
+            AppLogger.info("Deleted file: " + fileToDelete.getAbsolutePath());
 
             // Notify listeners
             if (onFileDeleted != null) {
@@ -349,6 +352,7 @@ public class FileExplorer extends JPanel {
     public void copy() {
         File selectedFile = getSelectedFile();
         if (selectedFile != null) {
+            AppLogger.info("Copied to clipboard: " + selectedFile.getName());
             setClipboard(Arrays.asList(selectedFile), false);
         }
     }
@@ -356,6 +360,7 @@ public class FileExplorer extends JPanel {
     public void cut() {
         File selectedFile = getSelectedFile();
         if (selectedFile != null) {
+            AppLogger.info("Cut to clipboard: " + selectedFile.getName());
             setClipboard(Arrays.asList(selectedFile), true);
         }
     }
@@ -402,11 +407,14 @@ public class FileExplorer extends JPanel {
             try {
                 if (isCutOperation) {
                     Files.move(srcFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    AppLogger.info("Moved file: " + srcFile.getName() + " -> " + destFile.getName());
                 } else {
                     copyRecursive(srcFile, destFile);
+                    AppLogger.info("Pasted file: " + srcFile.getName() + " -> " + destFile.getName());
                 }
             } catch (IOException e) {
                 e.printStackTrace();
+                AppLogger.error("Error pasting file: " + srcFile.getName(), e);
                 JOptionPane.showMessageDialog(this, "Error pasting file: " + e.getMessage());
             }
         }

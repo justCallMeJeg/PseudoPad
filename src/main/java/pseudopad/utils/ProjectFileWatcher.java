@@ -21,6 +21,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.swing.SwingUtilities;
 import pseudopad.app.MainFrame;
+import pseudopad.utils.AppLogger;
 
 /**
  * Monitors the project directory for changes and triggers a refresh in the File
@@ -162,10 +163,13 @@ public class ProjectFileWatcher {
                         if (listener != null) {
                             listener.onFileRenamed(renamedFrom, childFile);
                         }
+                        AppLogger.info(
+                                "External rename detected: " + renamedFrom.getName() + " -> " + childFile.getName());
                     } else {
                         if (listener != null) {
                             listener.onFileCreated(childFile);
                         }
+                        AppLogger.info("External file created: " + childFile.getName());
                     }
 
                     // Register new directory
@@ -194,6 +198,7 @@ public class ProjectFileWatcher {
                 if (listener != null) {
                     listener.onFileDeleted(deleted);
                 }
+                AppLogger.info("External file deleted: " + deleted.getName());
             }
             pendingDeletes.clear();
 
