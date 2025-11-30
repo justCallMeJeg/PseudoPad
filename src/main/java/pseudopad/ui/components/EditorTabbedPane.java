@@ -139,6 +139,23 @@ public class EditorTabbedPane extends TabbedPane {
         }
     }
 
+    public void handleFileRename(File oldFile, File newFile) {
+        for (int i = 0; i < getTabCount(); i++) {
+            java.awt.Component c = getComponentAt(i);
+            if (c instanceof FileTabPane fileTabPane) {
+                File tabFile = fileTabPane.getFile();
+                if (tabFile != null && tabFile.equals(oldFile)) {
+                    fileTabPane.updateFileSource(newFile);
+                    // No need to manually set title here, updateFileSource -> updateTabTitle will
+                    // handle it
+                    // and preserve the dirty state logic if needed (though usually rename happens
+                    // on saved files)
+                    break; // Assuming only one tab per file
+                }
+            }
+        }
+    }
+
     // ==========================================================================
     // FALLBACK LOGIC
     // ==========================================================================

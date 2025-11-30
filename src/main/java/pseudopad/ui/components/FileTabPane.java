@@ -15,6 +15,7 @@ import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.undo.UndoManager;
+import pseudopad.app.MainFrame;
 import pseudopad.utils.FileManager;
 
 /**
@@ -117,9 +118,13 @@ public class FileTabPane extends JPanel {
         if (parentTab != null) {
             int index = parentTab.indexOfComponent(this);
             if (index != -1) {
-                // If title is not set yet, grab it from the tab
-                if (tabTitle == null)
+                // If we have a file source, ALWAYS use its name as the base title
+                if (fileSource != null) {
+                    tabTitle = fileSource.getName();
+                } else if (tabTitle == null) {
+                    // If no file source and no title set, grab it from the tab (initial state)
                     tabTitle = parentTab.getTitleAt(index).replace("*", "").trim();
+                }
 
                 String newTitle = tabTitle + (isDirty ? " *" : "");
                 parentTab.setTitleAt(index, newTitle);
@@ -156,6 +161,11 @@ public class FileTabPane extends JPanel {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Specify a file to save");
 
+            // Set default directory to current project if available
+            if (MainFrame.getInstance() != null && MainFrame.getInstance().getCurrentProjectPath() != null) {
+                fileChooser.setCurrentDirectory(MainFrame.getInstance().getCurrentProjectPath());
+            }
+
             // Optional: Set a file filter (e.g., only .txt files)
             FileNameExtensionFilter filter = new FileNameExtensionFilter("Text Documents (*.pc)", "pc");
             fileChooser.setFileFilter(filter);
@@ -182,6 +192,12 @@ public class FileTabPane extends JPanel {
             originalContent = textPane.getText(); // Update baseline
             isDirty = false;
             updateTabTitle();
+
+            // Refresh File Explorer if we just saved a new file
+            if (MainFrame.getInstance() != null) {
+                MainFrame.getInstance().refreshFileExplorer();
+            }
+
             return true;
         } catch (IOException e) {
             JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage());
@@ -223,6 +239,13 @@ public class FileTabPane extends JPanel {
 
     public void setFile(File file) {
         this.fileSource = file;
+    }
+
+    public void updateFileSource(File newFile) {
+        this.fileSource = newFile;
+        // Reset title so it gets refreshed from the new file name
+        this.tabTitle = null;
+        updateTabTitle();
     }
 
     public String getText() {

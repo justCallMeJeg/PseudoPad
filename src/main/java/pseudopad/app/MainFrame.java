@@ -159,6 +159,12 @@ public class MainFrame extends JFrame {
             editorTabbedPane.paste();
     }
 
+    public void refreshFileExplorer() {
+        if (fileExplorer != null) {
+            fileExplorer.refresh();
+        }
+    }
+
     public void closeProject() {
         this.currentProjectPath = null;
         this.setTitle(AppConstants.APP_TITLE);
@@ -184,6 +190,10 @@ public class MainFrame extends JFrame {
     }
 
     public MainFrame getAppInstance() {
+        return INSTANCE;
+    }
+
+    public static MainFrame getInstance() {
         return INSTANCE;
     }
 
@@ -219,6 +229,12 @@ public class MainFrame extends JFrame {
 
         this.fileExplorer.setOnFileOpenListener((File file) -> {
             editorTabbedPane.openFileTab(file);
+        });
+
+        this.fileExplorer.setOnFileRenamedListener((File oldFile, File newFile) -> {
+            if (editorTabbedPane != null) {
+                editorTabbedPane.handleFileRename(oldFile, newFile);
+            }
         });
 
         this.topNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
