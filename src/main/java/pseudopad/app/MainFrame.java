@@ -31,6 +31,11 @@ import pseudopad.utils.AppConstants;
 import pseudopad.utils.ProjectFileWatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.Component;
+import java.awt.Color;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
+import javax.swing.text.BadLocationException;
 
 /**
  *
@@ -268,6 +273,22 @@ public class MainFrame extends JFrame {
 
     public AppActionsManager getAppActionInstance() {
         return this.AppActions;
+    }
+
+    public void appendLog(String message, Color color) {
+        if (logTextPane != null) {
+            StyledDocument doc = logTextPane.getStyledDocument();
+            Style style = logTextPane.addStyle("LogStyle", null);
+            StyleConstants.setForeground(style, color != null ? color : Color.BLACK);
+
+            try {
+                doc.insertString(doc.getLength(), message + "\n", style);
+                // Scroll to bottom
+                logTextPane.setCaretPosition(doc.getLength());
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // ----- UI/UX Logic -----

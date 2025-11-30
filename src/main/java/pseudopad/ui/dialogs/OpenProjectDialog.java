@@ -13,7 +13,6 @@ import pseudopad.utils.AppConstants;
  * @author Geger John Paul Gabayeron
  */
 public class OpenProjectDialog extends JFileChooser {
-    private final ThemeManager themeManager = ThemeManager.getInstance();
 
     public OpenProjectDialog() {
         this.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);

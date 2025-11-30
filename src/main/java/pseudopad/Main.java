@@ -5,6 +5,7 @@ import pseudopad.app.AppStartupWorker;
 import pseudopad.app.MainFrame;
 import pseudopad.app.SplashScreenWindow;
 import pseudopad.utils.ThemeManager;
+import pseudopad.utils.CrashHandler;
 
 /**
  *
@@ -12,6 +13,8 @@ import pseudopad.utils.ThemeManager;
  */
 public class Main {
     public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler(new CrashHandler());
+
         SwingUtilities.invokeLater(() -> {
             ThemeManager.init();
 
