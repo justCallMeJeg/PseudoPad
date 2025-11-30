@@ -37,6 +37,9 @@ public class FileExplorer extends JPanel {
     // Callback to tell the main app a file was renamed
     private BiConsumer<File, File> onFileRenamed;
 
+    // Callback to tell the main app a file was deleted
+    private Consumer<File> onFileDeleted;
+
     public FileExplorer() {
         super(new BorderLayout());
 
@@ -68,6 +71,10 @@ public class FileExplorer extends JPanel {
         JMenuItem renameItem = new JMenuItem("Rename");
         renameItem.addActionListener(e -> renameSelectedFile());
         contextMenu.add(renameItem);
+
+        JMenuItem deleteItem = new JMenuItem("Delete");
+        deleteItem.addActionListener(e -> deleteSelectedFile());
+        contextMenu.add(deleteItem);
 
         fileTree.addMouseListener(new MouseAdapter() {
             @Override
@@ -109,6 +116,10 @@ public class FileExplorer extends JPanel {
 
     public void setOnFileRenamedListener(BiConsumer<File, File> listener) {
         this.onFileRenamed = listener;
+    }
+
+    public void setOnFileDeletedListener(Consumer<File> listener) {
+        this.onFileDeleted = listener;
     }
 
     public void openProject(File projectDir) {
@@ -231,6 +242,46 @@ public class FileExplorer extends JPanel {
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Error renaming file: " + ex.getMessage(), "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void deleteSelectedFile() {
+        DefaultMutableTreeNode node = (DefaultMutableTreeNode) fileTree.getLastSelectedPathComponent();
+        if (node == null)
+            return;
+
+        Object userObject = node.getUserObject();
+        if (!(userObject instanceof File))
+            return;
+
+        File fileToDelete = (File) userObject;
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to delete '" + fileToDelete.getName() + "'?",
+                "Confirm Delete",
+                JOptionPane.YES_NO_OPTION);
+
+        if (confirm != JOptionPane.YES_OPTION)
+            return;
+
+        try {
+            if (fileToDelete.isDirectory()) {
+                pseudopad.utils.FileManager.deleteDirectoryForcefully(fileToDelete);
+            } else {
+                pseudopad.utils.FileManager.delete(fileToDelete);
+            }
+
+            // Notify listeners
+            if (onFileDeleted != null) {
+                onFileDeleted.accept(fileToDelete);
+            }
+
+            // Refresh Tree
+            refresh();
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error deleting file: " + ex.getMessage(), "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
     }

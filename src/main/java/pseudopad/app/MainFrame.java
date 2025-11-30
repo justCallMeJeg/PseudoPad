@@ -237,6 +237,12 @@ public class MainFrame extends JFrame {
             }
         });
 
+        this.fileExplorer.setOnFileDeletedListener((File file) -> {
+            if (editorTabbedPane != null) {
+                editorTabbedPane.closeFileTab(file);
+            }
+        });
+
         this.topNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
         this.topNavigationTabbedPane.add("Projects", projectExplorer);
         this.topNavigationTabbedPane.add("Files", fileExplorer);

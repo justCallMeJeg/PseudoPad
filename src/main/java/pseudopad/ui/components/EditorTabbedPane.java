@@ -156,6 +156,24 @@ public class EditorTabbedPane extends TabbedPane {
         }
     }
 
+    public void closeFileTab(File file) {
+        for (int i = 0; i < getTabCount(); i++) {
+            java.awt.Component c = getComponentAt(i);
+            if (c instanceof FileTabPane fileTabPane) {
+                File tabFile = fileTabPane.getFile();
+                // Check if the tab's file matches the deleted file
+                // OR if the deleted file is a directory and the tab's file is inside it
+                if (tabFile != null) {
+                    if (tabFile.equals(file)
+                            || tabFile.getAbsolutePath().startsWith(file.getAbsolutePath() + File.separator)) {
+                        removeTabAt(i);
+                        i--; // Adjust index since we removed a tab
+                    }
+                }
+            }
+        }
+    }
+
     // ==========================================================================
     // FALLBACK LOGIC
     // ==========================================================================
