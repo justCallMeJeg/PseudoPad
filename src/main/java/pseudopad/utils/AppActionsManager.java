@@ -6,17 +6,17 @@ import java.awt.Toolkit;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.KeyStroke;
-import pseudopad.app.MainFrame;
+import pseudopad.app.AppController;
 
 /**
  *
  * @author Geger John Paul Gabayeron
  */
 public class AppActionsManager {
-    private final MainFrame appFrame;
+    private final AppController appController;
 
-    public AppActionsManager(MainFrame appFrame) {
-        this.appFrame = appFrame;
+    public AppActionsManager(AppController appController) {
+        this.appController = appController;
     }
 
     public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
@@ -29,7 +29,7 @@ public class AppActionsManager {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: New Project");
-            appFrame.newProject();
+            appController.newProject();
         }
     };
 
@@ -43,7 +43,7 @@ public class AppActionsManager {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Open Project");
-            appFrame.openProject();
+            appController.openProject();
         }
     };
 
@@ -51,7 +51,7 @@ public class AppActionsManager {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Close Project");
-            appFrame.closeProject();
+            appController.closeProject();
         }
     };
 
@@ -64,7 +64,7 @@ public class AppActionsManager {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Save");
-            appFrame.saveCurrentFile();
+            appController.saveCurrentFile();
         }
     };
 
@@ -77,7 +77,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.undoAction();
+            appController.undoAction();
         }
     };
 
@@ -89,7 +89,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.redoAction();
+            appController.redoAction();
         }
     };
 
@@ -101,7 +101,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.cutContent();
+            appController.cutContent();
         }
     };
 
@@ -113,7 +113,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.copyContent();
+            appController.copyContent();
         }
     };
 
@@ -125,7 +125,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.pasteContent();
+            appController.pasteContent();
         }
     };
 
@@ -136,7 +136,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.deleteItem();
+            appController.deleteItem();
         }
     };
     // </editor-fold>
@@ -151,7 +151,7 @@ public class AppActionsManager {
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Change Theme to Light");
             // Now valid: accessing instance variable from instance context
-            appFrame.changeTheme(ThemeManager.THEMES.LIGHT);
+            appController.changeTheme(ThemeManager.THEMES.LIGHT);
         }
     };
 
@@ -164,7 +164,7 @@ public class AppActionsManager {
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Change Theme to Dark");
             // Now valid: accessing instance variable from instance context
-            appFrame.changeTheme(ThemeManager.THEMES.DARK);
+            appController.changeTheme(ThemeManager.THEMES.DARK);
         }
     };
 
@@ -177,7 +177,7 @@ public class AppActionsManager {
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Change Theme to System");
             // Now valid: accessing instance variable from instance context
-            appFrame.changeTheme(ThemeManager.THEMES.SYSTEM);
+            appController.changeTheme(ThemeManager.THEMES.SYSTEM);
         }
     };
     // </editor-fold>
@@ -191,7 +191,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.toggleNavigationPanel();
+            appController.toggleNavigationPanel();
         }
     };
 
@@ -203,7 +203,7 @@ public class AppActionsManager {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            appFrame.toggleOutputPanel();
+            appController.toggleOutputPanel();
         }
     };
     // </editor-fold>

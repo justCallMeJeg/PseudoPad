@@ -1,13 +1,15 @@
 package pseudopad;
 
+import java.io.File;
+
 import javax.swing.SwingUtilities;
+
 import pseudopad.app.AppStartupWorker;
 import pseudopad.app.MainFrame;
 import pseudopad.app.SplashScreenWindow;
+import pseudopad.utils.CrashHandler;
 import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
-import pseudopad.utils.CrashHandler;
-import java.io.File;
 
 /**
  *
