@@ -13,6 +13,7 @@ public class SimpleTerminalBackend implements TerminalBackend {
     private Consumer<String> outputListener;
     private boolean isRunning = false;
     private String projectName = "PseudoPad";
+    private java.util.function.Supplier<String> codeProvider;
 
     @Override
     public void sendInput(String input) {
@@ -84,9 +85,20 @@ public class SimpleTerminalBackend implements TerminalBackend {
 
     private void runProgram(StringBuilder response) {
         response.append("Running program...\n");
-        // Placeholder for custom interpreter execution
-        // MIKOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO
-        // e.g., myInterpreter.execute(currentFile);
+
+        String code = null;
+        if (codeProvider != null) {
+            code = codeProvider.get();
+        }
+
+        if (code == null || code.trim().isEmpty()) {
+            response.append("No code to execute.\n");
+        } else {
+            // Placeholder for custom interpreter execution
+            // MIKOOOOOOOOOOOOOOOOOOOOOOOOOO
+            // e.g., myInterpreter.execute(code);
+        }
+
         response.append("[Program finished]\n");
     }
 
@@ -99,6 +111,11 @@ public class SimpleTerminalBackend implements TerminalBackend {
     public void setProjectName(String projectName) {
         this.projectName = projectName;
         // Optional: announce change or just update future prompts
+    }
+
+    @Override
+    public void setCodeProvider(java.util.function.Supplier<String> provider) {
+        this.codeProvider = provider;
     }
 
     private String getPrompt() {

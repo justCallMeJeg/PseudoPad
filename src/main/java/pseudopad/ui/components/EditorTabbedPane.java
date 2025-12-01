@@ -298,4 +298,12 @@ public class EditorTabbedPane extends TabbedPane {
         }
         return null;
     }
+
+    public String getActiveFileContent() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            return fileTabPane.getText();
+        }
+        return null;
+    }
 }

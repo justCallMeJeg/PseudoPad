@@ -190,7 +190,16 @@ public class MainLayout extends JPanel {
         this.projectExplorer = new FileExplorer();
         this.editorTabbedPane = new EditorTabbedPane(mainFrame);
         this.bottomEditorTabbedPane = new TabbedPane();
-        this.terminalTextPane = new TerminalPane(new SimpleTerminalBackend());
+
+        SimpleTerminalBackend backend = new SimpleTerminalBackend();
+        backend.setCodeProvider(() -> {
+            if (editorTabbedPane != null) {
+                return editorTabbedPane.getActiveFileContent();
+            }
+            return null;
+        });
+
+        this.terminalTextPane = new TerminalPane(backend);
         this.logTextPane = new TextPane();
     }
 

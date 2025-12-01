@@ -1,6 +1,7 @@
 package pseudopad.ui.components.terminal;
 
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Interface for terminal backends.
@@ -39,4 +40,11 @@ public interface TerminalBackend {
      * @param projectName The name of the current project.
      */
     void setProjectName(String projectName);
+
+    /**
+     * Sets the provider for retrieving the current code content.
+     * 
+     * @param provider A supplier that returns the current code as a String.
+     */
+    void setCodeProvider(Supplier<String> provider);
 }
