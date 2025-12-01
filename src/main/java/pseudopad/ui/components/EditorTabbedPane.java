@@ -270,4 +270,29 @@ public class EditorTabbedPane extends TabbedPane {
         // processed
         SwingUtilities.invokeLater(this::showFallback);
     }
+
+    public java.util.List<String> getOpenFiles() {
+        java.util.List<String> files = new java.util.ArrayList<>();
+        for (int i = 0; i < getTabCount(); i++) {
+            java.awt.Component c = getComponentAt(i);
+            if (c instanceof FileTabPane fileTabPane) {
+                File f = fileTabPane.getFile();
+                if (f != null) {
+                    files.add(f.getAbsolutePath());
+                }
+            }
+        }
+        return files;
+    }
+
+    public String getActiveFile() {
+        java.awt.Component c = getSelectedComponent();
+        if (c instanceof FileTabPane fileTabPane) {
+            File f = fileTabPane.getFile();
+            if (f != null) {
+                return f.getAbsolutePath();
+            }
+        }
+        return null;
+    }
 }

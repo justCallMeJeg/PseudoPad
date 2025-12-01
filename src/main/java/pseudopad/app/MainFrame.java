@@ -29,6 +29,8 @@ import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
 import pseudopad.utils.AppConstants;
 import pseudopad.utils.ProjectFileWatcher;
+import pseudopad.utils.ProjectManager;
+import pseudopad.config.ProjectConfig;
 import java.awt.KeyboardFocusManager;
 import java.awt.Component;
 import java.awt.Color;
@@ -46,10 +48,13 @@ public class MainFrame extends JFrame {
     private static MainFrame INSTANCE;
 
     private File currentProjectPath;
-    private final ThemeManager themeManager = ThemeManager.getInstance();
-    private final PreferenceManager AppPref = PreferenceManager.getInstance();
+    // private final ThemeManager themeManager = ThemeManager.getInstance(); //
+    // Unused
+    // private final PreferenceManager AppPref = PreferenceManager.getInstance(); //
+    // Unused
     private final AppActionsManager AppActions = new AppActionsManager(this);
     private ProjectFileWatcher projectFileWatcher;
+    private File pendingProjectToLoad;
 
     public MainFrame() {
         INSTANCE = this;
@@ -65,10 +70,50 @@ public class MainFrame extends JFrame {
 
     @Override
     public void dispose() {
+        saveWindowState();
         if (projectFileWatcher != null) {
             projectFileWatcher.stop();
         }
         super.dispose();
+    }
+
+    private void saveWindowState() {
+        int width = getWidth();
+        int height = getHeight();
+        int x = getX();
+        int y = getY();
+        int state = getExtendedState();
+
+        int divMain = mainSplitPane.getDividerLocation();
+        int divEditor = editorSplitPane.getDividerLocation();
+        int divNav = navigationSplitPane.getDividerLocation();
+
+        if (currentProjectPath != null) {
+            ProjectConfig config = ProjectManager.loadConfig(currentProjectPath);
+            if (config == null)
+                config = new ProjectConfig(currentProjectPath.getName());
+
+            config.windowWidth = width;
+            config.windowHeight = height;
+            config.windowX = x;
+            config.windowY = y;
+            config.windowState = state;
+
+            config.dividerMain = divMain;
+            config.dividerEditor = divEditor;
+            config.dividerNav = divNav;
+
+            // Save Session State
+            if (editorTabbedPane != null) {
+                config.openFiles = editorTabbedPane.getOpenFiles();
+                config.activeFile = editorTabbedPane.getActiveFile();
+            }
+
+            ProjectManager.saveConfig(currentProjectPath, config);
+        } else {
+            PreferenceManager.getInstance().saveWindowState(width, height, x, y, state);
+            PreferenceManager.getInstance().saveDividerLocations(divMain, divEditor, divNav);
+        }
     }
 
     public void setupAppIcon(Boolean isDark) {
@@ -92,8 +137,68 @@ public class MainFrame extends JFrame {
         setIconImage(icon);
     }
 
+    public void setPendingProject(File project) {
+        this.pendingProjectToLoad = project;
+    }
+
     public void launchAppInstance(File projectPath) {
+        // If no specific project passed, check pending
+        if (projectPath == null && this.pendingProjectToLoad != null) {
+            projectPath = this.pendingProjectToLoad;
+            this.pendingProjectToLoad = null; // Consume it
+        }
+
         this.currentProjectPath = projectPath;
+
+        // Determine initial bounds and state
+        int w = 1280, h = 720, x = -1, y = -1, state = JFrame.MAXIMIZED_BOTH; // Default to Maximized
+        int divMain = -1, divEditor = -1, divNav = -1;
+
+        if (currentProjectPath != null) {
+            ProjectConfig config = ProjectManager.loadConfig(currentProjectPath);
+            if (config != null && config.windowWidth > 0 && config.windowHeight > 0) {
+                w = config.windowWidth;
+                h = config.windowHeight;
+                x = config.windowX;
+                y = config.windowY;
+                state = config.windowState;
+                divMain = config.dividerMain;
+                divEditor = config.dividerEditor;
+                divNav = config.dividerNav;
+            } else {
+                // Config invalid or missing, try global fallback for window size/pos
+                // But for dividers, we might want defaults.
+                int[] winState = PreferenceManager.getInstance().loadWindowState();
+                if (winState[0] > 0) {
+                    w = winState[0];
+                    h = winState[1];
+                    x = winState[2];
+                    y = winState[3];
+                    state = winState[4];
+                }
+            }
+        } else {
+            int[] winState = PreferenceManager.getInstance().loadWindowState();
+            w = winState[0];
+            h = winState[1];
+            x = winState[2];
+            y = winState[3];
+            state = winState[4];
+
+            int[] divs = PreferenceManager.getInstance().loadDividerLocations();
+            divMain = divs[0];
+            divEditor = divs[1];
+            divNav = divs[2];
+        }
+
+        // Apply Window State
+        if (x != -1 && y != -1)
+            setLocation(x, y);
+        else
+            setLocationRelativeTo(null);
+
+        setSize(w > 0 ? w : 1280, h > 0 ? h : 720);
+        setExtendedState(state);
 
         // 1. Show the window FIRST so components get their sizes
         this.setVisible(true);
@@ -136,6 +241,9 @@ public class MainFrame extends JFrame {
             projectFileWatcher.start();
 
             // this.editorSplitPane.setTopComponent(editorTabbedPane);
+
+            // Save as Last Project
+            PreferenceManager.getInstance().saveLastProject(currentProjectPath);
         } else {
             this.setTitle(AppConstants.APP_TITLE);
             // this.editorSplitPane.setTopComponent(new FallbackPanel(INSTANCE));
@@ -145,22 +253,62 @@ public class MainFrame extends JFrame {
             this.editorTabbedPane.refreshFallbackState();
         }
 
+        // Restore Session State (Open Files)
+        if (currentProjectPath != null) {
+            ProjectConfig config = ProjectManager.loadConfig(currentProjectPath);
+            if (config != null && config.openFiles != null) {
+                for (String filePath : config.openFiles) {
+                    File f = new File(filePath);
+                    if (f.exists()) {
+                        this.editorTabbedPane.openFileTab(f);
+                    }
+                }
+                if (config.activeFile != null) {
+                    File f = new File(config.activeFile);
+                    if (f.exists()) {
+                        this.editorTabbedPane.openFileTab(f); // Selects it
+                    }
+                }
+            }
+            // Select "Files" tab in Top Navigation
+            if (topNavigationTabbedPane.getTabCount() > 1) {
+                topNavigationTabbedPane.setSelectedIndex(1);
+            }
+        }
+
         // 3. Set Divider Locations LAST, inside invokeLater
         // This places the request at the end of the Event Queue, ensuring
         // the window is fully drawn before the dividers try to move.
+        final int fDivMain = divMain;
+        final int fDivEditor = divEditor;
+        final int fDivNav = divNav;
+
         SwingUtilities.invokeLater(() -> {
             // Set Main Split (Navigation vs Editor)
-            this.mainSplitPane.setDividerLocation(0.25); // e.g. 25% for file tree
+            if (currentProjectPath == null) {
+                this.mainSplitPane.setDividerLocation(0.0); // Enforce hidden if no project
+            } else if (fDivMain > 0) { // Check > 0 to avoid collapsing if uninitialized
+                this.mainSplitPane.setDividerLocation(fDivMain);
+            } else {
+                this.mainSplitPane.setDividerLocation(0.25); // Default show
+            }
 
             // Set Editor Split (Editor vs Console)
-            if (currentProjectPath != null) {
-                this.editorSplitPane.setDividerLocation(0.75);
-            } else {
-                this.editorSplitPane.setDividerLocation(1.0);
+            if (fDivEditor > 0) // Check > 0
+                this.editorSplitPane.setDividerLocation(fDivEditor);
+            else {
+                if (currentProjectPath != null) {
+                    this.editorSplitPane.setDividerLocation(0.75); // Show output panel
+                } else {
+                    this.editorSplitPane.setDividerLocation(1.0); // Hide output panel
+                }
             }
 
             // Set Navigation Split (Files vs Outline)
-            this.navigationSplitPane.setDividerLocation(0.5);
+            if (fDivNav > 0)
+                this.navigationSplitPane.setDividerLocation(fDivNav);
+            else
+                this.navigationSplitPane.setDividerLocation(0.5);
 
             // Ensure window is on top and focused after UI setup
             this.toFront();
@@ -320,6 +468,29 @@ public class MainFrame extends JFrame {
         }
     }
 
+    public void toggleNavigationPanel() {
+        // Toggle Logic for Main Split (Left vs Right)
+        if (mainSplitPane.getDividerLocation() < 50) {
+            // It's closed/minimized -> Restore
+            mainSplitPane.setDividerLocation(0.25);
+        } else {
+            // It's open -> Close
+            mainSplitPane.setDividerLocation(0.0);
+        }
+    }
+
+    public void toggleOutputPanel() {
+        // Toggle Logic for Editor Split (Top vs Bottom)
+        // Note: Divider at 1.0 means bottom is hidden
+        if (editorSplitPane.getDividerLocation() >= editorSplitPane.getMaximumDividerLocation() - 50) {
+            // It's closed -> Restore
+            editorSplitPane.setDividerLocation(0.75);
+        } else {
+            // It's open -> Close
+            editorSplitPane.setDividerLocation(1.0);
+        }
+    }
+
     // ----- UI/UX Logic -----
 
     private void initUIComponents() {
@@ -327,7 +498,7 @@ public class MainFrame extends JFrame {
 
         Border lineBorder = BorderFactory.createLineBorder(UIManager.getColor("Panel.foreground").darker(), 1);
 
-        this.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        // this.setExtendedState(JFrame.MAXIMIZED_BOTH); // Handled in launchAppInstance
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setMinimumSize(AppConstants.MIN_WINDOW_SIZE);
 
@@ -366,28 +537,44 @@ public class MainFrame extends JFrame {
         this.topNavigationTabbedPane.add("Projects", projectExplorer);
         this.topNavigationTabbedPane.add("Files", fileExplorer);
         this.topNavigationTabbedPane.setMinimizeAction(e -> {
-            // Toggle Logic:
-            if (this.navigationSplitPane.getDividerLocation() >= this.editorSplitPane.getMaximumDividerLocation()
-                    - 50) {
-                // Restore (If explicitly closed) -> Set to 70%
+            // Toggle Logic for Top Nav
+            if (this.navigationSplitPane.getDividerLocation() < 50) {
+                // It's currently minimized (Divider ~0). Restore to 50%
                 this.navigationSplitPane.setDividerLocation(0.5);
             } else {
-                // Minimize -> Set to bottom (1.0 means 100%)
-                this.navigationSplitPane.setDividerLocation(0);
+                // It's open. We want to minimize it.
+                // Check if Bottom is already minimized (Divider ~Max)
+                if (this.navigationSplitPane
+                        .getDividerLocation() >= this.navigationSplitPane.getMaximumDividerLocation() - 50) {
+                    // Bottom is minimized, so Top is full height.
+                    // Minimizing Top now means hiding the whole sidebar.
+                    this.mainSplitPane.setDividerLocation(0.0);
+                } else {
+                    // Bottom is visible. Just hide Top (Divider -> 0).
+                    this.navigationSplitPane.setDividerLocation(0.0);
+                }
             }
         });
 
         this.bottomNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
         this.bottomNavigationTabbedPane.add("Navigation", new JPanel().add(new JLabel("File Navigation Panel")));
         this.bottomNavigationTabbedPane.setMinimizeAction(e -> {
-            // Toggle Logic:
-            if (this.navigationSplitPane.getDividerLocation() >= this.editorSplitPane.getMaximumDividerLocation()
+            // Toggle Logic for Bottom Nav
+            if (this.navigationSplitPane.getDividerLocation() >= this.navigationSplitPane.getMaximumDividerLocation()
                     - 50) {
-                // Restore (If explicitly closed) -> Set to 70%
+                // It's currently minimized (Divider ~Max). Restore to 50%
                 this.navigationSplitPane.setDividerLocation(0.5);
             } else {
-                // Minimize -> Set to bottom (1.0 means 100%)
-                this.navigationSplitPane.setDividerLocation(1.0);
+                // It's open. We want to minimize it.
+                // Check if Top is already minimized (Divider ~0)
+                if (this.navigationSplitPane.getDividerLocation() < 50) {
+                    // Top is minimized, so Bottom is full height.
+                    // Minimizing Bottom now means hiding the whole sidebar.
+                    this.mainSplitPane.setDividerLocation(0.0);
+                } else {
+                    // Top is visible. Just hide Bottom (Divider -> 1.0/Max).
+                    this.navigationSplitPane.setDividerLocation(1.0);
+                }
             }
         });
 

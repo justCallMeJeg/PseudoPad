@@ -4,8 +4,10 @@ import javax.swing.SwingUtilities;
 import pseudopad.app.AppStartupWorker;
 import pseudopad.app.MainFrame;
 import pseudopad.app.SplashScreenWindow;
+import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
 import pseudopad.utils.CrashHandler;
+import java.io.File;
 
 /**
  *
@@ -31,6 +33,13 @@ public class Main {
             // 3. Execute the Worker
             // The worker takes charge of the timeline from this point on.
             AppStartupWorker worker = new AppStartupWorker(splashScreen, mainFrame);
+
+            // Check for last project
+            File lastProject = PreferenceManager.getInstance().loadLastProject();
+            if (lastProject != null) {
+                mainFrame.setPendingProject(lastProject);
+            }
+
             worker.execute();
         });
     }

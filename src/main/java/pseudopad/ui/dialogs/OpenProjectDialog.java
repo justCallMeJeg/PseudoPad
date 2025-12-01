@@ -4,6 +4,7 @@ import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import pseudopad.app.MainFrame;
+import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ProjectManager;
 import pseudopad.utils.AppConstants;
 
@@ -17,12 +18,17 @@ public class OpenProjectDialog extends JFileChooser {
         this.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         this.setDialogTitle(AppConstants.DIALOG_TITLE_OPEN_PROJECT);
 
-        this.setCurrentDirectory(new File(System.getProperty("user.home")));
+        this.setCurrentDirectory(PreferenceManager.getInstance().loadLastDialogDir());
     }
 
     @Override
     public void approveSelection() {
         File selectedFolder = getSelectedFile();
+
+        // Save the parent directory for next time
+        if (selectedFolder != null) {
+            PreferenceManager.getInstance().saveLastDialogDir(selectedFolder.getParentFile());
+        }
 
         // Checking if chosen project path is valid
         if (ProjectManager.isValidProject(selectedFolder)) {

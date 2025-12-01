@@ -218,17 +218,24 @@ public class ProjectFileWatcher {
     }
 
     private void triggerRefresh() {
+        if (debouncer.isShutdown()) {
+            return;
+        }
         // Debounce logic
         lastChangeTime = System.currentTimeMillis();
-        debouncer.schedule(() -> {
-            if (System.currentTimeMillis() - lastChangeTime >= DEBOUNCE_DELAY_MS) {
-                SwingUtilities.invokeLater(() -> {
-                    if (MainFrame.getInstance() != null) {
-                        MainFrame.getInstance().refreshFileExplorer();
-                    }
-                });
-            }
-        }, DEBOUNCE_DELAY_MS, TimeUnit.MILLISECONDS);
+        try {
+            debouncer.schedule(() -> {
+                if (System.currentTimeMillis() - lastChangeTime >= DEBOUNCE_DELAY_MS) {
+                    SwingUtilities.invokeLater(() -> {
+                        if (MainFrame.getInstance() != null) {
+                            MainFrame.getInstance().refreshFileExplorer();
+                        }
+                    });
+                }
+            }, DEBOUNCE_DELAY_MS, TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            // Ignore, we are shutting down
+        }
     }
 
     @SuppressWarnings("unchecked")

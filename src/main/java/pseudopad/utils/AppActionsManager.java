@@ -182,6 +182,32 @@ public class AppActionsManager {
     };
     // </editor-fold>
 
+    // <editor-fold defaultstate="collapsed" desc="View Actions">
+    public final Action TOGGLE_NAV_PANEL = new AbstractAction("Toggle Navigation") {
+        {
+            setup(this, "sidebar",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_1, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.toggleNavigationPanel();
+        }
+    };
+
+    public final Action TOGGLE_OUTPUT_PANEL = new AbstractAction("Toggle Output") {
+        {
+            setup(this, "terminal",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_2, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appFrame.toggleOutputPanel();
+        }
+    };
+    // </editor-fold>
+
     // <editor-fold defaultstate="collapsed" desc="Helper Functions">
     private void setup(Action a, String iconName, KeyStroke key) {
         // 1. Menu Icon (16x16)

@@ -64,4 +64,13 @@ public class ProjectManager {
             return null;
         }
     }
+
+    public static void saveConfig(File projectRoot, ProjectConfig config) {
+        File configFile = new File(projectRoot, CONFIG_FOLDER + File.separator + CONFIG_FILE);
+        try (FileWriter writer = new FileWriter(configFile)) {
+            gson.toJson(config, writer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

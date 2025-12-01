@@ -57,6 +57,12 @@ public class AppMenuBar extends JMenuBar {
 
     private void initWindowMenu() {
         JMenu windowMenu = new JMenu("Window");
+
+        windowMenu.add(new JMenuItem(actions.TOGGLE_NAV_PANEL));
+        windowMenu.add(new JMenuItem(actions.TOGGLE_OUTPUT_PANEL));
+
+        windowMenu.addSeparator();
+
         JMenu themeMenu = new JMenu("Theme");
 
         javax.swing.ButtonGroup themeGroup = new javax.swing.ButtonGroup();

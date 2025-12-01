@@ -37,10 +37,10 @@ public class AppToolBar extends JToolBar {
         // --- Edit Group ---
         add(createButton(actions.UNDO));
         add(createButton(actions.REDO));
-        add(createButton(actions.CUT));
-        add(createButton(actions.COPY));
-        add(createButton(actions.PASTE));
-        add(createButton(actions.DELETE));
+        // add(createButton(actions.CUT));
+        // add(createButton(actions.COPY));
+        // add(createButton(actions.PASTE));
+        // add(createButton(actions.DELETE));
 
         addSeparator();
 
