@@ -75,6 +75,8 @@ public class PreferenceManager {
     public void saveLastProject(File projectPath) {
         if (projectPath != null) {
             prefs.put(KEY_LAST_PROJECT, projectPath.getAbsolutePath());
+        } else {
+            prefs.remove(KEY_LAST_PROJECT);
         }
     }
 

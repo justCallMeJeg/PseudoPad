@@ -198,6 +198,9 @@ public class EditorTabbedPane extends TabbedPane {
 
         untitledCount = 0;
 
+        // Ensure fallback state matches current project state
+        fallback.updateState();
+
         // Add the fallback as a tab (index 0)
         // We pass 'null' for icon/tip as the header will be hidden anyway
         super.insertTab("Welcome", null, fallback, null, 0);

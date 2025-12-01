@@ -364,6 +364,7 @@ public class MainFrame extends JFrame implements AppController {
                 + (projectContext.getProjectPath() != null ? projectContext.getProjectPath().getName() : "Unknown"));
 
         projectContext.closeProject();
+        PreferenceManager.getInstance().saveLastProject(null);
 
         this.setTitle(AppConstants.APP_TITLE);
 
@@ -377,6 +378,9 @@ public class MainFrame extends JFrame implements AppController {
         // 3. Force Fallback Panel to update (It's now visible because we removed all
         // tabs)
         mainLayout.getEditorTabbedPane().refreshFallbackState();
+
+        // 4. Reset Layout
+        mainLayout.resetLayout();
     }
 
     public void changeTheme(ThemeManager.THEMES theme) {

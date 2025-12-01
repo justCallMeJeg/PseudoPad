@@ -186,6 +186,19 @@ public class MainLayout extends JPanel {
         }
     }
 
+    public void resetLayout() {
+        SwingUtilities.invokeLater(() -> {
+            // Hide Navigation
+            mainSplitPane.setDividerLocation(0.0);
+
+            // Hide Output
+            editorSplitPane.setDividerLocation(1.0);
+
+            // Default Nav Split
+            navigationSplitPane.setDividerLocation(0.5);
+        });
+    }
+
     // Getters
     public JSplitPane getMainSplitPane() {
         return mainSplitPane;
