@@ -146,6 +146,10 @@ public class MainLayout extends JPanel {
 
         this.mainSplitPane.setRightComponent(this.editorSplitPane);
 
+        this.editorSplitPane.setBottomComponent(bottomEditorTabbedPane);
+
+        this.mainSplitPane.setRightComponent(this.editorSplitPane);
+
         this.bottomEditorTabbedPane.setMinimizeAction(e -> {
             if (this.editorSplitPane.getDividerLocation() >= this.editorSplitPane.getMaximumDividerLocation() - 50) {
                 this.editorSplitPane.setDividerLocation(0.7);
@@ -153,6 +157,25 @@ public class MainLayout extends JPanel {
                 this.editorSplitPane.setDividerLocation(1.0);
             }
         });
+
+        // Enable double-click to reset dividers
+        enableDividerDoubleClickListener(mainSplitPane, 0.25);
+        enableDividerDoubleClickListener(navigationSplitPane, 0.5);
+        enableDividerDoubleClickListener(editorSplitPane, 0.75);
+    }
+
+    private void enableDividerDoubleClickListener(JSplitPane splitPane, double defaultLocation) {
+        if (splitPane.getUI() instanceof javax.swing.plaf.basic.BasicSplitPaneUI ui) {
+            java.awt.Container divider = ui.getDivider();
+            divider.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    if (e.getClickCount() == 2) {
+                        splitPane.setDividerLocation(defaultLocation);
+                    }
+                }
+            });
+        }
     }
 
     private void initComponents() {
