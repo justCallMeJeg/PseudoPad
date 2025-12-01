@@ -32,4 +32,6 @@ public interface AppController {
     void toggleNavigationPanel();
 
     void toggleOutputPanel();
+
+    void runProject();
 }

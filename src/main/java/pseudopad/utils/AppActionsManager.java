@@ -208,6 +208,20 @@ public class AppActionsManager {
     };
     // </editor-fold>
 
+    // <editor-fold defaultstate="collapsed" desc="Run Actions">
+    public final Action RUN_PROJECT = new AbstractAction("Run Project") {
+        {
+            setup(this, "run",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_F6, 0));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.runProject();
+        }
+    };
+    // </editor-fold>
+
     // <editor-fold defaultstate="collapsed" desc="Helper Functions">
     private void setup(Action a, String iconName, KeyStroke key) {
         // 1. Menu Icon (16x16)

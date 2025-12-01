@@ -45,7 +45,7 @@ public class AppToolBar extends JToolBar {
         addSeparator();
 
         // --- Run Group ---
-        // add(createButton(actions.RUN)); // Ensure RUN exists
+        add(createButton(actions.RUN_PROJECT));
     }
 
     /**

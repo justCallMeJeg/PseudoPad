@@ -24,6 +24,8 @@ import pseudopad.ui.components.EditorTabbedPane;
 import pseudopad.ui.components.FileExplorer;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
+import pseudopad.ui.components.terminal.SimpleTerminalBackend;
+import pseudopad.ui.components.TerminalPane;
 import pseudopad.utils.AppActionsManager;
 import pseudopad.utils.AppConstants;
 
@@ -47,7 +49,7 @@ public class MainLayout extends JPanel {
     private EditorTabbedPane editorTabbedPane;
     private TabbedPane bottomEditorTabbedPane;
 
-    private TextPane terminalTextPane;
+    private TerminalPane terminalTextPane;
     private TextPane logTextPane;
 
     public MainLayout(MainFrame mainFrame, AppActionsManager appActions) {
@@ -134,7 +136,7 @@ public class MainLayout extends JPanel {
         this.editorSplitPane.setTopComponent(editorTabbedPane);
 
         this.logTextPane.setEditable(false);
-        this.terminalTextPane.setEditable(false);
+        // this.terminalTextPane.setEditable(false);
 
         JScrollPane logScrollPane = new JScrollPane(logTextPane);
         JScrollPane terminalScrollPane = new JScrollPane(terminalTextPane);
@@ -188,7 +190,7 @@ public class MainLayout extends JPanel {
         this.projectExplorer = new FileExplorer();
         this.editorTabbedPane = new EditorTabbedPane(mainFrame);
         this.bottomEditorTabbedPane = new TabbedPane();
-        this.terminalTextPane = new TextPane();
+        this.terminalTextPane = new TerminalPane(new SimpleTerminalBackend());
         this.logTextPane = new TextPane();
     }
 
@@ -249,5 +251,17 @@ public class MainLayout extends JPanel {
 
     public TextPane getLogTextPane() {
         return logTextPane;
+    }
+
+    public void runTerminalCommand(String command) {
+        if (terminalTextPane != null) {
+            terminalTextPane.runCommand(command);
+        }
+    }
+
+    public void setTerminalProjectName(String projectName) {
+        if (terminalTextPane != null) {
+            terminalTextPane.setProjectName(projectName);
+        }
     }
 }

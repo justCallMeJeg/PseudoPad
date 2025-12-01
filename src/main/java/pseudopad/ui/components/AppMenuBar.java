@@ -19,7 +19,7 @@ public class AppMenuBar extends JMenuBar {
 
         initFileMenu();
         initEditMenu();
-        // initRunMenu();
+        initRunMenu();
         initWindowMenu();
         initHelpMenu();
     }
@@ -53,6 +53,12 @@ public class AppMenuBar extends JMenuBar {
         editMenu.add(new JMenuItem(actions.DELETE));
 
         add(editMenu);
+    }
+
+    private void initRunMenu() {
+        JMenu runMenu = new JMenu("Run");
+        runMenu.add(new JMenuItem(actions.RUN_PROJECT));
+        add(runMenu);
     }
 
     private void initWindowMenu() {

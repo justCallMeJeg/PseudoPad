@@ -191,6 +191,7 @@ public class MainFrame extends JFrame implements AppController {
             AppLogger.info("Launching project: " + projectContext.getProjectPath().getAbsolutePath());
             this.setTitle(projectContext.getProjectPath().getName() + " - " + AppConstants.APP_TITLE);
             mainLayout.getFileExplorer().openProject(projectPath);
+            mainLayout.setTerminalProjectName(projectContext.getProjectPath().getName());
 
             // File Watcher is now handled by ProjectContext
 
@@ -433,6 +434,18 @@ public class MainFrame extends JFrame implements AppController {
             // It's open -> Close
             mainLayout.getEditorSplitPane().setDividerLocation(1.0);
         }
+    }
+
+    @Override
+    public void runProject() {
+        // Ensure output panel is visible
+        if (mainLayout.getEditorSplitPane()
+                .getDividerLocation() >= mainLayout.getEditorSplitPane().getMaximumDividerLocation() - 50) {
+            mainLayout.getEditorSplitPane().setDividerLocation(0.75);
+        }
+
+        // Execute "run" command
+        mainLayout.runTerminalCommand("run");
     }
 
     // ----- UI/UX Logic -----
