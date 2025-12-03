@@ -251,4 +251,8 @@ public class FileTabPane extends JPanel {
     public String getText() {
         return textPane.getText();
     }
+
+    public TextPane getTextPane() {
+        return textPane;
+    }
 }

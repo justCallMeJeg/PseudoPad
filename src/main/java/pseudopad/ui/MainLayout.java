@@ -22,6 +22,11 @@ import pseudopad.ui.components.AppMenuBar;
 import pseudopad.ui.components.AppToolBar;
 import pseudopad.ui.components.EditorTabbedPane;
 import pseudopad.ui.components.FileExplorer;
+import pseudopad.ui.components.CursorPositionWidget;
+import pseudopad.ui.components.FileTabPane;
+import pseudopad.ui.components.MemoryUsageWidget;
+import pseudopad.ui.components.ReadOnlyWidget;
+import pseudopad.ui.components.StatusBar;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
 import pseudopad.ui.components.terminal.SimpleTerminalBackend;
@@ -52,6 +57,12 @@ public class MainLayout extends JPanel {
     private TerminalPane terminalTextPane;
     private TextPane logTextPane;
 
+    private StatusBar statusBar;
+
+    private CursorPositionWidget cursorWidget;
+    private ReadOnlyWidget readOnlyWidget;
+    private MemoryUsageWidget memoryWidget;
+
     public MainLayout(MainFrame mainFrame, AppActionsManager appActions) {
         this.mainFrame = mainFrame;
         this.appActions = appActions;
@@ -73,6 +84,9 @@ public class MainLayout extends JPanel {
         this.mainSplitPane.setResizeWeight(AppConstants.MAIN_SPLIT_RESIZE_WEIGHT);
         this.mainSplitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
         add(mainSplitPane, BorderLayout.CENTER);
+
+        // Add Status Bar
+        add(statusBar, BorderLayout.SOUTH);
 
         this.navigationSplitPane.setBorder(lineBorder);
         this.navigationSplitPane.setResizeWeight(AppConstants.NAV_SPLIT_RESIZE_WEIGHT);
@@ -164,6 +178,18 @@ public class MainLayout extends JPanel {
         enableDividerDoubleClickListener(mainSplitPane, 0.25);
         enableDividerDoubleClickListener(navigationSplitPane, 0.5);
         enableDividerDoubleClickListener(editorSplitPane, 0.75);
+
+        statusBar.addRightComponent(cursorWidget);
+        statusBar.addSeparator();
+        statusBar.addRightComponent(readOnlyWidget);
+        statusBar.addSeparator();
+        statusBar.addRightComponent(memoryWidget);
+
+        editorTabbedPane.addChangeListener(e -> {
+            updateStatusBarWidgets(cursorWidget, readOnlyWidget);
+        });
+
+        updateStatusBarWidgets(cursorWidget, readOnlyWidget);
     }
 
     private void enableDividerDoubleClickListener(JSplitPane splitPane, double defaultLocation) {
@@ -201,6 +227,70 @@ public class MainLayout extends JPanel {
 
         this.terminalTextPane = new TerminalPane(backend);
         this.logTextPane = new TextPane();
+
+        this.statusBar = new StatusBar();
+
+        this.cursorWidget = new CursorPositionWidget();
+        this.readOnlyWidget = new ReadOnlyWidget();
+        this.memoryWidget = new MemoryUsageWidget();
+    }
+
+    private void updateStatusBarWidgets(CursorPositionWidget cursorWidget, ReadOnlyWidget readOnlyWidget) {
+        java.awt.Component selected = editorTabbedPane.getSelectedComponent();
+
+        if (selected instanceof FileTabPane fileTab) {
+            // Update Read-Only Status
+            File file = fileTab.getFile();
+            readOnlyWidget.setReadOnly(file != null && !file.canWrite());
+
+            // Update Cursor Position
+            TextPane textPane = fileTab.getTextPane();
+            updateCursorPosition(textPane, cursorWidget);
+
+            // Add Caret Listener
+            for (javax.swing.event.CaretListener l : textPane.getCaretListeners()) {
+                // Remove existing listeners to avoid duplicates (simplistic approach)
+                if (l instanceof javax.swing.event.CaretListener) {
+
+                }
+            }
+
+            // Let's use a client property on the textPane to store the listener
+            javax.swing.event.CaretListener existingListener = (javax.swing.event.CaretListener) textPane
+                    .getClientProperty("StatusBarCaretListener");
+            if (existingListener == null) {
+                javax.swing.event.CaretListener listener = e -> updateCursorPosition(textPane, cursorWidget);
+                textPane.addCaretListener(listener);
+                textPane.putClientProperty("StatusBarCaretListener", listener);
+            }
+
+        } else {
+            readOnlyWidget.setReadOnly(false);
+            cursorWidget.updatePosition(1, 1);
+        }
+    }
+
+    private void updateCursorPosition(TextPane textPane, CursorPositionWidget cursorWidget) {
+        try {
+            int caretPos = textPane.getCaretPosition();
+            int line = getLineOfOffset(textPane, caretPos);
+            int column = getColumnOfOffset(textPane, caretPos);
+            cursorWidget.updatePosition(line, column);
+        } catch (BadLocationException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private int getLineOfOffset(javax.swing.JTextPane textPane, int offset) throws BadLocationException {
+        javax.swing.text.Element map = textPane.getDocument().getDefaultRootElement();
+        return map.getElementIndex(offset) + 1;
+    }
+
+    private int getColumnOfOffset(javax.swing.JTextPane textPane, int offset) throws BadLocationException {
+        javax.swing.text.Element map = textPane.getDocument().getDefaultRootElement();
+        int line = map.getElementIndex(offset);
+        javax.swing.text.Element lineElem = map.getElement(line);
+        return offset - lineElem.getStartOffset() + 1;
     }
 
     public void appendLog(String message, Color color) {
@@ -260,6 +350,10 @@ public class MainLayout extends JPanel {
 
     public TextPane getLogTextPane() {
         return logTextPane;
+    }
+
+    public StatusBar getStatusBar() {
+        return statusBar;
     }
 
     public void runTerminalCommand(String command) {

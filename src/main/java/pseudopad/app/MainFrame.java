@@ -266,6 +266,8 @@ public class MainFrame extends JFrame implements AppController {
             // Ensure window is on top and focused after UI setup
             this.toFront();
             this.requestFocus();
+
+            setStatusMessage("Ready");
         });
     }
 
@@ -410,6 +412,12 @@ public class MainFrame extends JFrame implements AppController {
 
     public void appendLog(String message, Color color) {
         mainLayout.appendLog(message, color);
+    }
+
+    public void setStatusMessage(String message) {
+        if (mainLayout.getStatusBar() != null) {
+            mainLayout.getStatusBar().setMessage(message);
+        }
     }
 
     public void toggleNavigationPanel() {
