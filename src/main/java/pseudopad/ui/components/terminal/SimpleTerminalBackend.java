@@ -1,5 +1,8 @@
 package pseudopad.ui.components.terminal;
 
+import pseudopad.language.PseudoRunner;
+
+import javax.swing.*;
 import java.util.function.Consumer;
 
 /**
@@ -83,9 +86,27 @@ public class SimpleTerminalBackend implements TerminalBackend {
         }
     }
 
-    private void runProgram(StringBuilder response) {
-        response.append("Running program...\n");
+//    private void runProgram(StringBuilder response) {
+//        response.append("Running program...\n");
+//
+//        String code = null;
+//        if (codeProvider != null) {
+//            code = codeProvider.get();
+//        }
+//
+//        if (code == null || code.trim().isEmpty()) {
+//            response.append("No code to execute.\n");
+//        } else {
+//            // Placeholder for custom interpreter execution
+//            // MIKOOOOOOOOOOOOOOOOOOOOOOOOOO
+//            // e.g., myInterpreter.execute(code);
+//        }
+//
+//        response.append("[Program finished]\n");
+//    }
 
+    private void runProgram(StringBuilder response) {
+        // 1. Get the code
         String code = null;
         if (codeProvider != null) {
             code = codeProvider.get();
@@ -93,13 +114,32 @@ public class SimpleTerminalBackend implements TerminalBackend {
 
         if (code == null || code.trim().isEmpty()) {
             response.append("No code to execute.\n");
-        } else {
-            // Placeholder for custom interpreter execution
-            // MIKOOOOOOOOOOOOOOOOOOOOOOOOOO
-            // e.g., myInterpreter.execute(code);
+            return;
         }
 
-        response.append("[Program finished]\n");
+        response.append("Running...\n------------------------\n");
+
+        // 2. Run in a separate thread so the UI doesn't freeze
+        // We need a final copy of the code for the thread
+        final String sourceCode = code;
+
+        new Thread(() -> {
+            // 3. Define how 'input()' works (Popup Dialog)
+            String result = PseudoRunner.run(sourceCode, (prompt) -> {
+                return  JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
+            });
+
+            // 4. Send output back to the terminal (Must handle thread safety if needed,
+            // but Consumer usually handles UI update)
+            if (outputListener != null) {
+                // Remove the extra newline at the end if present
+                outputListener.accept(result + "\n" + getPrompt());
+            }
+        }).start();
+
+        // Clear the immediate response so we don't print a prompt twice
+        // (The thread prints the prompt when finished)
+        response.setLength(0);
     }
 
     @Override
