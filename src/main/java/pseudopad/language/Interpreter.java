@@ -9,15 +9,24 @@ public class Interpreter {
         String read(String prompt);
     }
 
+    public interface OutputProvider {
+        void print(String text);
+    }
+
+    // --- 2. UPDATED FIELDS ---
     // --- 2. UPDATED FIELDS ---
     public final Environment globals = new Environment();
     private Environment environment = globals;
     private final InputProvider inputProvider; // New field to store the input strategy
+    private final OutputProvider outputProvider;
 
     // --- 3. NEW CONSTRUCTOR (For GUI) ---
     // The frontend will call this one, passing in the popup logic
-    public Interpreter(InputProvider inputProvider) {
+    // --- 3. NEW CONSTRUCTOR (For GUI) ---
+    // The frontend will call this one, passing in the popup logic
+    public Interpreter(InputProvider inputProvider, OutputProvider outputProvider) {
         this.inputProvider = inputProvider;
+        this.outputProvider = outputProvider;
         initGlobals();
     }
 
@@ -28,6 +37,7 @@ public class Interpreter {
             System.out.print(prompt);
             return new Scanner(System.in).nextLine();
         };
+        this.outputProvider = System.out::print;
         initGlobals();
     }
 
@@ -36,7 +46,9 @@ public class Interpreter {
         // Define native "input" function using the provider
         globals.define("input", new Callable() {
             @Override
-            public int arity() { return 1; } // input("Prompt") -> 1 arg
+            public int arity() {
+                return 1;
+            } // input("Prompt") -> 1 arg
 
             @Override
             public Object call(Interpreter interpreter, List<Object> arguments) {
@@ -91,7 +103,7 @@ public class Interpreter {
 
                 // Strict Type Checking for Arguments
                 if (!interpreter.isTypeCompatible(param.type(), value)) {
-                    throw new Errors.TypeError("Expected argument " + (i+1) + " to be " +
+                    throw new Errors.TypeError("Expected argument " + (i + 1) + " to be " +
                             param.type() + " but got " + value.getClass().getSimpleName());
                 }
 
@@ -114,11 +126,15 @@ public class Interpreter {
                 Object result = returnValue.value;
 
                 if (declaration.returnType.equals("void")) {
-                    if (result != null) throw new Errors.TypeError("Function '" + declaration.name + "' is void and cannot return a value.");
+                    if (result != null)
+                        throw new Errors.TypeError(
+                                "Function '" + declaration.name + "' is void and cannot return a value.");
                     return null;
                 }
 
-                if (result == null) throw new Errors.TypeError("Function '" + declaration.name + "' must return a " + declaration.returnType);
+                if (result == null)
+                    throw new Errors.TypeError(
+                            "Function '" + declaration.name + "' must return a " + declaration.returnType);
 
                 if (!interpreter.isTypeCompatible(declaration.returnType, result)) {
                     throw new Errors.TypeError("Function '" + declaration.name + "' expected to return " +
@@ -129,7 +145,8 @@ public class Interpreter {
             }
 
             // 5. Handle void function finishing without return
-            if (declaration.returnType.equals("void")) return null;
+            if (declaration.returnType.equals("void"))
+                return null;
 
             throw new Errors.RuntimeError("Function '" + declaration.name + "' finished without returning a value.");
         }
@@ -158,7 +175,8 @@ public class Interpreter {
         @Override
         public int arity() {
             UserDefinedFunction initializer = findMethod("init");
-            if (initializer == null) return 0;
+            if (initializer == null)
+                return 0;
             return initializer.arity();
         }
 
@@ -210,7 +228,8 @@ public class Interpreter {
                 Environment.Variable field = fields.get(name.value);
                 // Type Check
                 if (!isTypeCompatible(field.declaredType, value)) {
-                    throw new Errors.TypeError("Field '" + name.value + "' expects " + field.declaredType + " but got " + value.getClass().getSimpleName());
+                    throw new Errors.TypeError("Field '" + name.value + "' expects " + field.declaredType + " but got "
+                            + value.getClass().getSimpleName());
                 }
                 field.value = value;
                 return;
@@ -229,7 +248,7 @@ public class Interpreter {
     private void execute(AST.Node node) {
         switch (node) {
             case AST.VariableDeclarationNode variableDeclarationNode ->
-                    executeVariableDeclaration(variableDeclarationNode);
+                executeVariableDeclaration(variableDeclarationNode);
             case AST.VariableAssignmentNode variableAssignmentNode -> executeVariableAssignment(variableAssignmentNode);
             case AST.AssignmentNode assignmentNode -> executeAssignment(assignmentNode);
             case AST.PrintNode printNode -> executePrint(printNode);
@@ -257,8 +276,8 @@ public class Interpreter {
             String declaredType = node.typeName.toLowerCase();
             if (!isTypeCompatible(node.typeName, value)) {
                 throw new Errors.TypeError("Type mismatch: expected " + declaredType + " but got value of type " +
-                        (value instanceof List ? "list" : value instanceof Map ? "dict" : value.getClass().getSimpleName())
-                );
+                        (value instanceof List ? "list"
+                                : value instanceof Map ? "dict" : value.getClass().getSimpleName()));
             }
         }
 
@@ -272,8 +291,10 @@ public class Interpreter {
     private void executeVariableAssignment(AST.VariableAssignmentNode node) {
         Environment.Variable variable = environment.getVariable(node.identifier);
 
-        if (variable == null) throw new Errors.TypeError("Variable '" + node.identifier + "' not declared.");
-        if (variable.isConst) throw new Errors.TypeError("Cannot assign to constant variable '" + node.identifier + "'");
+        if (variable == null)
+            throw new Errors.TypeError("Variable '" + node.identifier + "' not declared.");
+        if (variable.isConst)
+            throw new Errors.TypeError("Cannot assign to constant variable '" + node.identifier + "'");
 
         Object value = evaluate(node.value);
 
@@ -288,23 +309,32 @@ public class Interpreter {
 
     private void executePrint(AST.PrintNode node) {
         Object value = evaluate(node.expression);
-        System.out.println(value);
+        outputProvider.print(value + "\n");
     }
 
     private void executeIf(AST.IfNode node) {
         Object condition = evaluate(node.condition);
 
-        if (!(condition instanceof Boolean)) throw new Errors.TypeError("If condition must evaluate to boolean.");
-        if ((Boolean) condition) {executeBlock(node.thenBranch); return;}
+        if (!(condition instanceof Boolean))
+            throw new Errors.TypeError("If condition must evaluate to boolean.");
+        if ((Boolean) condition) {
+            executeBlock(node.thenBranch);
+            return;
+        }
 
         for (AST.ElifNode branch : node.elifBranches) {
             Object elifCondition = evaluate(branch.condition);
 
-            if (!(elifCondition instanceof Boolean)) throw new Errors.TypeError("Elif condition must evaluate to boolean.");
-            if ((Boolean) elifCondition) {executeBlock(branch.body); return;}
+            if (!(elifCondition instanceof Boolean))
+                throw new Errors.TypeError("Elif condition must evaluate to boolean.");
+            if ((Boolean) elifCondition) {
+                executeBlock(branch.body);
+                return;
+            }
         }
 
-        if (node.elseBranch != null) executeBlock(node.elseBranch);
+        if (node.elseBranch != null)
+            executeBlock(node.elseBranch);
     }
 
     private void executeBlock(List<? extends AST.Node> block) {
@@ -315,21 +345,31 @@ public class Interpreter {
 
     private void executeWhile(AST.WhileNode node) {
         while (getTruthValue(evaluate(node.condition))) {
-            try { executeBlock(node.body); }
-            catch (Errors.SkipSignal skipSignal){ continue; }
-            catch (Errors.BreakSignal breakSignal){ break; }
+            try {
+                executeBlock(node.body);
+            } catch (Errors.SkipSignal skipSignal) {
+                continue;
+            } catch (Errors.BreakSignal breakSignal) {
+                break;
+            }
         }
     }
 
     private void executeFor(AST.ForNode node) {
-        if (node.initializer != null) execute(node.initializer);
+        if (node.initializer != null)
+            execute(node.initializer);
 
         while (node.condition == null || getTruthValue(evaluate(node.condition))) {
-            try { executeBlock(node.body); }
-            catch (Errors.SkipSignal skipSignal){ continue; }
-            catch (Errors.BreakSignal breakSignal){ break; }
+            try {
+                executeBlock(node.body);
+            } catch (Errors.SkipSignal skipSignal) {
+                continue;
+            } catch (Errors.BreakSignal breakSignal) {
+                break;
+            }
 
-            if (node.increment != null) execute(node.increment);
+            if (node.increment != null)
+                execute(node.increment);
         }
     }
 
@@ -359,7 +399,8 @@ public class Interpreter {
     private Object evaluate(AST.Expression expression) {
         return switch (expression) {
             case AST.LiteralNode literalNode -> {
-                if (literalNode.value instanceof Number) yield ((Double) literalNode.value);
+                if (literalNode.value instanceof Number)
+                    yield ((Double) literalNode.value);
                 yield literalNode.value;
             }
             case AST.IdentifierNode identifierNode -> evaluateIdentifier(identifierNode);
@@ -377,7 +418,8 @@ public class Interpreter {
 
     private Object evaluateIdentifier(AST.IdentifierNode node) {
         Environment.Variable variable = environment.getVariable(node.name);
-        if (variable == null) throw new Errors.TypeError("Variable '" + node.name + "' not declared.");
+        if (variable == null)
+            throw new Errors.TypeError("Variable '" + node.name + "' not declared.");
         return variable.value;
     }
 
@@ -392,7 +434,7 @@ public class Interpreter {
     private Object evaluateDict(AST.DictLiteralNode node) {
         Map<Object, Object> map = new HashMap<>();
         for (Map.Entry<AST.Expression, AST.Expression> entry : node.entries.entrySet()) {
-            Object key  = evaluate(entry.getKey());
+            Object key = evaluate(entry.getKey());
             Object value = evaluate(entry.getValue());
             map.put(key, value);
         }
@@ -404,15 +446,19 @@ public class Interpreter {
         Object index = evaluate(node.index);
 
         if (target instanceof List<?> list) {
-            if (!(index instanceof Number)) throw new Errors.RuntimeError("List index must be a number.");
+            if (!(index instanceof Number))
+                throw new Errors.RuntimeError("List index must be a number.");
             int i = ((Number) index).intValue();
-            if (i < 0 || i >= list.size()) throw new Errors.RuntimeError("List index out of bounds.");
+            if (i < 0 || i >= list.size())
+                throw new Errors.RuntimeError("List index out of bounds.");
             return list.get(i);
         }
 
         if (target instanceof Map<?, ?> map) {
-            if (!(index instanceof String)) throw new Errors.RuntimeError("Dictionary key must be a string.");
-            if (!map.containsKey(index)) throw new Errors.RuntimeError("Key not found in dictionary.");
+            if (!(index instanceof String))
+                throw new Errors.RuntimeError("Dictionary key must be a string.");
+            if (!map.containsKey(index))
+                throw new Errors.RuntimeError("Key not found in dictionary.");
             return map.get(index);
         }
 
@@ -447,7 +493,6 @@ public class Interpreter {
         }
     }
 
-
     private Object evaluateUnary(AST.UnaryExpressionNode node) {
         Object right = evaluate(node.expression);
 
@@ -459,12 +504,17 @@ public class Interpreter {
 
         switch (node.operator.type) {
             case TokenType.MINUS:
-                if (isNumber(right)) return -((Double) right);
-                throw new Errors.RuntimeError("Expected a number type value after '-' but found: " + node.operator.type);
+                if (isNumber(right))
+                    return -((Double) right);
+                throw new Errors.RuntimeError(
+                        "Expected a number type value after '-' but found: " + node.operator.type);
             case TokenType.NOT:
-                if (isBoolean(right)) return !((Boolean) right);
-                throw new Errors.RuntimeError("Expected a boolean type value after 'not' but found: " + node.operator.type);
-            default: throw new Errors.RuntimeError("Unknown unary operator: " + node.operator.type);
+                if (isBoolean(right))
+                    return !((Boolean) right);
+                throw new Errors.RuntimeError(
+                        "Expected a boolean type value after 'not' but found: " + node.operator.type);
+            default:
+                throw new Errors.RuntimeError("Unknown unary operator: " + node.operator.type);
         }
     }
 
@@ -482,7 +532,8 @@ public class Interpreter {
 
         Callable function = (Callable) callee;
         if (arguments.size() != function.arity()) {
-            throw new Errors.RuntimeError("Expected " + function.arity() + " arguments but got " + arguments.size() + ".", node.parenthesis);
+            throw new Errors.RuntimeError(
+                    "Expected " + function.arity() + " arguments but got " + arguments.size() + ".", node.parenthesis);
         }
 
         return function.call(this, arguments);
@@ -502,27 +553,44 @@ public class Interpreter {
             switch (name) {
                 case "append":
                     return new Callable() {
-                        @Override public int arity() { return 1; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
+                        @Override
+                        public int arity() {
+                            return 1;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
                             list.add(args.get(0));
                             return null; // void
                         }
                     };
                 case "pop":
                     return new Callable() {
-                        @Override public int arity() { return 0; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
-                            if (list.isEmpty()) throw new Errors.RuntimeError("Cannot pop from empty list.", node.name);
+                        @Override
+                        public int arity() {
+                            return 0;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
+                            if (list.isEmpty())
+                                throw new Errors.RuntimeError("Cannot pop from empty list.", node.name);
                             return list.remove(list.size() - 1);
                         }
                     };
                 case "length":
-                    // Note: 'length' is often a property, but here implemented as a method call .length()
+                    // Note: 'length' is often a property, but here implemented as a method call
+                    // .length()
                     // If you want .length property (no parens), return Double directly.
                     // Assuming method style .length() based on OOP request:
                     return new Callable() {
-                        @Override public int arity() { return 0; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
+                        @Override
+                        public int arity() {
+                            return 0;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
                             return (double) list.size();
                         }
                     };
@@ -535,26 +603,42 @@ public class Interpreter {
             switch (name) {
                 case "toNumber":
                     return new Callable() {
-                        @Override public int arity() { return 0; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
+                        @Override
+                        public int arity() {
+                            return 0;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
                             try {
                                 return Double.parseDouble(string);
                             } catch (NumberFormatException e) {
-                                throw new Errors.RuntimeError("Cannot convert string '" + string + "' to number.", node.name);
+                                throw new Errors.RuntimeError("Cannot convert string '" + string + "' to number.",
+                                        node.name);
                             }
                         }
                     };
                 case "toBoolean":
                     return new Callable() {
-                        @Override public int arity() { return 0; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
+                        @Override
+                        public int arity() {
+                            return 0;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
                             return Boolean.parseBoolean(string);
                         }
                     };
                 case "length":
                     return new Callable() {
-                        @Override public int arity() { return 0; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
+                        @Override
+                        public int arity() {
+                            return 0;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
                             return (double) string.length();
                         }
                     };
@@ -567,22 +651,33 @@ public class Interpreter {
             switch (name) {
                 case "keys":
                     return new Callable() {
-                        @Override public int arity() { return 0; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
+                        @Override
+                        public int arity() {
+                            return 0;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
                             return new ArrayList<>(map.keySet());
                         }
                     };
                 case "remove":
                     return new Callable() {
-                        @Override public int arity() { return 1; }
-                        @Override public Object call(Interpreter interpreter, List<Object> args) {
+                        @Override
+                        public int arity() {
+                            return 1;
+                        }
+
+                        @Override
+                        public Object call(Interpreter interpreter, List<Object> args) {
                             return map.remove(args.get(0));
                         }
                     };
             }
         }
 
-        throw new Errors.RuntimeError("Property '" + name + "' does not exist on type " + object.getClass().getSimpleName(), node.name);
+        throw new Errors.RuntimeError(
+                "Property '" + name + "' does not exist on type " + object.getClass().getSimpleName(), node.name);
     }
 
     private Object evaluateThis(AST.ThisExpressionNode node) {
@@ -600,57 +695,77 @@ public class Interpreter {
 
         switch (node.operator.type) {
             case AND:
-                if (!isBoolean(left)) throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
-                if (!(Boolean) left) return false;
+                if (!isBoolean(left))
+                    throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
+                if (!(Boolean) left)
+                    return false;
                 Object rightAnd = evaluate(node.right);
-                if (!isBoolean(rightAnd))  throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
+                if (!isBoolean(rightAnd))
+                    throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
                 return (Boolean) rightAnd;
             case OR:
-                if (!isBoolean(left)) throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
-                if ((Boolean) left) return true;
+                if (!isBoolean(left))
+                    throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
+                if ((Boolean) left)
+                    return true;
                 Object rightOr = evaluate(node.right);
-                if (!isBoolean(rightOr))  throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
+                if (!isBoolean(rightOr))
+                    throw new Errors.TypeError("Operator: " + node.operator.value + " must be boolean.");
                 return (Boolean) rightOr;
             default:
                 Object right = evaluate(node.right);
 
                 switch (node.operator.type) {
                     case PLUS:
-                        if (areBothNumbers(left, right)) return (Double) left + (Double) right;
-                        if (areEitherString(left, right)) return left + String.valueOf(right);
-                        throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers or strings.");
+                        if (areBothNumbers(left, right))
+                            return (Double) left + (Double) right;
+                        if (areEitherString(left, right))
+                            return left + String.valueOf(right);
+                        throw new Errors.TypeError(
+                                "Operator: " + node.operator.value + " requires numbers or strings.");
                     case MINUS:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
                         return (Double) left - (Double) right;
                     case MULT:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
                         return (Double) left * (Double) right;
                     case DIV:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
-                        if ((Double) right == 0) throw new Errors.RuntimeError("Division by zero");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if ((Double) right == 0)
+                            throw new Errors.RuntimeError("Division by zero");
                         return (Double) left / (Double) right;
                     case MOD:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
-                        if ((Double) right == 0) throw new Errors.RuntimeError("Modulo by zero");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if ((Double) right == 0)
+                            throw new Errors.RuntimeError("Modulo by zero");
                         return (Double) left % (Double) right;
                     case CARET:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
                         return Math.pow((Double) left, (Double) right);
                     case EQUAL_EQUAL:
                         return isEqual(left, right);
                     case BANG_EQUAL:
                         return !isEqual(left, right);
                     case LESS:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
                         return toDouble(left) < toDouble(right);
                     case LESS_EQUAL:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
                         return toDouble(left) <= toDouble(right);
                     case GREATER:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
                         return toDouble(left) > toDouble(right);
                     case GREATER_EQUAL:
-                        if (!areBothNumbers(left, right)) throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
+                        if (!areBothNumbers(left, right))
+                            throw new Errors.TypeError("Operator: " + node.operator.value + " requires numbers.");
                         return toDouble(left) >= toDouble(right);
                     default:
                         throw new Errors.RuntimeError("Unknown operator: " + node.operator.value);
@@ -662,17 +777,24 @@ public class Interpreter {
     private boolean isTypeCompatible(String type, Object value) {
         // 1. Handle Primitive Types
         switch (type) {
-            case "number": return value instanceof Double;
-            case "string": return value instanceof String;
-            case "boolean": return value instanceof Boolean;
-            case "list": return value instanceof List<?>;
-            case "dict": return value instanceof Map<?, ?>;
-            case "object": return true; // (Optional) Generic object type
+            case "number":
+                return value instanceof Double;
+            case "string":
+                return value instanceof String;
+            case "boolean":
+                return value instanceof Boolean;
+            case "list":
+                return value instanceof List<?>;
+            case "dict":
+                return value instanceof Map<?, ?>;
+            case "object":
+                return true; // (Optional) Generic object type
         }
 
         // 2. Handle User-Defined Classes
         if (value instanceof PseudoInstance instance) {
-            // Check if the instance's class name matches the required type (e.g., "Person" == "Person")
+            // Check if the instance's class name matches the required type (e.g., "Person"
+            // == "Person")
             return instance.klass.name.equals(type);
         }
 
@@ -696,8 +818,10 @@ public class Interpreter {
     }
 
     private boolean isEqual(Object a, Object b) {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
+        if (a == null && b == null)
+            return true;
+        if (a == null || b == null)
+            return false;
         return a.equals(b);
     }
 
@@ -709,11 +833,8 @@ public class Interpreter {
     }
 
     private boolean getTruthValue(Object value) {
-        if (value instanceof Boolean) return (Boolean) value;
+        if (value instanceof Boolean)
+            return (Boolean) value;
         return false;
     }
 }
-
-
-
-

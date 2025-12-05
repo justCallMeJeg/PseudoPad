@@ -86,7 +86,7 @@ public class FileTabPane extends JPanel {
         });
 
         // 4. Undo Manager
-        undoManager.setLimit(1000); // Limit history to prevent memory issues
+        undoManager.setLimit(100); // Limit history to prevent memory issues
         textPane.getDocument().addUndoableEditListener((UndoableEditEvent e) -> {
             undoManager.addEdit(e.getEdit());
         });

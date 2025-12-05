@@ -86,24 +86,24 @@ public class SimpleTerminalBackend implements TerminalBackend {
         }
     }
 
-//    private void runProgram(StringBuilder response) {
-//        response.append("Running program...\n");
-//
-//        String code = null;
-//        if (codeProvider != null) {
-//            code = codeProvider.get();
-//        }
-//
-//        if (code == null || code.trim().isEmpty()) {
-//            response.append("No code to execute.\n");
-//        } else {
-//            // Placeholder for custom interpreter execution
-//            // MIKOOOOOOOOOOOOOOOOOOOOOOOOOO
-//            // e.g., myInterpreter.execute(code);
-//        }
-//
-//        response.append("[Program finished]\n");
-//    }
+    // private void runProgram(StringBuilder response) {
+    // response.append("Running program...\n");
+    //
+    // String code = null;
+    // if (codeProvider != null) {
+    // code = codeProvider.get();
+    // }
+    //
+    // if (code == null || code.trim().isEmpty()) {
+    // response.append("No code to execute.\n");
+    // } else {
+    // // Placeholder for custom interpreter execution
+    // // MIKOOOOOOOOOOOOOOOOOOOOOOOOOO
+    // // e.g., myInterpreter.execute(code);
+    // }
+    //
+    // response.append("[Program finished]\n");
+    // }
 
     private void runProgram(StringBuilder response) {
         // 1. Get the code
@@ -124,16 +124,36 @@ public class SimpleTerminalBackend implements TerminalBackend {
         final String sourceCode = code;
 
         new Thread(() -> {
+            // Buffer for batching output to prevent flooding the Event Dispatch Thread
+            StringBuilder outputBuffer = new StringBuilder();
+            long[] lastFlushTime = { System.currentTimeMillis() };
+
             // 3. Define how 'input()' works (Popup Dialog)
-            String result = PseudoRunner.run(sourceCode, (prompt) -> {
-                return  JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
+            PseudoRunner.run(sourceCode, (prompt) -> {
+                return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
+            }, (text) -> {
+                // 4. Send output back to the terminal with batching
+                outputBuffer.append(text);
+
+                long now = System.currentTimeMillis();
+                // Flush if > 50ms passed or buffer is getting large (> 1KB)
+                if (now - lastFlushTime[0] > 50 || outputBuffer.length() > 1024) {
+                    if (outputListener != null) {
+                        outputListener.accept(outputBuffer.toString());
+                    }
+                    outputBuffer.setLength(0);
+                    lastFlushTime[0] = now;
+                }
             });
 
-            // 4. Send output back to the terminal (Must handle thread safety if needed,
-            // but Consumer usually handles UI update)
+            // Flush any remaining output
+            if (outputBuffer.length() > 0 && outputListener != null) {
+                outputListener.accept(outputBuffer.toString());
+            }
+
+            // Send prompt after execution finishes
             if (outputListener != null) {
-                // Remove the extra newline at the end if present
-                outputListener.accept(result + "\n" + getPrompt());
+                outputListener.accept("\n" + getPrompt());
             }
         }).start();
 

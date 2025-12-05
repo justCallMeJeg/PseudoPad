@@ -55,6 +55,9 @@ public class MainFrame extends JFrame implements AppController {
         saveWindowState();
         projectContext.closeProject();
         super.dispose();
+        if (INSTANCE == this) {
+            INSTANCE = null;
+        }
     }
 
     private void saveWindowState() {
