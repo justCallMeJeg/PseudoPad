@@ -10,11 +10,13 @@ import javax.swing.JTextPane;
 public class TextPane extends JTextPane {
     public TextPane() {
         super();
+        this.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
     }
-    
+
     @Override
     public boolean getScrollableTracksViewportWidth() {
-        // Return true if the text content is smaller than the view (to center/align properly)
+        // Return true if the text content is smaller than the view (to center/align
+        // properly)
         // Return false if text is wider than the view (to trigger the scrollbar)
         return getUI().getPreferredSize(this).width <= getParent().getSize().width;
     }

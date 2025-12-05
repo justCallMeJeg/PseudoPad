@@ -309,7 +309,7 @@ public class Interpreter {
 
     private void executePrint(AST.PrintNode node) {
         Object value = evaluate(node.expression);
-        outputProvider.print(value + "\n");
+        outputProvider.print("\n" + value);
     }
 
     private void executeIf(AST.IfNode node) {

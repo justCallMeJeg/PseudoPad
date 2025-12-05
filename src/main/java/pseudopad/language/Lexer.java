@@ -36,7 +36,7 @@ public class Lexer {
             char c = currentChar();
 
             if (c == '\0') {
-                tokens.add(new Token(TokenType.EOF, null, line, column));
+                tokens.add(new Token(TokenType.EOF, null, line, column, index, 0));
                 break;
             }
 
@@ -62,59 +62,53 @@ public class Lexer {
 
             switch (c) {
                 case '=' -> {
-                    advance();
-                    switch (currentChar()) {
-                        case '=' -> {
-                            tokens.add(simple(TokenType.EQUAL_EQUAL));
-                            continue;
-                        }
-                        case ' ', '(', '"', '\0' -> {
-                            tokens.add(simple(TokenType.EQUALS));
-                            continue;
-                        }
-                    }
-                    throw new Errors.LexerError(
-                            "Unexpected character: =" + currentChar() + " at " + line + ":" + column);
-                }
-                case '!' -> {
+                    int start = index;
+                    int col = column;
                     advance();
                     if (currentChar() == '=') {
-                        tokens.add(simple(TokenType.BANG_EQUAL));
-                        continue;
+                        advance();
+                        tokens.add(new Token(TokenType.EQUAL_EQUAL, null, line, col, start, 2));
+                    } else {
+                        tokens.add(new Token(TokenType.EQUALS, null, line, col, start, 1));
+                    }
+                    continue;
+                }
+                case '!' -> {
+                    int start = index;
+                    int col = column;
+                    advance();
+                    if (currentChar() == '=') {
+                        advance();
+                        tokens.add(new Token(TokenType.BANG_EQUAL, null, line, col, start, 2));
                     } else {
                         throw new Errors.LexerError(
                                 "Unexpected character: !" + currentChar() + " at " + line + ":" + column);
                     }
+                    continue;
                 }
                 case '<' -> {
+                    int start = index;
+                    int col = column;
                     advance();
-                    switch (currentChar()) {
-                        case '=' -> {
-                            tokens.add(simple(TokenType.LESS_EQUAL));
-                            continue;
-                        }
-                        case ' ', '(', '"', '\0' -> {
-                            tokens.add(simple(TokenType.LESS));
-                            continue;
-                        }
+                    if (currentChar() == '=') {
+                        advance();
+                        tokens.add(new Token(TokenType.LESS_EQUAL, null, line, col, start, 2));
+                    } else {
+                        tokens.add(new Token(TokenType.LESS, null, line, col, start, 1));
                     }
-                    throw new Errors.LexerError(
-                            "Unexpected character: <" + currentChar() + " at " + line + ":" + column);
+                    continue;
                 }
                 case '>' -> {
+                    int start = index;
+                    int col = column;
                     advance();
-                    switch (currentChar()) {
-                        case '=' -> {
-                            tokens.add(simple(TokenType.GREATER_EQUAL));
-                            continue;
-                        }
-                        case ' ', '(', '"', '\0' -> {
-                            tokens.add(simple(TokenType.GREATER));
-                            continue;
-                        }
+                    if (currentChar() == '=') {
+                        advance();
+                        tokens.add(new Token(TokenType.GREATER_EQUAL, null, line, col, start, 2));
+                    } else {
+                        tokens.add(new Token(TokenType.GREATER, null, line, col, start, 1));
                     }
-                    throw new Errors.LexerError(
-                            "Unexpected character: <" + currentChar() + " at " + line + ":" + column);
+                    continue;
                 }
                 case ';' -> {
                     tokens.add(simple(TokenType.SEMICOLON));
@@ -181,6 +175,8 @@ public class Lexer {
                     continue;
                 }
                 case '#' -> {
+                    int start = index;
+                    int col = column;
                     advance(); // Consume the opening '#'
 
                     // Consume characters until we hit the closing '#' or End Of File
@@ -194,7 +190,8 @@ public class Lexer {
                     }
 
                     advance(); // Consume the closing '#'
-                    continue; // Skip adding a token and continue loop
+                    tokens.add(new Token(TokenType.COMMENT, null, line, col, start, index - start));
+                    continue;
                 }
             }
 
@@ -205,6 +202,7 @@ public class Lexer {
     }
 
     private Token numberToken() {
+        int start = index;
         int startColumn = column;
         StringBuilder builder = new StringBuilder();
 
@@ -222,10 +220,11 @@ public class Lexer {
             }
         }
 
-        return new Token(TokenType.NUMBER, builder.toString(), line, startColumn);
+        return new Token(TokenType.NUMBER, builder.toString(), line, startColumn, start, index - start);
     }
 
     private Token stringToken() {
+        int start = index;
         int startColumn = column;
         advance();
 
@@ -242,10 +241,11 @@ public class Lexer {
 
         advance();
 
-        return new Token(TokenType.STRING, builder.toString(), line, startColumn);
+        return new Token(TokenType.STRING, builder.toString(), line, startColumn, start, index - start);
     }
 
     private Token identifierOrKeyword() {
+        int start = index;
         int startColumn = column;
         StringBuilder builder = new StringBuilder();
 
@@ -255,92 +255,93 @@ public class Lexer {
         }
 
         String word = builder.toString();
+        int length = index - start;
         switch (word.toUpperCase()) {
             case "SET" -> {
-                return new Token(TokenType.SET, null, line, startColumn);
+                return new Token(TokenType.SET, null, line, startColumn, start, length);
             }
             case "CONST" -> {
-                return new Token(TokenType.CONST, null, line, startColumn);
+                return new Token(TokenType.CONST, null, line, startColumn, start, length);
             }
             case "PRINT" -> {
-                return new Token(TokenType.PRINT, null, line, startColumn);
+                return new Token(TokenType.PRINT, null, line, startColumn, start, length);
             }
             case "TRUE", "FALSE" -> {
-                return new Token(TokenType.BOOLEAN, word, line, startColumn);
+                return new Token(TokenType.BOOLEAN, word, line, startColumn, start, length);
             }
             case "NUMBER", "STRING", "BOOLEAN", "LIST", "DICT", "VOID" -> {
-                return new Token(TokenType.TYPE, word, line, startColumn);
+                return new Token(TokenType.TYPE, word, line, startColumn, start, length);
             }
             case "AND" -> {
-                return new Token(TokenType.AND, null, line, startColumn);
+                return new Token(TokenType.AND, null, line, startColumn, start, length);
             }
             case "OR" -> {
-                return new Token(TokenType.OR, null, line, startColumn);
+                return new Token(TokenType.OR, null, line, startColumn, start, length);
             }
             case "NOT" -> {
-                return new Token(TokenType.NOT, null, line, startColumn);
+                return new Token(TokenType.NOT, null, line, startColumn, start, length);
             }
             case "IF" -> {
-                return new Token(TokenType.IF, null, line, startColumn);
+                return new Token(TokenType.IF, null, line, startColumn, start, length);
             }
             case "THEN" -> {
-                return new Token(TokenType.THEN, null, line, startColumn);
+                return new Token(TokenType.THEN, null, line, startColumn, start, length);
             }
             case "ELIF" -> {
-                return new Token(TokenType.ELIF, null, line, startColumn);
+                return new Token(TokenType.ELIF, null, line, startColumn, start, length);
             }
             case "ELSE" -> {
-                return new Token(TokenType.ELSE, null, line, startColumn);
+                return new Token(TokenType.ELSE, null, line, startColumn, start, length);
             }
             case "ENDIF" -> {
-                return new Token(TokenType.ENDIF, null, line, startColumn);
+                return new Token(TokenType.ENDIF, null, line, startColumn, start, length);
             }
             case "WHILE" -> {
-                return new Token(TokenType.WHILE, null, line, startColumn);
+                return new Token(TokenType.WHILE, null, line, startColumn, start, length);
             }
             case "DO" -> {
-                return new Token(TokenType.DO, null, line, startColumn);
+                return new Token(TokenType.DO, null, line, startColumn, start, length);
             }
             case "ENDWHILE" -> {
-                return new Token(TokenType.ENDWHILE, null, line, startColumn);
+                return new Token(TokenType.ENDWHILE, null, line, startColumn, start, length);
             }
             case "FOR" -> {
-                return new Token(TokenType.FOR, null, line, startColumn);
+                return new Token(TokenType.FOR, null, line, startColumn, start, length);
             }
             case "ENDFOR" -> {
-                return new Token(TokenType.ENDFOR, null, line, startColumn);
+                return new Token(TokenType.ENDFOR, null, line, startColumn, start, length);
             }
             case "SKIP", "CONTINUE" -> {
-                return new Token(TokenType.SKIP, null, line, startColumn);
+                return new Token(TokenType.SKIP, null, line, startColumn, start, length);
             }
             case "BREAK" -> {
-                return new Token(TokenType.BREAK, null, line, startColumn);
+                return new Token(TokenType.BREAK, null, line, startColumn, start, length);
             }
             case "FUNC" -> {
-                return new Token(TokenType.FUNC, null, line, startColumn);
+                return new Token(TokenType.FUNC, null, line, startColumn, start, length);
             }
             case "ENDFUNC" -> {
-                return new Token(TokenType.ENDFUNC, null, line, startColumn);
+                return new Token(TokenType.ENDFUNC, null, line, startColumn, start, length);
             }
             case "RETURN" -> {
-                return new Token(TokenType.RETURN, null, line, startColumn);
+                return new Token(TokenType.RETURN, null, line, startColumn, start, length);
             }
             case "CLASS" -> {
-                return new Token(TokenType.CLASS, null, line, startColumn);
+                return new Token(TokenType.CLASS, null, line, startColumn, start, length);
             }
             case "ENDCLASS" -> {
-                return new Token(TokenType.ENDCLASS, null, line, startColumn);
+                return new Token(TokenType.ENDCLASS, null, line, startColumn, start, length);
             }
             case "THIS" -> {
-                return new Token(TokenType.THIS, null, line, startColumn);
+                return new Token(TokenType.THIS, null, line, startColumn, start, length);
             }
         }
 
-        return new Token(TokenType.IDENTIFIER, word, line, startColumn);
+        return new Token(TokenType.IDENTIFIER, word, line, startColumn, start, length);
     }
 
     private Token simple(TokenType type) {
-        Token token = new Token(type, null, line, column);
+        Token token = new Token(type, null, line, column, index, 1);
         advance();
         return token;
     }

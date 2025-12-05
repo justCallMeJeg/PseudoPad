@@ -26,6 +26,7 @@ public class FileTabPane extends JPanel {
     private final TextPane textPane;
     private final JScrollPane scrollPane;
     private final RowNumberHeader lineNumbers;
+    private final SyntaxHighlighter highlighter;
 
     private File fileSource; // Null if it's a new "Untitled" file
     private String originalContent;
@@ -60,6 +61,20 @@ public class FileTabPane extends JPanel {
         textPane.setFont(new Font("Consolas", Font.PLAIN, 14));
         textPane.setCaretPosition(0);
 
+        // Colors
+        boolean isDark = pseudopad.utils.ThemeManager.getInstance().isDarkMode();
+        if (isDark) {
+            textPane.setCaretColor(Color.WHITE);
+            textPane.setSelectionColor(new Color(75, 110, 175));
+        } else {
+            textPane.setCaretColor(Color.BLACK);
+            textPane.setSelectionColor(new Color(173, 214, 255));
+        }
+
+        // Syntax Highlighting
+        highlighter = new SyntaxHighlighter(textPane.getStyledDocument());
+        highlighter.highlight();
+
         // 2. Scroll & Gutter
         scrollPane = new JScrollPane(textPane);
         lineNumbers = new RowNumberHeader(textPane);
@@ -72,11 +87,13 @@ public class FileTabPane extends JPanel {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 checkDirty();
+                highlighter.highlight();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
                 checkDirty();
+                highlighter.highlight();
             }
 
             @Override
@@ -88,6 +105,11 @@ public class FileTabPane extends JPanel {
         // 4. Undo Manager
         undoManager.setLimit(100); // Limit history to prevent memory issues
         textPane.getDocument().addUndoableEditListener((UndoableEditEvent e) -> {
+            if (e.getEdit() instanceof javax.swing.text.AbstractDocument.DefaultDocumentEvent de) {
+                if (de.getType() == javax.swing.event.DocumentEvent.EventType.CHANGE) {
+                    return;
+                }
+            }
             undoManager.addEdit(e.getEdit());
         });
     }
