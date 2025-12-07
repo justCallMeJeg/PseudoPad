@@ -1,4 +1,4 @@
-package pseudopad.language;
+package pseudopad.core;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,9 +8,14 @@ public class Lexer {
     private int index = 0;
     private int line = 1;
     private int column = 1;
+    private final List<Errors.CompilationError> errors = new ArrayList<>();
 
     public Lexer(String text) {
         this.text = text;
+    }
+
+    public List<Errors.CompilationError> getErrors() {
+        return errors;
     }
 
     private char currentChar() {
@@ -80,9 +85,11 @@ public class Lexer {
                     if (currentChar() == '=') {
                         advance();
                         tokens.add(new Token(TokenType.BANG_EQUAL, null, line, col, start, 2));
+                        advance();
+                        tokens.add(new Token(TokenType.BANG_EQUAL, null, line, col, start, 2));
                     } else {
-                        throw new Errors.LexerError(
-                                "Unexpected character: !" + currentChar() + " at " + line + ":" + column);
+                        errors.add(new Errors.CompilationError(
+                                "Unexpected character: !" + currentChar(), line, column, 1));
                     }
                     continue;
                 }
@@ -186,7 +193,8 @@ public class Lexer {
 
                     // Check for unterminated comment (EOF before closing #)
                     if (currentChar() == '\0') {
-                        throw new Errors.LexerError("Unterminated comment at line " + line);
+                        errors.add(new Errors.CompilationError("Unterminated comment", line, column, 1));
+                        break;
                     }
 
                     advance(); // Consume the closing '#'
@@ -195,7 +203,8 @@ public class Lexer {
                 }
             }
 
-            throw new RuntimeException("Unexpected character: " + c + " at " + line + ":" + column);
+            errors.add(new Errors.CompilationError("Unexpected character: " + c, line, column, 1));
+            advance();
         }
 
         return tokens;
@@ -236,7 +245,7 @@ public class Lexer {
         }
 
         if (currentChar() != '"') {
-            throw new RuntimeException("Unterminated string at line " + line);
+            errors.add(new Errors.CompilationError("Unterminated string", line, column, 1));
         }
 
         advance();

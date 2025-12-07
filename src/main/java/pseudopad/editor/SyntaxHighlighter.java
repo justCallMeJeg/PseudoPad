@@ -1,4 +1,4 @@
-package pseudopad.ui.components;
+package pseudopad.editor;
 
 import java.awt.Color;
 import java.util.HashMap;
@@ -9,9 +9,10 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import pseudopad.language.Lexer;
-import pseudopad.language.Token;
-import pseudopad.language.TokenType;
+
+import pseudopad.core.Lexer;
+import pseudopad.core.Token;
+import pseudopad.core.TokenType;
 import pseudopad.utils.ThemeManager;
 
 /**

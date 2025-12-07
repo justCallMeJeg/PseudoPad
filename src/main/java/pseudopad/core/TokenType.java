@@ -1,4 +1,4 @@
-package pseudopad.language;
+package pseudopad.core;
 
 public enum TokenType {
     SET, CONST, PRINT,

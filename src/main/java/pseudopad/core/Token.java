@@ -1,4 +1,4 @@
-package pseudopad.language;
+package pseudopad.core;
 
 public class Token {
     public final TokenType type;

@@ -1,4 +1,4 @@
-package pseudopad.ui.components;
+package pseudopad.editor;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -10,7 +10,8 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import pseudopad.ui.components.terminal.TerminalBackend;
+
+import pseudopad.editor.terminal.TerminalBackend;
 
 /**
  * A TextPane that acts as a terminal emulator.

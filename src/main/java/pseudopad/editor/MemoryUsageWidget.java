@@ -1,4 +1,4 @@
-package pseudopad.ui.components;
+package pseudopad.editor;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;

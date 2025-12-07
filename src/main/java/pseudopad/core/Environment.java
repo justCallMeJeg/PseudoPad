@@ -1,4 +1,4 @@
-package pseudopad.language;
+package pseudopad.core;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,13 +39,15 @@ public class Environment {
         if (values.containsKey(name)) {
             return values.get(name);
         }
-        if (enclosing != null) return enclosing.getVariable(name);
+        if (enclosing != null)
+            return enclosing.getVariable(name);
         return null;
     }
 
     public Object get(Token name) {
         Variable var = getVariable(name.value);
-        if (var != null) return var.value;
+        if (var != null)
+            return var.value;
 
         throw new Errors.RuntimeError("Undefined variable '" + name.value + "'.", name);
     }

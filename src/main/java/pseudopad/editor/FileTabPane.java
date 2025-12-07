@@ -1,10 +1,14 @@
-package pseudopad.ui.components;
+package pseudopad.editor;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -14,8 +18,16 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditEvent;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Element;
+import javax.swing.text.Highlighter;
+import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
 import javax.swing.undo.UndoManager;
 import pseudopad.app.MainFrame;
+import pseudopad.core.Errors.CompilationError;
+import pseudopad.editor.completion.AutoCompletion;
+import pseudopad.editor.completion.PseudoCompletionProvider;
+import pseudopad.ui.components.TextPane;
 import pseudopad.utils.FileManager;
 
 /**
@@ -87,18 +99,21 @@ public class FileTabPane extends JPanel {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 checkDirty();
+                triggerAnalysis();
                 highlighter.highlight();
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
                 checkDirty();
+                triggerAnalysis();
                 highlighter.highlight();
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
                 checkDirty();
+                triggerAnalysis();
             }
         });
 
@@ -112,6 +127,92 @@ public class FileTabPane extends JPanel {
             }
             undoManager.addEdit(e.getEdit());
         });
+
+        // 5. Auto Completion
+        new AutoCompletion(textPane, new PseudoCompletionProvider());
+
+        // 6. Proactive Analysis
+        analysisTimer = new javax.swing.Timer(1000, e -> performAnalysis());
+        analysisTimer.setRepeats(false);
+
+        // Initial check
+        SwingUtilities.invokeLater(this::performAnalysis);
+    }
+
+    private final javax.swing.Timer analysisTimer;
+    private final Object highlightTag = new Object(); // Marker for our highlights (not easily doable with
+                                                      // DefaultHighlighter, we track references if needed, or clear
+                                                      // all)
+    // Actually, we should probably clear only error highlights.
+    // For simplicity, we can remove all highlights that match our painter, or just
+    // clear all if syntax highlighting is done via Styles.
+
+    private void triggerAnalysis() {
+        analysisTimer.restart();
+    }
+
+    private void performAnalysis() {
+        String code = textPane.getText();
+
+        // Run in background to avoid freezing UI if large
+        new Thread(() -> {
+            pseudopad.core.Errors.CompilationResult result = pseudopad.core.PseudoRunner.compile(code);
+
+            SwingUtilities.invokeLater(() -> {
+                // 1. Update Problems View
+                if (MainFrame.getInstance() != null) {
+                    pseudopad.editor.ProblemsPanel problems = ((pseudopad.ui.MainLayout) MainFrame.getInstance()
+                            .getContentPane()).getProblemsPanel();
+                    if (problems != null) {
+                        problems.updateErrors(fileSource, result.errors);
+                    }
+                }
+
+                // 2. Update Editor Highlights
+                updateHighlighter(result.errors);
+            });
+        }).start();
+    }
+
+    private void updateHighlighter(List<CompilationError> errors) {
+        Highlighter h = textPane.getHighlighter();
+        h.removeAllHighlights(); // Assumption: Syntax highlighting uses Styles, not Highlighter. If
+                                 // Search/Selection uses Highlighter, this might clear them.
+        // If we want to preserve other highlights, we need to track ours.
+        // But for now, let's assume simple clearing is OK or we accept the tradeoff for
+        // errors.
+
+        DefaultHighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(
+                new Color(255, 100, 100, 50)); // Light Red
+
+        for (CompilationError error : errors) {
+            try {
+                // Map line/col to offset
+                Element root = textPane.getDocument().getDefaultRootElement();
+                int line = Math.max(0, error.line - 1);
+                if (line >= root.getElementCount())
+                    continue;
+
+                Element lineElem = root.getElement(line);
+                int start = lineElem.getStartOffset() + Math.max(0, error.column - 1);
+                int end = start + Math.max(1, error.length); // Ensure at least 1 char width
+
+                // Clamp to line end
+                end = Math.min(end, lineElem.getEndOffset() - 1);
+                if (end <= start)
+                    end = start + 1; // Fallback
+
+                h.addHighlight(start, end, painter);
+            } catch (Exception e) {
+                // Ignore invalid positions
+            }
+        }
+
+        Set<Integer> errorLines = new HashSet<>();
+        for (CompilationError error : errors) {
+            errorLines.add(error.line); // 1-based
+        }
+        lineNumbers.setErrorLines(errorLines);
     }
 
     private void checkDirty() {

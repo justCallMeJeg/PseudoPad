@@ -1,4 +1,4 @@
-package pseudopad.ui.components;
+package pseudopad.editor;
 
 import java.awt.Component;
 import java.io.File;
@@ -13,9 +13,9 @@ import pseudopad.utils.IconManager;
  */
 public class FileTreeCellRenderer extends DefaultTreeCellRenderer {
     @Override
-    public Component getTreeCellRendererComponent(JTree tree, Object value, 
-        boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
-        
+    public Component getTreeCellRendererComponent(JTree tree, Object value,
+            boolean sel, boolean expanded, boolean leaf, int row, boolean hasFocus) {
+
         // Let the default renderer handle colors and selection visuals
         super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
 
@@ -24,7 +24,7 @@ public class FileTreeCellRenderer extends DefaultTreeCellRenderer {
             Object userObject = node.getUserObject();
 
             if (userObject instanceof File file) {
-                
+
                 // 1. Set Label: Show only the filename, not the full path
                 setText(file.getName());
 

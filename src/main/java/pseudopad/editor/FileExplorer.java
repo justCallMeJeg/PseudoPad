@@ -1,4 +1,4 @@
-package pseudopad.ui.components;
+package pseudopad.editor;
 
 import java.awt.BorderLayout;
 import java.awt.Toolkit;

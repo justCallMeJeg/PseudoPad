@@ -1,8 +1,9 @@
-package pseudopad.language;
+package pseudopad.core;
 
 public class Errors {
     public static class ReturnSignal extends RuntimeException {
         public final Object value;
+
         public ReturnSignal(Object value) {
             this.value = value;
         }
@@ -52,7 +53,45 @@ public class Errors {
         }
     }
 
-    static class BreakSignal extends RuntimeException {}
-    static class SkipSignal extends RuntimeException {}
+    static class BreakSignal extends RuntimeException {
+    }
+
+    static class SkipSignal extends RuntimeException {
+    }
+
+    // ===== COMPILATION ERROR =====
+    public static class CompilationError {
+        public final String message;
+        public final int line;
+        public final int column;
+        public final int length;
+
+        public CompilationError(String message, int line, int column, int length) {
+            this.message = message;
+            this.line = line;
+            this.column = column;
+            this.length = length;
+        }
+
+        @Override
+        public String toString() {
+            return "[Line " + line + ":" + column + "] " + message;
+        }
+    }
+
+    // ===== COMPILATION RESULT =====
+    public static class CompilationResult {
+        public final AST.ProgramNode ast;
+        public final java.util.List<CompilationError> errors;
+
+        public CompilationResult(AST.ProgramNode ast, java.util.List<CompilationError> errors) {
+            this.ast = ast;
+            this.errors = errors;
+        }
+
+        public boolean hasErrors() {
+            return !errors.isEmpty();
+        }
+    }
 
 }

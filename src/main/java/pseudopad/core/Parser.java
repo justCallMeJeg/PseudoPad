@@ -1,13 +1,18 @@
-package pseudopad.language;
+package pseudopad.core;
 
 import java.util.*;
 
 public class Parser {
     private final List<Token> tokens;
     private int index = 0;
+    private final List<Errors.CompilationError> errors = new ArrayList<>();
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
+    }
+
+    public List<Errors.CompilationError> getErrors() {
+        return errors;
     }
 
     private Token currentToken() {
@@ -22,6 +27,20 @@ public class Parser {
         return currentToken().type == type;
     }
 
+    private boolean check(TokenType type) {
+        if (isAtEnd())
+            return false;
+        return currentToken().type == type;
+    }
+
+    private boolean isAtEnd() {
+        return currentToken().type == TokenType.EOF;
+    }
+
+    private Token previous() {
+        return tokens.get(index - 1);
+    }
+
     private Token consume(TokenType expectedType, String errorMessage) {
         if (match(expectedType)) {
             Token token = currentToken();
@@ -29,14 +48,55 @@ public class Parser {
             return token;
         }
 
+        // Panic Mode: Report error and throw generic ParserError to unwind stack to
+        // statement boundary
+        error(currentToken(), errorMessage);
         throw new Errors.ParserError(errorMessage, currentToken());
+    }
+
+    private void error(Token token, String message) {
+        if (token.type == TokenType.EOF) {
+            errors.add(new Errors.CompilationError(message, token.line, token.column, 1)); // End of file
+        } else {
+            errors.add(new Errors.CompilationError(message, token.line, token.column, token.length));
+        }
+    }
+
+    private void synchronize() {
+        advance();
+
+        while (!isAtEnd()) {
+            if (previous().type == TokenType.SEMICOLON)
+                return;
+
+            switch (currentToken().type) {
+                case CLASS:
+                case FUNC:
+                case SET:
+                case CONST:
+                case FOR:
+                case IF:
+                case WHILE:
+                case PRINT:
+                case RETURN:
+                    return;
+            }
+
+            advance();
+        }
     }
 
     public AST.ProgramNode parse() {
         List<AST.Node> statements = new ArrayList<>();
 
-        while (currentToken().type != TokenType.EOF) {
-            statements.add(parseStatement());
+        while (!isAtEnd()) {
+            try {
+                AST.Statement stmt = parseStatement();
+                if (stmt != null)
+                    statements.add(stmt);
+            } catch (Errors.ParserError e) {
+                synchronize();
+            }
         }
 
         return new AST.ProgramNode(statements);
@@ -91,7 +151,12 @@ public class Parser {
             return parseClassDeclaration();
         }
 
-        throw new RuntimeException("Unexpected token: " + currentToken());
+        throw errorAndReturn("Unexpected token: " + currentToken());
+    }
+
+    private Errors.ParserError errorAndReturn(String message) {
+        error(currentToken(), message);
+        return new Errors.ParserError(message, currentToken());
     }
 
     private AST.Node parseVariableDeclaration() {
@@ -111,7 +176,7 @@ public class Parser {
             type = consume(TokenType.IDENTIFIER, "Expected data type or class name.").value;
         }
 
-        String identifier = consume(TokenType.IDENTIFIER, "Expected variable name.").value;
+        Token identifierToken = consume(TokenType.IDENTIFIER, "Expected variable name.");
 
         AST.Expression value = null;
         if (match(TokenType.EQUALS)) {
@@ -120,7 +185,7 @@ public class Parser {
         }
 
         consume(TokenType.SEMICOLON, "Unexpected ';' after declaration.");
-        return new AST.VariableDeclarationNode(isConst, type, identifier, value);
+        return new AST.VariableDeclarationNode(isConst, type, identifierToken, value);
     }
 
     private AST.Statement parseExpressionStatement() {
@@ -168,7 +233,10 @@ public class Parser {
         consume(TokenType.LBRACKET, "Expected '[' to start list literal.");
 
         List<AST.Expression> elements = new ArrayList<>();
-        if (match(TokenType.RBRACKET)) { advance(); return new AST.ListLiteralNode(elements); }
+        if (match(TokenType.RBRACKET)) {
+            advance();
+            return new AST.ListLiteralNode(elements);
+        }
 
         elements.add(parseExpression());
 
@@ -187,7 +255,10 @@ public class Parser {
 
         Map<AST.Expression, AST.Expression> entries = new LinkedHashMap<>();
 
-        if (match(TokenType.RBRACE)) { advance(); return new AST.DictLiteralNode(entries); }
+        if (match(TokenType.RBRACE)) {
+            advance();
+            return new AST.DictLiteralNode(entries);
+        }
 
         AST.Expression key = parseExpression();
         consume(TokenType.COLON, "Expected ':' after dict key.");
@@ -248,7 +319,8 @@ public class Parser {
     private AST.Expression parseComparison() {
         AST.Expression expression = parseTerm();
 
-        while (match(TokenType.EQUAL_EQUAL) || match(TokenType.BANG_EQUAL) || match(TokenType.LESS) || match(TokenType.LESS_EQUAL) || match(TokenType.GREATER) || match(TokenType.GREATER_EQUAL)) {
+        while (match(TokenType.EQUAL_EQUAL) || match(TokenType.BANG_EQUAL) || match(TokenType.LESS)
+                || match(TokenType.LESS_EQUAL) || match(TokenType.GREATER) || match(TokenType.GREATER_EQUAL)) {
             Token operator = currentToken();
             advance();
             AST.Expression right = parseTerm();
@@ -370,7 +442,7 @@ public class Parser {
                 break;
             case IDENTIFIER:
                 advance();
-                expression = new AST.IdentifierNode(token.value);
+                expression = new AST.IdentifierNode(token);
                 break;
             case LPAREN:
                 advance();
@@ -393,7 +465,6 @@ public class Parser {
 
         return finishIndexing(expression);
     }
-
 
     private AST.Statement parseIfStatement() {
         consume(TokenType.IF, "Expected 'if'.");
@@ -487,8 +558,10 @@ public class Parser {
     }
 
     private AST.Statement parseInitializer() {
-        if (match(TokenType.SEMICOLON)) return null;
-        if (match(TokenType.SET)) return (AST.Statement) parseVariableDeclaration();
+        if (match(TokenType.SEMICOLON))
+            return null;
+        if (match(TokenType.SET))
+            return (AST.Statement) parseVariableDeclaration();
         return (AST.Statement) parseExpressionStatement();
     }
 
@@ -572,7 +645,8 @@ public class Parser {
                 // Reuse existing function declaration logic
                 methods.add(parseFunctionDeclaration());
             } else {
-                throw new Errors.ParserError("Classes can only contain fields ('set') or methods ('func').", currentToken());
+                throw new Errors.ParserError("Classes can only contain fields ('set') or methods ('func').",
+                        currentToken());
             }
         }
 

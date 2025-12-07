@@ -1,9 +1,11 @@
-package pseudopad.ui.components.terminal;
-
-import pseudopad.language.PseudoRunner;
+package pseudopad.editor.terminal;
 
 import javax.swing.*;
+
+import pseudopad.core.PseudoRunner;
+
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * A lightweight terminal backend that runs purely in Java.
@@ -16,7 +18,7 @@ public class SimpleTerminalBackend implements TerminalBackend {
     private Consumer<String> outputListener;
     private boolean isRunning = false;
     private String projectName = "PseudoPad";
-    private java.util.function.Supplier<String> codeProvider;
+    private Supplier<String> codeProvider;
 
     @Override
     public void sendInput(String input) {
@@ -129,7 +131,7 @@ public class SimpleTerminalBackend implements TerminalBackend {
             long[] lastFlushTime = { System.currentTimeMillis() };
 
             // 3. Define how 'input()' works (Popup Dialog)
-            PseudoRunner.run(sourceCode, (prompt) -> {
+            pseudopad.core.Errors.CompilationResult result = PseudoRunner.run(sourceCode, (prompt) -> {
                 return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
             }, (text) -> {
                 // 4. Send output back to the terminal with batching
@@ -143,6 +145,23 @@ public class SimpleTerminalBackend implements TerminalBackend {
                     }
                     outputBuffer.setLength(0);
                     lastFlushTime[0] = now;
+                }
+            });
+
+            // 5. Update Problems View
+            SwingUtilities.invokeLater(() -> {
+                if (pseudopad.app.MainFrame.getInstance() != null) {
+                    pseudopad.ui.MainLayout layout = (pseudopad.ui.MainLayout) pseudopad.app.MainFrame.getInstance()
+                            .getContentPane();
+                    if (layout.getProblemsPanel() != null) {
+                        // Try to get the file object if possible
+                        java.io.File activeFile = null;
+                        String activePath = pseudopad.app.MainFrame.getInstance().getEditorTabbedPane().getActiveFile();
+                        if (activePath != null) {
+                            activeFile = new java.io.File(activePath);
+                        }
+                        layout.getProblemsPanel().updateErrors(activeFile, result.errors);
+                    }
                 }
             });
 

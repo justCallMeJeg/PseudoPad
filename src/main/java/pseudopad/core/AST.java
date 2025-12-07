@@ -1,4 +1,4 @@
-package pseudopad.language;
+package pseudopad.core;
 
 import java.util.List;
 import java.util.Map;
@@ -46,10 +46,12 @@ public class AST {
     }
 
     public static class IdentifierNode extends Expression {
+        public final Token token;
         public final String name;
 
-        public IdentifierNode(String name) {
-            this.name = name;
+        public IdentifierNode(Token token) {
+            this.token = token;
+            this.name = token.value;
         }
 
         public String toString() {
@@ -180,7 +182,10 @@ public class AST {
             this.methods = methods;
         }
 
-        @Override public String toString() { return "Class(" + name + ")"; }
+        @Override
+        public String toString() {
+            return "Class(" + name + ")";
+        }
     }
 
     public static class ThisExpressionNode extends Expression {
@@ -190,20 +195,25 @@ public class AST {
             this.keyword = keyword;
         }
 
-        @Override public String toString() { return "This"; }
+        @Override
+        public String toString() {
+            return "This";
+        }
     }
 
     public static class VariableDeclarationNode extends Statement {
         public final boolean isConst;
-        public final String typeName;     // number | string | boolean
+        public final String typeName; // number | string | boolean
         public final String identifier;
-        public Expression value;   // can be null
+        public final Token nameToken;
+        public Expression value; // can be null
 
         public VariableDeclarationNode(boolean isConst, String typeName,
-                                       String identifier, Expression value) {
+                Token nameToken, Expression value) {
             this.isConst = isConst;
             this.typeName = typeName;
-            this.identifier = identifier;
+            this.nameToken = nameToken;
+            this.identifier = nameToken.value;
             this.value = value;
         }
 
@@ -243,7 +253,8 @@ public class AST {
         public final List<ElifNode> elifBranches;
         public final List<Statement> elseBranch;
 
-        public IfNode(Expression condition, List<Statement> thenBranch, List<ElifNode> elifBranches, List<Statement> elseBranch) {
+        public IfNode(Expression condition, List<Statement> thenBranch, List<ElifNode> elifBranches,
+                List<Statement> elseBranch) {
             this.condition = condition;
             this.thenBranch = thenBranch;
             this.elifBranches = elifBranches;
@@ -315,7 +326,8 @@ public class AST {
 
         @Override
         public String toString() {
-            return "While(\n\tCondition: " + condition + "\n\tBody: " + body + "\n\tInitializer: " + initializer + "\n\tIncrement: " + increment + "\n)";
+            return "While(\n\tCondition: " + condition + "\n\tBody: " + body + "\n\tInitializer: " + initializer
+                    + "\n\tIncrement: " + increment + "\n)";
         }
     }
 
@@ -325,6 +337,7 @@ public class AST {
             return "Break";
         }
     }
+
     public static class SkipNode extends Statement {
         @Override
         public String toString() {
@@ -341,11 +354,16 @@ public class AST {
             this.value = value;
         }
 
-        @Override public String toString() { return "Return(" + value + ")"; }
+        @Override
+        public String toString() {
+            return "Return(" + value + ")";
+        }
     }
 
     public static class FunctionNode extends Statement {
-        public record Parameter(String name, String type) {}
+        public record Parameter(String name, String type) {
+        }
+
         public final String name;
         public final List<Parameter> parameters;
         public final String returnType;
@@ -358,7 +376,10 @@ public class AST {
             this.body = body;
         }
 
-        @Override public String toString() { return "Function(" + name + ")"; }
+        @Override
+        public String toString() {
+            return "Function(" + name + ")";
+        }
     }
 
     public static class ExpressionStatement extends Statement {

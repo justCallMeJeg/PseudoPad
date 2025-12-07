@@ -8,7 +8,8 @@ import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import pseudopad.ui.components.EditorTabbedPane;
+
+import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.dialogs.NewProjectDialog;
 import pseudopad.ui.dialogs.OpenProjectDialog;
 import pseudopad.utils.AppActionsManager;
@@ -16,6 +17,8 @@ import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
 import pseudopad.utils.AppConstants;
 import pseudopad.config.ProjectConfig;
+import pseudopad.editor.EditorTabbedPane;
+
 import java.awt.KeyboardFocusManager;
 import java.awt.Component;
 import java.awt.Color;
@@ -413,6 +416,10 @@ public class MainFrame extends JFrame implements AppController {
         return mainLayout.getEditorTabbedPane();
     }
 
+    public pseudopad.ui.components.TabbedPane getBottomEditorTabbedPane() {
+        return mainLayout.getBottomEditorTabbedPane();
+    }
+
     public void appendLog(String message, Color color) {
         mainLayout.appendLog(message, color);
     }
@@ -449,13 +456,27 @@ public class MainFrame extends JFrame implements AppController {
 
     @Override
     public void runProject() {
-        // Ensure output panel is visible
+        // 1. Save File
+        saveCurrentFile();
+
+        // 2. Ensure output panel area is visible (divider)
         if (mainLayout.getEditorSplitPane()
                 .getDividerLocation() >= mainLayout.getEditorSplitPane().getMaximumDividerLocation() - 50) {
             mainLayout.getEditorSplitPane().setDividerLocation(0.75);
         }
 
-        // Execute "run" command
+        // 3. Switch to "Output" tab
+        if (mainLayout.getBottomEditorTabbedPane() != null) {
+            TabbedPane bottomTabs = mainLayout.getBottomEditorTabbedPane();
+            for (int i = 0; i < bottomTabs.getTabCount(); i++) {
+                if ("Output".equals(bottomTabs.getTitleAt(i))) {
+                    bottomTabs.setSelectedIndex(i);
+                    break;
+                }
+            }
+        }
+
+        // 4. Execute "run" command
         mainLayout.runTerminalCommand("run");
     }
 

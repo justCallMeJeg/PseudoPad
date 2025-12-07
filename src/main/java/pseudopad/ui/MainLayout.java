@@ -18,19 +18,20 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import pseudopad.app.MainFrame;
+import pseudopad.editor.CursorPositionWidget;
+import pseudopad.editor.EditorTabbedPane;
+import pseudopad.editor.FileExplorer;
+import pseudopad.editor.FileTabPane;
+import pseudopad.editor.MemoryUsageWidget;
+import pseudopad.editor.ProblemsPanel;
+import pseudopad.editor.ReadOnlyWidget;
+import pseudopad.editor.StatusBar;
+import pseudopad.editor.TerminalPane;
+import pseudopad.editor.terminal.SimpleTerminalBackend;
 import pseudopad.ui.components.AppMenuBar;
 import pseudopad.ui.components.AppToolBar;
-import pseudopad.ui.components.EditorTabbedPane;
-import pseudopad.ui.components.FileExplorer;
-import pseudopad.ui.components.CursorPositionWidget;
-import pseudopad.ui.components.FileTabPane;
-import pseudopad.ui.components.MemoryUsageWidget;
-import pseudopad.ui.components.ReadOnlyWidget;
-import pseudopad.ui.components.StatusBar;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
-import pseudopad.ui.components.terminal.SimpleTerminalBackend;
-import pseudopad.ui.components.TerminalPane;
 import pseudopad.utils.AppActionsManager;
 import pseudopad.utils.AppConstants;
 
@@ -56,12 +57,13 @@ public class MainLayout extends JPanel {
 
     private TerminalPane terminalTextPane;
     private TextPane logTextPane;
-
     private StatusBar statusBar;
 
     private CursorPositionWidget cursorWidget;
     private ReadOnlyWidget readOnlyWidget;
     private MemoryUsageWidget memoryWidget;
+
+    private ProblemsPanel problemsPanel;
 
     public MainLayout(MainFrame mainFrame, AppActionsManager appActions) {
         this.mainFrame = mainFrame;
@@ -125,7 +127,7 @@ public class MainLayout extends JPanel {
         });
 
         this.bottomNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
-        this.bottomNavigationTabbedPane.add("Navigation", new JPanel().add(new JLabel("File Navigation Panel")));
+        this.bottomNavigationTabbedPane.add("File Outline", new JPanel().add(new JLabel("File Navigation Panel")));
         this.bottomNavigationTabbedPane.setMinimizeAction(e -> {
             if (this.navigationSplitPane.getDividerLocation() >= this.navigationSplitPane.getMaximumDividerLocation()
                     - 50) {
@@ -156,6 +158,7 @@ public class MainLayout extends JPanel {
         JScrollPane terminalScrollPane = new JScrollPane(terminalTextPane);
 
         this.bottomEditorTabbedPane.add("Output", terminalScrollPane);
+        this.bottomEditorTabbedPane.add("Problems", problemsPanel);
         this.bottomEditorTabbedPane.add("Logs", logScrollPane);
 
         this.editorSplitPane.setBottomComponent(bottomEditorTabbedPane);
@@ -233,6 +236,8 @@ public class MainLayout extends JPanel {
         this.cursorWidget = new CursorPositionWidget();
         this.readOnlyWidget = new ReadOnlyWidget();
         this.memoryWidget = new MemoryUsageWidget();
+
+        this.problemsPanel = new pseudopad.editor.ProblemsPanel();
     }
 
     private void updateStatusBarWidgets(CursorPositionWidget cursorWidget, ReadOnlyWidget readOnlyWidget) {
@@ -366,5 +371,13 @@ public class MainLayout extends JPanel {
         if (terminalTextPane != null) {
             terminalTextPane.setProjectName(projectName);
         }
+    }
+
+    public pseudopad.editor.ProblemsPanel getProblemsPanel() {
+        return problemsPanel;
+    }
+
+    public TabbedPane getBottomEditorTabbedPane() {
+        return bottomEditorTabbedPane;
     }
 }

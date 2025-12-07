@@ -1,4 +1,4 @@
-package pseudopad.ui.components.terminal;
+package pseudopad.editor.terminal;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;

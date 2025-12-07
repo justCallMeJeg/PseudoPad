@@ -1,9 +1,11 @@
-package pseudopad.ui.components;
+package pseudopad.editor;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiConsumer;
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -12,7 +14,7 @@ import javax.swing.SwingUtilities;
 
 import pseudopad.app.MainFrame;
 import pseudopad.ui.FallbackPanel;
-
+import pseudopad.ui.components.TabbedPane;
 import pseudopad.utils.IconManager;
 import pseudopad.utils.AppConstants;
 import pseudopad.utils.AppLogger;
@@ -86,13 +88,19 @@ public class EditorTabbedPane extends TabbedPane {
 
     public void openFileTab(File file) {
         // 1. Check if a tab with this title already exists
+        // 1. Check if a tab with this file already exists
         int tabCount = this.getTabCount();
         for (int i = 0; i < tabCount; i++) {
-            if (this.getTitleAt(i).equals(file.getName())) {
-                // 2. If it exists, select that existing tab and stop
-                this.setSelectedIndex(i);
-                System.out.println("Tab '" + file.getName() + "' already open. Switched to existing tab.");
-                return; // Exit the method
+            Component c = getComponentAt(i);
+            if (c instanceof FileTabPane fileTab) {
+                File tabFile = fileTab.getFile();
+                // Compare files (null-safely, though 'file' arg is assumed non-null here)
+                if (tabFile != null && tabFile.getAbsolutePath().equals(file.getAbsolutePath())) {
+                    // 2. If it exists, select that existing tab and stop
+                    this.setSelectedIndex(i);
+                    System.out.println("Tab '" + file.getName() + "' already open. Switched to existing tab.");
+                    return; // Exit the method
+                }
             }
         }
 
@@ -105,7 +113,7 @@ public class EditorTabbedPane extends TabbedPane {
     }
 
     public void saveActiveTab() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             fileTabPane.saveFile();
             if (fileTabPane.getFile() != null) {
@@ -115,35 +123,35 @@ public class EditorTabbedPane extends TabbedPane {
     }
 
     public void undo() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             fileTabPane.undo();
         }
     }
 
     public void redo() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             fileTabPane.redo();
         }
     }
 
     public void cut() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             fileTabPane.cut();
         }
     }
 
     public void copy() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             fileTabPane.copy();
         }
     }
 
     public void paste() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             fileTabPane.paste();
         }
@@ -151,7 +159,7 @@ public class EditorTabbedPane extends TabbedPane {
 
     public void handleFileRename(File oldFile, File newFile) {
         for (int i = 0; i < getTabCount(); i++) {
-            java.awt.Component c = getComponentAt(i);
+            Component c = getComponentAt(i);
             if (c instanceof FileTabPane fileTabPane) {
                 File tabFile = fileTabPane.getFile();
                 if (tabFile != null && tabFile.equals(oldFile)) {
@@ -168,7 +176,7 @@ public class EditorTabbedPane extends TabbedPane {
 
     public void closeFileTab(File file) {
         for (int i = 0; i < getTabCount(); i++) {
-            java.awt.Component c = getComponentAt(i);
+            Component c = getComponentAt(i);
             if (c instanceof FileTabPane fileTabPane) {
                 File tabFile = fileTabPane.getFile();
                 // Check if the tab's file matches the deleted file
@@ -274,10 +282,10 @@ public class EditorTabbedPane extends TabbedPane {
         SwingUtilities.invokeLater(this::showFallback);
     }
 
-    public java.util.List<String> getOpenFiles() {
-        java.util.List<String> files = new java.util.ArrayList<>();
+    public List<String> getOpenFiles() {
+        List<String> files = new ArrayList<>();
         for (int i = 0; i < getTabCount(); i++) {
-            java.awt.Component c = getComponentAt(i);
+            Component c = getComponentAt(i);
             if (c instanceof FileTabPane fileTabPane) {
                 File f = fileTabPane.getFile();
                 if (f != null) {
@@ -289,7 +297,7 @@ public class EditorTabbedPane extends TabbedPane {
     }
 
     public String getActiveFile() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             File f = fileTabPane.getFile();
             if (f != null) {
@@ -300,7 +308,7 @@ public class EditorTabbedPane extends TabbedPane {
     }
 
     public String getActiveFileContent() {
-        java.awt.Component c = getSelectedComponent();
+        Component c = getSelectedComponent();
         if (c instanceof FileTabPane fileTabPane) {
             return fileTabPane.getText();
         }
