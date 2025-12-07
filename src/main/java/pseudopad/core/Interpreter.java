@@ -309,7 +309,7 @@ public class Interpreter {
 
     private void executePrint(AST.PrintNode node) {
         Object value = evaluate(node.expression);
-        outputProvider.print("\n" + value);
+        outputProvider.print("\n" + stringify(value));
     }
 
     private void executeIf(AST.IfNode node) {
@@ -399,8 +399,7 @@ public class Interpreter {
     private Object evaluate(AST.Expression expression) {
         return switch (expression) {
             case AST.LiteralNode literalNode -> {
-                if (literalNode.value instanceof Number)
-                    yield ((Double) literalNode.value);
+                if (literalNode.value instanceof Number) yield ((Double) literalNode.value);
                 yield literalNode.value;
             }
             case AST.IdentifierNode identifierNode -> evaluateIdentifier(identifierNode);
@@ -720,7 +719,7 @@ public class Interpreter {
                         if (areBothNumbers(left, right))
                             return (Double) left + (Double) right;
                         if (areEitherString(left, right))
-                            return left + String.valueOf(right);
+                            return stringify(left) + stringify(right);
                         throw new Errors.TypeError(
                                 "Operator: " + node.operator.value + " requires numbers or strings.");
                     case MINUS:
@@ -771,6 +770,21 @@ public class Interpreter {
                         throw new Errors.RuntimeError("Unknown operator: " + node.operator.value);
                 }
         }
+    }
+
+    private String stringify(Object object) {
+        if (object == null) return "null";
+
+        // If it's a number (Double), check for the .0 artifact
+        if (object instanceof Double) {
+            String text = object.toString();
+            if (text.endsWith(".0")) {
+                return text.substring(0, text.length() - 2);
+            }
+            return text;
+        }
+
+        return object.toString();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
