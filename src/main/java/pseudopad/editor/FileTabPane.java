@@ -147,6 +147,8 @@ public class FileTabPane extends JPanel {
     // For simplicity, we can remove all highlights that match our painter, or just
     // clear all if syntax highlighting is done via Styles.
 
+    private pseudopad.core.AST.ProgramNode cachedAST;
+
     private void triggerAnalysis() {
         analysisTimer.restart();
     }
@@ -157,14 +159,24 @@ public class FileTabPane extends JPanel {
         // Run in background to avoid freezing UI if large
         new Thread(() -> {
             pseudopad.core.Errors.CompilationResult result = pseudopad.core.PseudoRunner.compile(code);
+            this.cachedAST = result.ast;
 
             SwingUtilities.invokeLater(() -> {
                 // 1. Update Problems View
                 if (MainFrame.getInstance() != null) {
-                    pseudopad.editor.ProblemsPanel problems = ((pseudopad.ui.MainLayout) MainFrame.getInstance()
-                            .getContentPane()).getProblemsPanel();
+                    pseudopad.ui.MainLayout layout = (pseudopad.ui.MainLayout) MainFrame.getInstance().getContentPane();
+
+                    pseudopad.editor.ProblemsPanel problems = layout.getProblemsPanel();
                     if (problems != null) {
                         problems.updateErrors(fileSource, result.errors);
+                    }
+
+                    // Update Outline if this tab is active
+                    if (isShowing()) {
+                        pseudopad.editor.FileOutlinePanel outline = layout.getFileOutlinePanel();
+                        if (outline != null) {
+                            outline.updateOutline(result.ast);
+                        }
                     }
                 }
 
@@ -172,6 +184,10 @@ public class FileTabPane extends JPanel {
                 updateHighlighter(result.errors);
             });
         }).start();
+    }
+
+    public pseudopad.core.AST.ProgramNode getCachedAST() {
+        return cachedAST;
     }
 
     private void updateHighlighter(List<CompilationError> errors) {

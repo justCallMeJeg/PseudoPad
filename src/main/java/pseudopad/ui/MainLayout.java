@@ -24,12 +24,14 @@ import pseudopad.editor.FileExplorer;
 import pseudopad.editor.FileTabPane;
 import pseudopad.editor.MemoryUsageWidget;
 import pseudopad.editor.ProblemsPanel;
+import pseudopad.editor.FileOutlinePanel;
 import pseudopad.editor.ReadOnlyWidget;
 import pseudopad.editor.StatusBar;
 import pseudopad.editor.TerminalPane;
 import pseudopad.editor.terminal.SimpleTerminalBackend;
 import pseudopad.ui.components.AppMenuBar;
 import pseudopad.ui.components.AppToolBar;
+import pseudopad.ui.components.RecentProjectsPanel;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
 import pseudopad.utils.AppActionsManager;
@@ -51,7 +53,7 @@ public class MainLayout extends JPanel {
     private TabbedPane topNavigationTabbedPane;
     private TabbedPane bottomNavigationTabbedPane;
     private FileExplorer fileExplorer;
-    private FileExplorer projectExplorer;
+    private RecentProjectsPanel projectExplorer;
     private EditorTabbedPane editorTabbedPane;
     private TabbedPane bottomEditorTabbedPane;
 
@@ -64,6 +66,8 @@ public class MainLayout extends JPanel {
     private MemoryUsageWidget memoryWidget;
 
     private ProblemsPanel problemsPanel;
+
+    private FileOutlinePanel fileOutlinePanel;
 
     public MainLayout(MainFrame mainFrame, AppActionsManager appActions) {
         this.mainFrame = mainFrame;
@@ -127,7 +131,7 @@ public class MainLayout extends JPanel {
         });
 
         this.bottomNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
-        this.bottomNavigationTabbedPane.add("File Outline", new JPanel().add(new JLabel("File Navigation Panel")));
+        this.bottomNavigationTabbedPane.add("File Outline", fileOutlinePanel);
         this.bottomNavigationTabbedPane.setMinimizeAction(e -> {
             if (this.navigationSplitPane.getDividerLocation() >= this.navigationSplitPane.getMaximumDividerLocation()
                     - 50) {
@@ -190,9 +194,21 @@ public class MainLayout extends JPanel {
 
         editorTabbedPane.addChangeListener(e -> {
             updateStatusBarWidgets(cursorWidget, readOnlyWidget);
+            updateFileOutline();
         });
 
         updateStatusBarWidgets(cursorWidget, readOnlyWidget);
+        updateFileOutline();
+    }
+
+    private void updateFileOutline() {
+        java.awt.Component selected = editorTabbedPane.getSelectedComponent();
+        if (selected instanceof FileTabPane fileTab) {
+            pseudopad.core.AST.ProgramNode ast = fileTab.getCachedAST();
+            fileOutlinePanel.updateOutline(ast);
+        } else {
+            fileOutlinePanel.updateOutline(null);
+        }
     }
 
     private void enableDividerDoubleClickListener(JSplitPane splitPane, double defaultLocation) {
@@ -216,7 +232,8 @@ public class MainLayout extends JPanel {
         this.topNavigationTabbedPane = new TabbedPane();
         this.bottomNavigationTabbedPane = new TabbedPane();
         this.fileExplorer = new FileExplorer();
-        this.projectExplorer = new FileExplorer();
+        this.fileOutlinePanel = new pseudopad.editor.FileOutlinePanel();
+        this.projectExplorer = new RecentProjectsPanel(mainFrame);
         this.editorTabbedPane = new EditorTabbedPane(mainFrame);
         this.bottomEditorTabbedPane = new TabbedPane();
 
@@ -252,9 +269,15 @@ public class MainLayout extends JPanel {
             TextPane textPane = fileTab.getTextPane();
             updateCursorPosition(textPane, cursorWidget);
 
+            // Update Outline explicitly? Maybe via FileTabPane itself?
+            // Actually FileTabPane will analyze and update when focused or changed.
+            // But if we switch tabs, we might want to refresh the outline immediately with
+            // cached AST.
+
             // Add Caret Listener
             for (javax.swing.event.CaretListener l : textPane.getCaretListeners()) {
                 // Remove existing listeners to avoid duplicates (simplistic approach)
+                // In real app, cleaner listener management is needed
                 if (l instanceof javax.swing.event.CaretListener) {
 
                 }
@@ -269,7 +292,9 @@ public class MainLayout extends JPanel {
                 textPane.putClientProperty("StatusBarCaretListener", listener);
             }
 
-        } else {
+        } else
+
+        {
             readOnlyWidget.setReadOnly(false);
             cursorWidget.updatePosition(1, 1);
         }
@@ -377,7 +402,15 @@ public class MainLayout extends JPanel {
         return problemsPanel;
     }
 
+    public pseudopad.editor.FileOutlinePanel getFileOutlinePanel() {
+        return fileOutlinePanel;
+    }
+
     public TabbedPane getBottomEditorTabbedPane() {
         return bottomEditorTabbedPane;
+    }
+
+    public RecentProjectsPanel getRecentProjectsPanel() {
+        return projectExplorer;
     }
 }

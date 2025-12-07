@@ -91,6 +91,52 @@ public class PreferenceManager {
         return null; // No valid last project found
     }
 
+    // --- RECENT PROJECTS ---
+    private static final String KEY_RECENT_PROJECTS = "recent_projects";
+    private static final int MAX_RECENT_PROJECTS = 10;
+
+    public void addRecentProject(File projectPath) {
+        if (projectPath == null || !projectPath.exists())
+            return;
+
+        java.util.List<File> recent = getRecentProjects();
+        // Remove if exists (to move to top)
+        recent.removeIf(f -> f.getAbsolutePath().equals(projectPath.getAbsolutePath()));
+        // Add to top
+        recent.add(0, projectPath);
+        // Trim
+        if (recent.size() > MAX_RECENT_PROJECTS) {
+            recent = recent.subList(0, MAX_RECENT_PROJECTS);
+        }
+
+        saveRecentProjects(recent);
+    }
+
+    public java.util.List<File> getRecentProjects() {
+        String raw = prefs.get(KEY_RECENT_PROJECTS, "");
+        java.util.List<File> list = new java.util.ArrayList<>();
+        if (!raw.isEmpty()) {
+            String[] paths = raw.split(java.util.regex.Pattern.quote("|"));
+            for (String path : paths) {
+                File f = new File(path);
+                if (f.exists() && f.isDirectory()) {
+                    list.add(f);
+                }
+            }
+        }
+        return list;
+    }
+
+    private void saveRecentProjects(java.util.List<File> projects) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < projects.size(); i++) {
+            if (i > 0)
+                sb.append("|");
+            sb.append(projects.get(i).getAbsolutePath());
+        }
+        prefs.put(KEY_RECENT_PROJECTS, sb.toString());
+    }
+
     // --- WINDOW SETTINGS (Global Fallback) ---
     private static final String KEY_WIN_WIDTH = "win_width";
     private static final String KEY_WIN_HEIGHT = "win_height";

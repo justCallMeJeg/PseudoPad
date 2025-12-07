@@ -173,11 +173,13 @@ public class AST {
 
     public static class ClassNode extends Statement {
         public final String name;
+        public final Token nameToken;
         public final List<VariableDeclarationNode> fields;
         public final List<FunctionNode> methods;
 
-        public ClassNode(String name, List<VariableDeclarationNode> fields, List<FunctionNode> methods) {
-            this.name = name;
+        public ClassNode(Token nameToken, List<VariableDeclarationNode> fields, List<FunctionNode> methods) {
+            this.nameToken = nameToken;
+            this.name = nameToken.value;
             this.fields = fields;
             this.methods = methods;
         }
@@ -365,12 +367,14 @@ public class AST {
         }
 
         public final String name;
+        public final Token nameToken;
         public final List<Parameter> parameters;
         public final String returnType;
         public final List<Statement> body;
 
-        public FunctionNode(String name, List<Parameter> parameters, String returnType, List<Statement> body) {
-            this.name = name;
+        public FunctionNode(Token nameToken, List<Parameter> parameters, String returnType, List<Statement> body) {
+            this.nameToken = nameToken;
+            this.name = nameToken.value;
             this.parameters = parameters;
             this.returnType = returnType;
             this.body = body;

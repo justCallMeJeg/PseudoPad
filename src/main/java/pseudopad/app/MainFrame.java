@@ -203,6 +203,12 @@ public class MainFrame extends JFrame implements AppController {
 
             // Save as Last Project
             PreferenceManager.getInstance().saveLastProject(projectContext.getProjectPath());
+
+            // Add to Recent Projects
+            PreferenceManager.getInstance().addRecentProject(projectContext.getProjectPath());
+            if (mainLayout.getRecentProjectsPanel() != null) {
+                mainLayout.getRecentProjectsPanel().refresh();
+            }
         } else {
             this.setTitle(AppConstants.APP_TITLE);
             // this.editorSplitPane.setTopComponent(new FallbackPanel(INSTANCE));

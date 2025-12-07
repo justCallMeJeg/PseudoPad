@@ -594,7 +594,7 @@ public class Parser {
         String returnType = consume(TokenType.TYPE, "Expected return type (or void).").value;
 
         // 2. Function Name
-        String name = consume(TokenType.IDENTIFIER, "Expected function name.").value;
+        Token nameToken = consume(TokenType.IDENTIFIER, "Expected function name.");
 
         // 3. Parameters
         consume(TokenType.LPAREN, "Expected '(' after function name.");
@@ -626,12 +626,12 @@ public class Parser {
         }
         consume(TokenType.ENDFUNC, "Expected 'endfunc'.");
 
-        return new AST.FunctionNode(name, parameters, returnType, body);
+        return new AST.FunctionNode(nameToken, parameters, returnType, body);
     }
 
     private AST.ClassNode parseClassDeclaration() {
         consume(TokenType.CLASS, "Expected 'class'.");
-        String name = consume(TokenType.IDENTIFIER, "Expected class name.").value;
+        Token nameToken = consume(TokenType.IDENTIFIER, "Expected class name.");
         consume(TokenType.DO, "Expected 'do' before class body.");
 
         List<AST.VariableDeclarationNode> fields = new ArrayList<>();
@@ -651,7 +651,7 @@ public class Parser {
         }
 
         consume(TokenType.ENDCLASS, "Expected 'endclass'.");
-        return new AST.ClassNode(name, fields, methods);
+        return new AST.ClassNode(nameToken, fields, methods);
     }
 
 }
