@@ -675,6 +675,41 @@ public class Interpreter {
             }
         }
 
+        // 4. BUILT-INS FOR NUMBERS
+        if (object instanceof Double) {
+            if (name.equals("toString")) {
+                return new Callable() {
+                    @Override
+                    public int arity() {
+                        return 0;
+                    }
+
+                    @Override
+                    public Object call(Interpreter interpreter, List<Object> args) {
+                        // We use stringify() here to handle the ".0" removal automatically
+                        return stringify(object);
+                    }
+                };
+            }
+        }
+
+        // 5. BUILT-INS FOR BOOLEANS
+        if (object instanceof Boolean) {
+            if (name.equals("toString")) {
+                return new Callable() {
+                    @Override
+                    public int arity() {
+                        return 0;
+                    }
+
+                    @Override
+                    public Object call(Interpreter interpreter, List<Object> args) {
+                        return object.toString();
+                    }
+                };
+            }
+        }
+
         throw new Errors.RuntimeError(
                 "Property '" + name + "' does not exist on type " + object.getClass().getSimpleName(), node.name);
     }
