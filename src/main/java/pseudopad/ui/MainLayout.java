@@ -17,12 +17,13 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import pseudopad.app.ActionController;
 import pseudopad.app.AppConstants;
 import pseudopad.app.MainFrame;
 import pseudopad.editor.EditorTabbedPane;
-import pseudopad.editor.FileExplorer;
 import pseudopad.editor.FileTabPane;
 import pseudopad.editor.ProblemsPanel;
+import pseudopad.editor.explorer.FileExplorer;
 import pseudopad.editor.statusbar.CursorPositionWidget;
 import pseudopad.editor.statusbar.MemoryUsageWidget;
 import pseudopad.editor.statusbar.ReadOnlyWidget;
@@ -35,7 +36,6 @@ import pseudopad.ui.components.AppToolBar;
 import pseudopad.ui.components.RecentProjectsPanel;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
-import pseudopad.utils.ActionsManager;
 
 /**
  * Manages the UI layout and components for the MainFrame.
@@ -44,7 +44,7 @@ import pseudopad.utils.ActionsManager;
  */
 public class MainLayout extends JPanel {
     private final MainFrame mainFrame;
-    private final ActionsManager appActions;
+    private final ActionController appActions;
 
     private JMenuBar menuBar;
     private JSplitPane mainSplitPane;
@@ -69,7 +69,7 @@ public class MainLayout extends JPanel {
 
     private FileOutlinePanel fileOutlinePanel;
 
-    public MainLayout(MainFrame mainFrame, ActionsManager appActions) {
+    public MainLayout(MainFrame mainFrame, ActionController appActions) {
         this.mainFrame = mainFrame;
         this.appActions = appActions;
         setLayout(new BorderLayout());

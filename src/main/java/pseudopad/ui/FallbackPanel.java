@@ -12,9 +12,10 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.UIManager;
+
+import pseudopad.app.ActionController;
 import pseudopad.app.MainFrame;
 import pseudopad.ui.components.ImagePanel;
-import pseudopad.utils.ActionsManager;
 import pseudopad.utils.ThemeManager;
 
 /**
@@ -111,7 +112,7 @@ public class FallbackPanel extends JPanel {
 
         gridPanel.setLayout(new GridLayout(3, 0));
 
-        ActionsManager actionManager = appFrame.getAppActionInstance();
+        ActionController actionManager = appFrame.getAppActionInstance();
 
         gridPanel.add(createButton("New Project...", actionManager.NEW_PROJECT));
         gridPanel.add(createButton("Open Project...", actionManager.OPEN_PROJECT));

@@ -12,7 +12,6 @@ import javax.swing.UIManager;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.dialogs.NewProjectDialog;
 import pseudopad.ui.dialogs.OpenProjectDialog;
-import pseudopad.utils.ActionsManager;
 import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
 import pseudopad.editor.EditorTabbedPane;
@@ -31,7 +30,7 @@ public class MainFrame extends JFrame implements AppController {
     private static MainFrame INSTANCE;
 
     private final ProjectContext projectContext = new ProjectContext(this);
-    private final ActionsManager AppActions = new ActionsManager(this);
+    private final ActionController AppActions = new ActionController(this);
     private final MainLayout mainLayout;
     private File pendingProjectToLoad;
 
@@ -413,7 +412,7 @@ public class MainFrame extends JFrame implements AppController {
         return INSTANCE;
     }
 
-    public ActionsManager getAppActionInstance() {
+    public ActionController getAppActionInstance() {
         return this.AppActions;
     }
 

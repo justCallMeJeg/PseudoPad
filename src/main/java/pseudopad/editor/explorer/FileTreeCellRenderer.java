@@ -1,4 +1,4 @@
-package pseudopad.editor;
+package pseudopad.editor.explorer;
 
 import java.awt.Component;
 import java.io.File;

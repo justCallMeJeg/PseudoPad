@@ -1,18 +1,20 @@
 package pseudopad.ui.components;
 
 import com.formdev.flatlaf.FlatClientProperties;
+
+import pseudopad.app.ActionController;
+
 import javax.swing.JButton;
 import javax.swing.JToolBar;
-import pseudopad.utils.ActionsManager;
 
 /**
  *
  * @author Geger John Paul Gabayeron
  */
 public class AppToolBar extends JToolBar {
-    private final ActionsManager actions;
+    private final ActionController actions;
 
-    public AppToolBar(ActionsManager actions) {
+    public AppToolBar(ActionController actions) {
         this.actions = actions;
         initToolbar();
     }

@@ -4,7 +4,8 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
-import pseudopad.utils.ActionsManager;
+
+import pseudopad.app.ActionController;
 import pseudopad.utils.ThemeManager;
 
 /**
@@ -12,9 +13,9 @@ import pseudopad.utils.ThemeManager;
  * @author Geger John Paul Gabayeron
  */
 public class AppMenuBar extends JMenuBar {
-    private final ActionsManager actions;
+    private final ActionController actions;
 
-    public AppMenuBar(ActionsManager actions) {
+    public AppMenuBar(ActionController actions) {
         this.actions = actions;
 
         initFileMenu();
