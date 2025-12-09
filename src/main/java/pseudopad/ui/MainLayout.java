@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.io.File;
 import javax.swing.BorderFactory;
-import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -17,25 +16,26 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+
+import pseudopad.app.AppConstants;
 import pseudopad.app.MainFrame;
-import pseudopad.editor.CursorPositionWidget;
 import pseudopad.editor.EditorTabbedPane;
 import pseudopad.editor.FileExplorer;
 import pseudopad.editor.FileTabPane;
-import pseudopad.editor.MemoryUsageWidget;
 import pseudopad.editor.ProblemsPanel;
+import pseudopad.editor.statusbar.CursorPositionWidget;
+import pseudopad.editor.statusbar.MemoryUsageWidget;
+import pseudopad.editor.statusbar.ReadOnlyWidget;
+import pseudopad.editor.statusbar.StatusBar;
 import pseudopad.editor.FileOutlinePanel;
-import pseudopad.editor.ReadOnlyWidget;
-import pseudopad.editor.StatusBar;
-import pseudopad.editor.TerminalPane;
 import pseudopad.editor.terminal.SimpleTerminalBackend;
+import pseudopad.editor.terminal.TerminalPane;
 import pseudopad.ui.components.AppMenuBar;
 import pseudopad.ui.components.AppToolBar;
 import pseudopad.ui.components.RecentProjectsPanel;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
-import pseudopad.utils.AppActionsManager;
-import pseudopad.utils.AppConstants;
+import pseudopad.utils.ActionsManager;
 
 /**
  * Manages the UI layout and components for the MainFrame.
@@ -44,7 +44,7 @@ import pseudopad.utils.AppConstants;
  */
 public class MainLayout extends JPanel {
     private final MainFrame mainFrame;
-    private final AppActionsManager appActions;
+    private final ActionsManager appActions;
 
     private JMenuBar menuBar;
     private JSplitPane mainSplitPane;
@@ -69,7 +69,7 @@ public class MainLayout extends JPanel {
 
     private FileOutlinePanel fileOutlinePanel;
 
-    public MainLayout(MainFrame mainFrame, AppActionsManager appActions) {
+    public MainLayout(MainFrame mainFrame, ActionsManager appActions) {
         this.mainFrame = mainFrame;
         this.appActions = appActions;
         setLayout(new BorderLayout());

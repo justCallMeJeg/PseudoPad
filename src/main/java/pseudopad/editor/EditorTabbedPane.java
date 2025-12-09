@@ -12,12 +12,12 @@ import javax.swing.JButton;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 
+import pseudopad.app.AppConstants;
+import pseudopad.app.AppLogger;
 import pseudopad.app.MainFrame;
 import pseudopad.ui.FallbackPanel;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.utils.IconManager;
-import pseudopad.utils.AppConstants;
-import pseudopad.utils.AppLogger;
 
 /**
  * Specialized TabPane for Editors with an "Add" button.

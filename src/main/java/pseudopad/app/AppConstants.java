@@ -1,4 +1,4 @@
-package pseudopad.utils;
+package pseudopad.app;
 
 import java.awt.Dimension;
 

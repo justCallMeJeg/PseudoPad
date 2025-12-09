@@ -1,4 +1,4 @@
-package pseudopad.utils;
+package pseudopad.app;
 
 import java.awt.Color;
 import java.io.PrintWriter;
@@ -6,7 +6,6 @@ import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import javax.swing.SwingUtilities;
-import pseudopad.app.MainFrame;
 
 /**
  * Utility for logging messages to the application's log pane.

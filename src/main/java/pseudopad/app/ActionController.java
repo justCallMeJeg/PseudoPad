@@ -1,4 +1,4 @@
-package pseudopad.utils;
+package pseudopad.app;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -6,16 +6,19 @@ import java.awt.Toolkit;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.KeyStroke;
-import pseudopad.app.AppController;
+
+import pseudopad.utils.IconManager;
+import pseudopad.utils.ThemeManager;
+import pseudopad.utils.ThemeManager.THEMES;
 
 /**
  *
  * @author Geger John Paul Gabayeron
  */
-public class AppActionsManager {
+public class ActionController {
     private final AppController appController;
 
-    public AppActionsManager(AppController appController) {
+    public ActionController(AppController appController) {
         this.appController = appController;
     }
 

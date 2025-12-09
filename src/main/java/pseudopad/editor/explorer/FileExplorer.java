@@ -38,7 +38,8 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.ExpandVetoException;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
-import pseudopad.utils.AppLogger;
+
+import pseudopad.app.AppLogger;
 
 /**
  *

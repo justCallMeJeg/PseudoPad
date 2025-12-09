@@ -3,10 +3,11 @@ package pseudopad.ui.dialogs;
 import java.io.File;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+
+import pseudopad.app.AppConstants;
 import pseudopad.app.MainFrame;
+import pseudopad.project.ProjectManager;
 import pseudopad.utils.PreferenceManager;
-import pseudopad.utils.ProjectManager;
-import pseudopad.utils.AppConstants;
 
 /**
  *

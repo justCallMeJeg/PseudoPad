@@ -1,4 +1,4 @@
-package pseudopad.config;
+package pseudopad.project;
 
 /**
  *

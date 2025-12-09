@@ -1,4 +1,4 @@
-package pseudopad.editor;
+package pseudopad.editor.statusbar;
 
 import javax.swing.JLabel;
 

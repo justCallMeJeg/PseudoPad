@@ -21,7 +21,7 @@ import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import pseudopad.app.MainFrame;
-import pseudopad.utils.ProjectManager;
+import pseudopad.project.ProjectManager;
 import pseudopad.utils.ThemeManager;
 
 /**

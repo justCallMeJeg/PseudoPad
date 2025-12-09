@@ -5,9 +5,9 @@ import java.io.File;
 import javax.swing.SwingUtilities;
 
 import pseudopad.app.AppStartupWorker;
+import pseudopad.app.CrashHandler;
 import pseudopad.app.MainFrame;
-import pseudopad.app.SplashScreenWindow;
-import pseudopad.utils.CrashHandler;
+import pseudopad.ui.splash.SplashScreenWindow;
 import pseudopad.utils.PreferenceManager;
 import pseudopad.utils.ThemeManager;
 

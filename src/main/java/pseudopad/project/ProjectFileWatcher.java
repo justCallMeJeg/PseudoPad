@@ -1,4 +1,4 @@
-package pseudopad.utils;
+package pseudopad.project;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,6 +20,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import javax.swing.SwingUtilities;
+
+import pseudopad.app.AppLogger;
 import pseudopad.app.MainFrame;
 
 /**

@@ -1,10 +1,9 @@
-package pseudopad.app;
+package pseudopad.project;
 
 import java.io.File;
 import javax.swing.SwingUtilities;
-import pseudopad.config.ProjectConfig;
-import pseudopad.utils.ProjectFileWatcher;
-import pseudopad.utils.ProjectManager;
+
+import pseudopad.app.MainFrame;
 
 /**
  * Encapsulates the state and logic for a loaded project.

@@ -1,9 +1,8 @@
-package pseudopad.utils;
+package pseudopad.app;
 
 import java.awt.Component;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-import pseudopad.app.MainFrame;
 
 /**
  * Global exception handler to catch crashes and report them to the user.
