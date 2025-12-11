@@ -9,12 +9,21 @@ public class Token {
     public final String value;
     public final int line;
     public final int column;
+    public final int startIndex;
+    public final int length;
 
-    public Token(TokenType type, String value, int line, int column) {
+    public Token(TokenType type, String value, int line, int column, int startIndex, int length) {
         this.type = type;
         this.value = value;
         this.line = line;
         this.column = column;
+        this.startIndex = startIndex;
+        this.length = length;
+    }
+
+    // Legacy constructor for backward compatibility during refactor (sets 0, 0)
+    public Token(TokenType type, String value, int line, int column) {
+        this(type, value, line, column, 0, 0);
     }
 
     @Override

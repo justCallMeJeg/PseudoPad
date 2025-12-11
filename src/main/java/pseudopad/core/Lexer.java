@@ -40,7 +40,7 @@ public class Lexer {
             char c = currentChar();
 
             if (c == '\0') {
-                tokens.add(new Token(TokenType.EOF, null, line, column));
+                tokens.add(new Token(TokenType.EOF, null, line, column, index, 0));
                 break;
             }
 
@@ -66,14 +66,18 @@ public class Lexer {
 
             switch (c) {
                 case '=' -> {
+                    int start = index; // Start of '='
                     advance();
                     switch (currentChar()) {
                         case '=' -> {
-                            tokens.add(simple(TokenType.EQUAL_EQUAL));
+                            // "==" (Length 2)
+                            tokens.add(new Token(TokenType.EQUAL_EQUAL, null, line, column, start, 2));
+                            advance(); // Consume 2nd '='
                             continue;
                         }
                         case ' ', '(', '"', '\0' -> {
-                            tokens.add(simple(TokenType.EQUALS));
+                            // "=" (Length 1)
+                            tokens.add(new Token(TokenType.EQUALS, null, line, column, start, 1));
                             continue;
                         }
                     }
@@ -81,9 +85,11 @@ public class Lexer {
                             "Unexpected character: =" + currentChar() + " at " + line + ":" + column);
                 }
                 case '!' -> {
+                    int start = index;
                     advance();
                     if (currentChar() == '=') {
-                        tokens.add(simple(TokenType.BANG_EQUAL));
+                        tokens.add(new Token(TokenType.BANG_EQUAL, null, line, column, start, 2));
+                        advance();
                         continue;
                     } else {
                         throw new Errors.LexerError(
@@ -91,14 +97,16 @@ public class Lexer {
                     }
                 }
                 case '<' -> {
+                    int start = index;
                     advance();
                     switch (currentChar()) {
                         case '=' -> {
-                            tokens.add(simple(TokenType.LESS_EQUAL));
+                            tokens.add(new Token(TokenType.LESS_EQUAL, null, line, column, start, 2));
+                            advance();
                             continue;
                         }
                         case ' ', '(', '"', '\0' -> {
-                            tokens.add(simple(TokenType.LESS));
+                            tokens.add(new Token(TokenType.LESS, null, line, column, start, 1));
                             continue;
                         }
                     }
@@ -106,14 +114,16 @@ public class Lexer {
                             "Unexpected character: <" + currentChar() + " at " + line + ":" + column);
                 }
                 case '>' -> {
+                    int start = index;
                     advance();
                     switch (currentChar()) {
                         case '=' -> {
-                            tokens.add(simple(TokenType.GREATER_EQUAL));
+                            tokens.add(new Token(TokenType.GREATER_EQUAL, null, line, column, start, 2));
+                            advance();
                             continue;
                         }
                         case ' ', '(', '"', '\0' -> {
-                            tokens.add(simple(TokenType.GREATER));
+                            tokens.add(new Token(TokenType.GREATER, null, line, column, start, 1));
                             continue;
                         }
                     }
@@ -185,6 +195,7 @@ public class Lexer {
                     continue;
                 }
                 case '#' -> {
+                    int start = index;
                     advance(); // Consume the opening '#'
 
                     // Consume characters until we hit the closing '#' or End Of File
@@ -198,7 +209,11 @@ public class Lexer {
                     }
 
                     advance(); // Consume the closing '#'
-                    continue; // Skip adding a token and continue loop
+
+                    // Add comments as tokens for Syntax Highlighting
+                    int length = index - start;
+                    tokens.add(new Token(TokenType.COMMENT, null, line, column, start, length));
+                    continue;
                 }
             }
 
@@ -226,7 +241,8 @@ public class Lexer {
             }
         }
 
-        return new Token(TokenType.NUMBER, builder.toString(), line, startColumn);
+        return new Token(TokenType.NUMBER, builder.toString(), line, startColumn, index - builder.length(),
+                builder.length());
     }
 
     private Token stringToken() {
@@ -246,7 +262,8 @@ public class Lexer {
 
         advance();
 
-        return new Token(TokenType.STRING, builder.toString(), line, startColumn);
+        return new Token(TokenType.STRING, builder.toString(), line, startColumn, index - (builder.length() + 2),
+                builder.length() + 2);
     }
 
     private static final java.util.Map<String, TokenType> keywords;
@@ -307,19 +324,21 @@ public class Lexer {
         // Special handling for boolean literals to keep 'word' value, others might not
         // need value
         if (type == TokenType.BOOLEAN) {
-            return new Token(type, word, line, startColumn);
+            return new Token(type, word, line, startColumn, index - word.length(), word.length());
         }
 
         // Special handling for Types to keep 'word' value
         if (type == TokenType.TYPE) {
-            return new Token(type, word, line, startColumn);
+            return new Token(type, word, line, startColumn, index - word.length(), word.length());
         }
 
-        return new Token(type, (type == TokenType.IDENTIFIER) ? word : null, line, startColumn);
+        return new Token(type, (type == TokenType.IDENTIFIER) ? word : null, line, startColumn, index - word.length(),
+                word.length());
     }
 
     private Token simple(TokenType type) {
-        Token token = new Token(type, null, line, column);
+        int startIndex = index;
+        Token token = new Token(type, null, line, column, startIndex, 1);
         advance();
         return token;
     }

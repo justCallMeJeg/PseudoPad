@@ -11,7 +11,12 @@ public class Parser {
     private int index = 0;
 
     public Parser(List<Token> tokens) {
-        this.tokens = tokens;
+        this.tokens = new ArrayList<>();
+        for (Token t : tokens) {
+            if (t.type != TokenType.COMMENT) {
+                this.tokens.add(t);
+            }
+        }
     }
 
     private Token currentToken() {

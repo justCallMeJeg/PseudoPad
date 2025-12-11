@@ -29,5 +29,7 @@ public enum TokenType {
     FUNC, ENDFUNC, RETURN,
     CLASS, ENDCLASS, THIS,
 
+    COMMENT,
+
     EOF
 }

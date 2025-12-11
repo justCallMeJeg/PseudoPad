@@ -83,7 +83,7 @@ public class SyntaxHighlighter {
 
         registerStyle(TokenType.STRING, stringColor);
         registerStyle(TokenType.NUMBER, numberColor);
-        // registerStyle(TokenType.COMMENT, commentColor);
+        registerStyle(TokenType.COMMENT, commentColor);
     }
 
     private void registerStyle(TokenType type, Color color) {
@@ -114,7 +114,7 @@ public class SyntaxHighlighter {
 
                     AttributeSet style = tokenStyles.get(token.type);
                     if (style != null) {
-                        // doc.setCharacterAttributes(token.startIndex, token.length, style, false);
+                        doc.setCharacterAttributes(token.startIndex, token.length, style, false);
                     }
                 }
 
