@@ -24,7 +24,7 @@ import javax.swing.text.Highlighter;
 import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
 import javax.swing.undo.UndoManager;
 import pseudopad.app.MainFrame;
-import pseudopad.core.Errors.CompilationError;
+// import pseudopad.core.Errors.CompilationError;
 import pseudopad.editor.completion.AutoCompletion;
 import pseudopad.editor.completion.PseudoCompletionProvider;
 import pseudopad.ui.components.TextPane;
@@ -129,14 +129,16 @@ public class FileTabPane extends JPanel {
         });
 
         // 5. Auto Completion
-        new AutoCompletion(textPane, new PseudoCompletionProvider());
+        // new AutoCompletion(textPane, new PseudoCompletionProvider());
 
         // 6. Proactive Analysis
-        analysisTimer = new javax.swing.Timer(1000, e -> performAnalysis());
+        // analysisTimer = new javax.swing.Timer(1000, e -> performAnalysis());
+        analysisTimer = new javax.swing.Timer(1000, e -> {
+        }); // Disabled for now
         analysisTimer.setRepeats(false);
 
         // Initial check
-        SwingUtilities.invokeLater(this::performAnalysis);
+        // SwingUtilities.invokeLater(this::performAnalysis);
     }
 
     private final javax.swing.Timer analysisTimer;
@@ -153,83 +155,88 @@ public class FileTabPane extends JPanel {
         analysisTimer.restart();
     }
 
-    private void performAnalysis() {
-        String code = textPane.getText();
+    // private void performAnalysis() {
+    // String code = textPane.getText();
 
-        // Run in background to avoid freezing UI if large
-        new Thread(() -> {
-            pseudopad.core.Errors.CompilationResult result = pseudopad.core.PseudoRunner.compile(code);
-            this.cachedAST = result.ast;
+    // // Run in background to avoid freezing UI if large
+    // new Thread(() -> {
+    // pseudopad.core.Errors.CompilationResult result =
+    // pseudopad.core.PseudoRunner.compile(code);
+    // this.cachedAST = result.ast;
 
-            SwingUtilities.invokeLater(() -> {
-                // 1. Update Problems View
-                if (MainFrame.getInstance() != null) {
-                    pseudopad.ui.MainLayout layout = (pseudopad.ui.MainLayout) MainFrame.getInstance().getContentPane();
+    // SwingUtilities.invokeLater(() -> {
+    // // 1. Update Problems View
+    // if (MainFrame.getInstance() != null) {
+    // pseudopad.ui.MainLayout layout = (pseudopad.ui.MainLayout)
+    // MainFrame.getInstance().getContentPane();
 
-                    pseudopad.editor.ProblemsPanel problems = layout.getProblemsPanel();
-                    if (problems != null) {
-                        problems.updateErrors(fileSource, result.errors);
-                    }
+    // pseudopad.editor.ProblemsPanel problems = layout.getProblemsPanel();
+    // if (problems != null) {
+    // problems.updateErrors(fileSource, result.errors);
+    // }
 
-                    // Update Outline if this tab is active
-                    if (isShowing()) {
-                        pseudopad.editor.FileOutlinePanel outline = layout.getFileOutlinePanel();
-                        if (outline != null) {
-                            outline.updateOutline(result.ast);
-                        }
-                    }
-                }
+    // // Update Outline if this tab is active
+    // if (isShowing()) {
+    // pseudopad.editor.FileOutlinePanel outline = layout.getFileOutlinePanel();
+    // if (outline != null) {
+    // outline.updateOutline(result.ast);
+    // }
+    // }
+    // }
 
-                // 2. Update Editor Highlights
-                updateHighlighter(result.errors);
-            });
-        }).start();
-    }
+    // // 2. Update Editor Highlights
+    // updateHighlighter(result.errors);
+    // });
+    // }).start();
+    // }
 
     public pseudopad.core.AST.ProgramNode getCachedAST() {
         return cachedAST;
     }
 
-    private void updateHighlighter(List<CompilationError> errors) {
-        Highlighter h = textPane.getHighlighter();
-        h.removeAllHighlights(); // Assumption: Syntax highlighting uses Styles, not Highlighter. If
-                                 // Search/Selection uses Highlighter, this might clear them.
-        // If we want to preserve other highlights, we need to track ours.
-        // But for now, let's assume simple clearing is OK or we accept the tradeoff for
-        // errors.
+    // private void updateHighlighter(List<CompilationError> errors) {
+    // Highlighter h = textPane.getHighlighter();
+    // h.removeAllHighlights(); // Assumption: Syntax highlighting uses Styles, not
+    // Highlighter. If
+    // // Search/Selection uses Highlighter, this might clear them.
+    // // If we want to preserve other highlights, we need to track ours.
+    // // But for now, let's assume simple clearing is OK or we accept the tradeoff
+    // for
+    // // errors.
 
-        DefaultHighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(
-                new Color(255, 100, 100, 50)); // Light Red
+    // DefaultHighlightPainter painter = new
+    // DefaultHighlighter.DefaultHighlightPainter(
+    // new Color(255, 100, 100, 50)); // Light Red
 
-        for (CompilationError error : errors) {
-            try {
-                // Map line/col to offset
-                Element root = textPane.getDocument().getDefaultRootElement();
-                int line = Math.max(0, error.line - 1);
-                if (line >= root.getElementCount())
-                    continue;
+    // for (CompilationError error : errors) {
+    // try {
+    // // Map line/col to offset
+    // Element root = textPane.getDocument().getDefaultRootElement();
+    // int line = Math.max(0, error.line - 1);
+    // if (line >= root.getElementCount())
+    // continue;
 
-                Element lineElem = root.getElement(line);
-                int start = lineElem.getStartOffset() + Math.max(0, error.column - 1);
-                int end = start + Math.max(1, error.length); // Ensure at least 1 char width
+    // Element lineElem = root.getElement(line);
+    // int start = lineElem.getStartOffset() + Math.max(0, error.column - 1);
+    // int end = start + Math.max(1, error.length); // Ensure at least 1 char width
 
-                // Clamp to line end
-                end = Math.min(end, lineElem.getEndOffset() - 1);
-                if (end <= start)
-                    end = start + 1; // Fallback
+    // // Clamp to line end
+    // end = Math.min(end, lineElem.getEndOffset() - 1);
+    // if (end <= start)
+    // end = start + 1; // Fallback
 
-                h.addHighlight(start, end, painter);
-            } catch (Exception e) {
-                // Ignore invalid positions
-            }
-        }
+    // h.addHighlight(start, end, painter);
+    // } catch (Exception e) {
+    // // Ignore invalid positions
+    // }
+    // }
 
-        Set<Integer> errorLines = new HashSet<>();
-        for (CompilationError error : errors) {
-            errorLines.add(error.line); // 1-based
-        }
-        lineNumbers.setErrorLines(errorLines);
-    }
+    // Set<Integer> errorLines = new HashSet<>();
+    // for (CompilationError error : errors) {
+    // errorLines.add(error.line); // 1-based
+    // }
+    // lineNumbers.setErrorLines(errorLines);
+    // }
 
     private void checkDirty() {
         // Optimization: First check length. If lengths differ, it's definitely changed.

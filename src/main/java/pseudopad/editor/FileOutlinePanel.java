@@ -37,21 +37,22 @@ public class FileOutlinePanel extends JPanel {
         tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
         tree.setCellRenderer(new OutlineTreeCellRenderer());
 
-        // Handle click to navigate
-        tree.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 1 || e.getClickCount() == 2) {
-                    TreePath path = tree.getPathForLocation(e.getX(), e.getY());
-                    if (path != null) {
-                        DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
-                        if (node.getUserObject() instanceof OutlineNodeData data) {
-                            navigate(data);
-                        }
-                    }
-                }
-            }
-        });
+        // // Handle click to navigate
+        // tree.addMouseListener(new MouseAdapter() {
+        // @Override
+        // public void mouseClicked(MouseEvent e) {
+        // if (e.getClickCount() == 1 || e.getClickCount() == 2) {
+        // TreePath path = tree.getPathForLocation(e.getX(), e.getY());
+        // if (path != null) {
+        // DefaultMutableTreeNode node = (DefaultMutableTreeNode)
+        // path.getLastPathComponent();
+        // if (node.getUserObject() instanceof OutlineNodeData data) {
+        // navigate(data);
+        // }
+        // }
+        // }
+        // }
+        // });
 
         add(new JScrollPane(tree), BorderLayout.CENTER);
     }
@@ -92,18 +93,18 @@ public class FileOutlinePanel extends JPanel {
         });
     }
 
-    private void navigate(OutlineNodeData data) {
-        Token token = data.getToken();
-        if (token != null) {
-            EditorTabbedPane tabs = MainFrame.getInstance().getEditorTabbedPane();
-            Component c = tabs.getSelectedComponent();
-            if (c instanceof FileTabPane fileTab) {
-                // Use token.line and token.column
-                fileTab.getTextPane().setCaretPositionForLine(token.line, token.column);
-                fileTab.getTextPane().requestFocus();
-            }
-        }
-    }
+    // private void navigate(OutlineNodeData data) {
+    // Token token = data.getToken();
+    // if (token != null) {
+    // EditorTabbedPane tabs = MainFrame.getInstance().getEditorTabbedPane();
+    // Component c = tabs.getSelectedComponent();
+    // if (c instanceof FileTabPane fileTab) {
+    // // Use token.line and token.column
+    // fileTab.getTextPane().setCaretPositionForLine(token.line, token.column);
+    // fileTab.getTextPane().requestFocus();
+    // }
+    // }
+    // }
 
     private static class OutlineNodeData {
         private final Object node;
@@ -112,16 +113,16 @@ public class FileOutlinePanel extends JPanel {
             this.node = node;
         }
 
-        public Token getToken() {
-            if (node instanceof AST.FunctionNode fn) {
-                return fn.nameToken;
-            } else if (node instanceof AST.ClassNode cn) {
-                return cn.nameToken;
-            } else if (node instanceof AST.VariableDeclarationNode vn) {
-                return vn.nameToken;
-            }
-            return null;
-        }
+        // public Token getToken() {
+        // if (node instanceof AST.FunctionNode fn) {
+        // return fn.nameToken;
+        // } else if (node instanceof AST.ClassNode cn) {
+        // return cn.nameToken;
+        // } else if (node instanceof AST.VariableDeclarationNode vn) {
+        // return vn.nameToken;
+        // }
+        // return null;
+        // }
 
         @Override
         public String toString() {

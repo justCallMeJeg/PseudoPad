@@ -3,6 +3,7 @@ package pseudopad.editor.terminal;
 import javax.swing.*;
 
 import pseudopad.core.PseudoRunner;
+import pseudopad.core.Interpreter;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -88,25 +89,6 @@ public class SimpleTerminalBackend implements TerminalBackend {
         }
     }
 
-    // private void runProgram(StringBuilder response) {
-    // response.append("Running program...\n");
-    //
-    // String code = null;
-    // if (codeProvider != null) {
-    // code = codeProvider.get();
-    // }
-    //
-    // if (code == null || code.trim().isEmpty()) {
-    // response.append("No code to execute.\n");
-    // } else {
-    // // Placeholder for custom interpreter execution
-    // // MIKOOOOOOOOOOOOOOOOOOOOOOOOOO
-    // // e.g., myInterpreter.execute(code);
-    // }
-    //
-    // response.append("[Program finished]\n");
-    // }
-
     private void runProgram(StringBuilder response) {
         // 1. Get the code
         String code = null;
@@ -122,62 +104,26 @@ public class SimpleTerminalBackend implements TerminalBackend {
         response.append("Running...\n------------------------\n");
 
         // 2. Run in a separate thread so the UI doesn't freeze
-        // We need a final copy of the code for the thread
         final String sourceCode = code;
 
         new Thread(() -> {
-            // Buffer for batching output to prevent flooding the Event Dispatch Thread
-            StringBuilder outputBuffer = new StringBuilder();
-            long[] lastFlushTime = { System.currentTimeMillis() };
-
             // 3. Define how 'input()' works (Popup Dialog)
-            pseudopad.core.Errors.CompilationResult result = PseudoRunner.run(sourceCode, (prompt) -> {
+            Interpreter.InputProvider inputProvider = (prompt) -> {
                 return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
-            }, (text) -> {
-                // 4. Send output back to the terminal with batching
-                outputBuffer.append(text);
+            };
 
-                long now = System.currentTimeMillis();
-                // Flush if > 50ms passed or buffer is getting large (> 1KB)
-                if (now - lastFlushTime[0] > 50 || outputBuffer.length() > 1024) {
-                    if (outputListener != null) {
-                        outputListener.accept(outputBuffer.toString());
-                    }
-                    outputBuffer.setLength(0);
-                    lastFlushTime[0] = now;
-                }
-            });
+            // 4. Run directly using PseudoRunner.run(String, InputProvider)
+            String output = PseudoRunner.run(sourceCode, inputProvider);
 
-            // 5. Update Problems View
-            SwingUtilities.invokeLater(() -> {
-                if (pseudopad.app.MainFrame.getInstance() != null) {
-                    pseudopad.ui.MainLayout layout = (pseudopad.ui.MainLayout) pseudopad.app.MainFrame.getInstance()
-                            .getContentPane();
-                    if (layout.getProblemsPanel() != null) {
-                        // Try to get the file object if possible
-                        java.io.File activeFile = null;
-                        String activePath = pseudopad.app.MainFrame.getInstance().getEditorTabbedPane().getActiveFile();
-                        if (activePath != null) {
-                            activeFile = new java.io.File(activePath);
-                        }
-                        layout.getProblemsPanel().updateErrors(activeFile, result.errors);
-                    }
-                }
-            });
-
-            // Flush any remaining output
-            if (outputBuffer.length() > 0 && outputListener != null) {
-                outputListener.accept(outputBuffer.toString());
-            }
-
-            // Send prompt after execution finishes
+            // 5. Send output to listener
             if (outputListener != null) {
+                outputListener.accept(output);
                 outputListener.accept("\n" + getPrompt());
             }
+
         }).start();
 
         // Clear the immediate response so we don't print a prompt twice
-        // (The thread prints the prompt when finished)
         response.setLength(0);
     }
 
