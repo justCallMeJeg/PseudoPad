@@ -249,98 +249,73 @@ public class Lexer {
         return new Token(TokenType.STRING, builder.toString(), line, startColumn);
     }
 
+    private static final java.util.Map<String, TokenType> keywords;
+
+    static {
+        keywords = new java.util.HashMap<>();
+        keywords.put("SET", TokenType.SET);
+        keywords.put("CONST", TokenType.CONST);
+        keywords.put("PRINT", TokenType.PRINT);
+        keywords.put("TRUE", TokenType.BOOLEAN);
+        keywords.put("FALSE", TokenType.BOOLEAN);
+        keywords.put("NUMBER", TokenType.TYPE);
+        keywords.put("STRING", TokenType.TYPE);
+        keywords.put("BOOLEAN", TokenType.TYPE);
+        keywords.put("LIST", TokenType.TYPE);
+        keywords.put("DICT", TokenType.TYPE);
+        keywords.put("VOID", TokenType.TYPE);
+        keywords.put("AND", TokenType.AND);
+        keywords.put("OR", TokenType.OR);
+        keywords.put("NOT", TokenType.NOT);
+        keywords.put("IF", TokenType.IF);
+        keywords.put("THEN", TokenType.THEN);
+        keywords.put("ELIF", TokenType.ELIF);
+        keywords.put("ELSE", TokenType.ELSE);
+        keywords.put("ENDIF", TokenType.ENDIF);
+        keywords.put("WHILE", TokenType.WHILE);
+        keywords.put("DO", TokenType.DO);
+        keywords.put("ENDWHILE", TokenType.ENDWHILE);
+        keywords.put("FOR", TokenType.FOR);
+        keywords.put("ENDFOR", TokenType.ENDFOR);
+        keywords.put("SKIP", TokenType.SKIP);
+        keywords.put("CONTINUE", TokenType.SKIP);
+        keywords.put("BREAK", TokenType.BREAK);
+        keywords.put("FUNC", TokenType.FUNC);
+        keywords.put("ENDFUNC", TokenType.ENDFUNC);
+        keywords.put("RETURN", TokenType.RETURN);
+        keywords.put("CLASS", TokenType.CLASS);
+        keywords.put("ENDCLASS", TokenType.ENDCLASS);
+        keywords.put("THIS", TokenType.THIS);
+    }
+
     private Token identifierOrKeyword() {
         int startColumn = column;
         StringBuilder builder = new StringBuilder();
 
-        while (Character.isJavaIdentifierPart(currentChar())) {
+        while (currentChar() != '\0' && Character.isJavaIdentifierPart(currentChar())) {
             builder.append(currentChar());
             advance();
         }
 
         String word = builder.toString();
-        switch (word.toUpperCase()) {
-            case "SET" -> {
-                return new Token(TokenType.SET, null, line, startColumn);
-            }
-            case "CONST" -> {
-                return new Token(TokenType.CONST, null, line, startColumn);
-            }
-            case "PRINT" -> {
-                return new Token(TokenType.PRINT, null, line, startColumn);
-            }
-            case "TRUE", "FALSE" -> {
-                return new Token(TokenType.BOOLEAN, word, line, startColumn);
-            }
-            case "NUMBER", "STRING", "BOOLEAN", "LIST", "DICT", "VOID" -> {
-                return new Token(TokenType.TYPE, word, line, startColumn);
-            }
-            case "AND" -> {
-                return new Token(TokenType.AND, null, line, startColumn);
-            }
-            case "OR" -> {
-                return new Token(TokenType.OR, null, line, startColumn);
-            }
-            case "NOT" -> {
-                return new Token(TokenType.NOT, null, line, startColumn);
-            }
-            case "IF" -> {
-                return new Token(TokenType.IF, null, line, startColumn);
-            }
-            case "THEN" -> {
-                return new Token(TokenType.THEN, null, line, startColumn);
-            }
-            case "ELIF" -> {
-                return new Token(TokenType.ELIF, null, line, startColumn);
-            }
-            case "ELSE" -> {
-                return new Token(TokenType.ELSE, null, line, startColumn);
-            }
-            case "ENDIF" -> {
-                return new Token(TokenType.ENDIF, null, line, startColumn);
-            }
-            case "WHILE" -> {
-                return new Token(TokenType.WHILE, null, line, startColumn);
-            }
-            case "DO" -> {
-                return new Token(TokenType.DO, null, line, startColumn);
-            }
-            case "ENDWHILE" -> {
-                return new Token(TokenType.ENDWHILE, null, line, startColumn);
-            }
-            case "FOR" -> {
-                return new Token(TokenType.FOR, null, line, startColumn);
-            }
-            case "ENDFOR" -> {
-                return new Token(TokenType.ENDFOR, null, line, startColumn);
-            }
-            case "SKIP", "CONTINUE" -> {
-                return new Token(TokenType.SKIP, null, line, startColumn);
-            }
-            case "BREAK" -> {
-                return new Token(TokenType.BREAK, null, line, startColumn);
-            }
-            case "FUNC" -> {
-                return new Token(TokenType.FUNC, null, line, startColumn);
-            }
-            case "ENDFUNC" -> {
-                return new Token(TokenType.ENDFUNC, null, line, startColumn);
-            }
-            case "RETURN" -> {
-                return new Token(TokenType.RETURN, null, line, startColumn);
-            }
-            case "CLASS" -> {
-                return new Token(TokenType.CLASS, null, line, startColumn);
-            }
-            case "ENDCLASS" -> {
-                return new Token(TokenType.ENDCLASS, null, line, startColumn);
-            }
-            case "THIS" -> {
-                return new Token(TokenType.THIS, null, line, startColumn);
-            }
+        TokenType type = keywords.get(word.toUpperCase());
+
+        if (type == null) {
+            type = TokenType.IDENTIFIER;
         }
 
-        return new Token(TokenType.IDENTIFIER, word, line, startColumn);
+        // Special handling for boolean literals to keep 'word' value, others might not
+        // need value
+        if (type == TokenType.BOOLEAN) {
+            return new Token(type, word, line, startColumn);
+        }
+
+        // Special handling for Types to keep 'word' value
+        if (type == TokenType.TYPE) {
+            return new Token(type, word, line, startColumn);
+        }
+
+        return new Token(type, (type == TokenType.IDENTIFIER) ? word : null, line, startColumn);
     }
 
     private Token simple(TokenType type) {

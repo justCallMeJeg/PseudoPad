@@ -17,12 +17,19 @@ public class Interpreter {
     public final Environment globals = new Environment();
     private Environment environment = globals;
     private final InputProvider inputProvider; // New field to store the input strategy
+    private final OutputProvider outputProvider; // New field to store the output strategy
 
     // --- 3. NEW CONSTRUCTOR (For GUI) ---
     // The frontend will call this one, passing in the popup logic
-    public Interpreter(InputProvider inputProvider) {
+    public Interpreter(InputProvider inputProvider, OutputProvider outputProvider) {
         this.inputProvider = inputProvider;
+        this.outputProvider = outputProvider;
         initGlobals();
+    }
+
+    // Kept for backward compatibility if needed, but updated to support output
+    public Interpreter(InputProvider inputProvider) {
+        this(inputProvider, (msg) -> System.out.println(msg));
     }
 
     // --- 4. DEFAULT CONSTRUCTOR (For Testing/Console) ---
@@ -30,8 +37,11 @@ public class Interpreter {
     public Interpreter() {
         this.inputProvider = (prompt) -> {
             System.out.print(prompt);
-            return new Scanner(System.in).nextLine();
+            try (Scanner scanner = new Scanner(System.in)) { // Fix resource leak
+                return scanner.nextLine();
+            }
         };
+        this.outputProvider = (msg) -> System.out.println(msg);
         initGlobals();
     }
 
@@ -303,7 +313,7 @@ public class Interpreter {
 
     private void executePrint(AST.PrintNode node) {
         Object value = evaluate(node.expression);
-        System.out.println(value);
+        outputProvider.print(String.valueOf(value));
     }
 
     private void executeIf(AST.IfNode node) {

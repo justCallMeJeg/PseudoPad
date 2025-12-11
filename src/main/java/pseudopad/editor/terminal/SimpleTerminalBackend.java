@@ -112,12 +112,15 @@ public class SimpleTerminalBackend implements TerminalBackend {
                 return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
             };
 
-            // 4. Run directly using PseudoRunner.run(String, InputProvider)
-            String output = PseudoRunner.run(sourceCode, inputProvider);
+            // 4. Run directly using PseudoRunner.run(String, InputProvider, OutputProvider)
+            // This allows streaming output directly to the listener!
+            PseudoRunner.run(sourceCode, inputProvider, (msg) -> {
+                if (outputListener != null)
+                    outputListener.accept(msg);
+            });
 
-            // 5. Send output to listener
+            // 5. Finished
             if (outputListener != null) {
-                outputListener.accept(output);
                 outputListener.accept("\n" + getPrompt());
             }
 

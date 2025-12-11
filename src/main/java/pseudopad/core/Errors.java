@@ -11,6 +11,11 @@ public class Errors {
         public ReturnSignal(Object value) {
             this.value = value;
         }
+
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
     }
 
     // ===== LEXER ERROR =====
@@ -58,9 +63,17 @@ public class Errors {
     }
 
     static class BreakSignal extends RuntimeException {
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
     }
 
     static class SkipSignal extends RuntimeException {
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
     }
 
 }
