@@ -2,6 +2,10 @@ package pseudopad.core;
 
 import java.util.*;
 
+/**
+ * 
+ * @author Joseph Mikhaeli Jalandoni
+ */
 public class Interpreter {
     // --- 1. NEW INTERFACE ---
     // This allows the GUI to tell us how to get input (e.g., via JOptionPane)
@@ -9,24 +13,15 @@ public class Interpreter {
         String read(String prompt);
     }
 
-    public interface OutputProvider {
-        void print(String text);
-    }
-
-    // --- 2. UPDATED FIELDS ---
     // --- 2. UPDATED FIELDS ---
     public final Environment globals = new Environment();
     private Environment environment = globals;
     private final InputProvider inputProvider; // New field to store the input strategy
-    private final OutputProvider outputProvider;
 
     // --- 3. NEW CONSTRUCTOR (For GUI) ---
     // The frontend will call this one, passing in the popup logic
-    // --- 3. NEW CONSTRUCTOR (For GUI) ---
-    // The frontend will call this one, passing in the popup logic
-    public Interpreter(InputProvider inputProvider, OutputProvider outputProvider) {
+    public Interpreter(InputProvider inputProvider) {
         this.inputProvider = inputProvider;
-        this.outputProvider = outputProvider;
         initGlobals();
     }
 
@@ -37,7 +32,6 @@ public class Interpreter {
             System.out.print(prompt);
             return new Scanner(System.in).nextLine();
         };
-        this.outputProvider = System.out::print;
         initGlobals();
     }
 
@@ -309,7 +303,7 @@ public class Interpreter {
 
     private void executePrint(AST.PrintNode node) {
         Object value = evaluate(node.expression);
-        outputProvider.print("\n" + stringify(value));
+        System.out.println(value);
     }
 
     private void executeIf(AST.IfNode node) {
@@ -399,7 +393,8 @@ public class Interpreter {
     private Object evaluate(AST.Expression expression) {
         return switch (expression) {
             case AST.LiteralNode literalNode -> {
-                if (literalNode.value instanceof Number) yield ((Double) literalNode.value);
+                if (literalNode.value instanceof Number)
+                    yield ((Double) literalNode.value);
                 yield literalNode.value;
             }
             case AST.IdentifierNode identifierNode -> evaluateIdentifier(identifierNode);
@@ -675,41 +670,6 @@ public class Interpreter {
             }
         }
 
-        // 4. BUILT-INS FOR NUMBERS
-        if (object instanceof Double) {
-            if (name.equals("toString")) {
-                return new Callable() {
-                    @Override
-                    public int arity() {
-                        return 0;
-                    }
-
-                    @Override
-                    public Object call(Interpreter interpreter, List<Object> args) {
-                        // We use stringify() here to handle the ".0" removal automatically
-                        return stringify(object);
-                    }
-                };
-            }
-        }
-
-        // 5. BUILT-INS FOR BOOLEANS
-        if (object instanceof Boolean) {
-            if (name.equals("toString")) {
-                return new Callable() {
-                    @Override
-                    public int arity() {
-                        return 0;
-                    }
-
-                    @Override
-                    public Object call(Interpreter interpreter, List<Object> args) {
-                        return object.toString();
-                    }
-                };
-            }
-        }
-
         throw new Errors.RuntimeError(
                 "Property '" + name + "' does not exist on type " + object.getClass().getSimpleName(), node.name);
     }
@@ -754,7 +714,7 @@ public class Interpreter {
                         if (areBothNumbers(left, right))
                             return (Double) left + (Double) right;
                         if (areEitherString(left, right))
-                            return stringify(left) + stringify(right);
+                            return left + String.valueOf(right);
                         throw new Errors.TypeError(
                                 "Operator: " + node.operator.value + " requires numbers or strings.");
                     case MINUS:
@@ -805,21 +765,6 @@ public class Interpreter {
                         throw new Errors.RuntimeError("Unknown operator: " + node.operator.value);
                 }
         }
-    }
-
-    private String stringify(Object object) {
-        if (object == null) return "null";
-
-        // If it's a number (Double), check for the .0 artifact
-        if (object instanceof Double) {
-            String text = object.toString();
-            if (text.endsWith(".0")) {
-                return text.substring(0, text.length() - 2);
-            }
-            return text;
-        }
-
-        return object.toString();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")

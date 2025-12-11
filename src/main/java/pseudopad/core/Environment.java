@@ -3,6 +3,10 @@ package pseudopad.core;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 
+ * @author Joseph Mikhaeli Jalandoni
+ */
 public class Environment {
     public static class Variable {
         public Object value;

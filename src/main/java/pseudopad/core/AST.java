@@ -3,6 +3,10 @@ package pseudopad.core;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 
+ * @author Joseph Mikhaeli Jalandoni
+ */
 public class AST {
     public static class ProgramNode {
         public final List<Node> statements;
@@ -46,12 +50,10 @@ public class AST {
     }
 
     public static class IdentifierNode extends Expression {
-        public final Token token;
         public final String name;
 
-        public IdentifierNode(Token token) {
-            this.token = token;
-            this.name = token.value;
+        public IdentifierNode(String name) {
+            this.name = name;
         }
 
         public String toString() {
@@ -173,13 +175,11 @@ public class AST {
 
     public static class ClassNode extends Statement {
         public final String name;
-        public final Token nameToken;
         public final List<VariableDeclarationNode> fields;
         public final List<FunctionNode> methods;
 
-        public ClassNode(Token nameToken, List<VariableDeclarationNode> fields, List<FunctionNode> methods) {
-            this.nameToken = nameToken;
-            this.name = nameToken.value;
+        public ClassNode(String name, List<VariableDeclarationNode> fields, List<FunctionNode> methods) {
+            this.name = name;
             this.fields = fields;
             this.methods = methods;
         }
@@ -207,15 +207,13 @@ public class AST {
         public final boolean isConst;
         public final String typeName; // number | string | boolean
         public final String identifier;
-        public final Token nameToken;
         public Expression value; // can be null
 
         public VariableDeclarationNode(boolean isConst, String typeName,
-                Token nameToken, Expression value) {
+                String identifier, Expression value) {
             this.isConst = isConst;
             this.typeName = typeName;
-            this.nameToken = nameToken;
-            this.identifier = nameToken.value;
+            this.identifier = identifier;
             this.value = value;
         }
 
@@ -367,14 +365,12 @@ public class AST {
         }
 
         public final String name;
-        public final Token nameToken;
         public final List<Parameter> parameters;
         public final String returnType;
         public final List<Statement> body;
 
-        public FunctionNode(Token nameToken, List<Parameter> parameters, String returnType, List<Statement> body) {
-            this.nameToken = nameToken;
-            this.name = nameToken.value;
+        public FunctionNode(String name, List<Parameter> parameters, String returnType, List<Statement> body) {
+            this.name = name;
             this.parameters = parameters;
             this.returnType = returnType;
             this.body = body;

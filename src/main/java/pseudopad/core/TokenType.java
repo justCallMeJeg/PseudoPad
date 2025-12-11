@@ -1,5 +1,9 @@
 package pseudopad.core;
 
+/**
+ * 
+ * @author Joseph Mikhaeli Jalandoni
+ */
 public enum TokenType {
     SET, CONST, PRINT,
 
@@ -24,8 +28,6 @@ public enum TokenType {
 
     FUNC, ENDFUNC, RETURN,
     CLASS, ENDCLASS, THIS,
-
-    COMMENT,
 
     EOF
 }

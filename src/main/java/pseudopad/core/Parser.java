@@ -2,17 +2,16 @@ package pseudopad.core;
 
 import java.util.*;
 
+/**
+ * 
+ * @author Joseph Mikhaeli Jalandoni
+ */
 public class Parser {
     private final List<Token> tokens;
     private int index = 0;
-    private final List<Errors.CompilationError> errors = new ArrayList<>();
 
     public Parser(List<Token> tokens) {
         this.tokens = tokens;
-    }
-
-    public List<Errors.CompilationError> getErrors() {
-        return errors;
     }
 
     private Token currentToken() {
@@ -27,20 +26,6 @@ public class Parser {
         return currentToken().type == type;
     }
 
-    private boolean check(TokenType type) {
-        if (isAtEnd())
-            return false;
-        return currentToken().type == type;
-    }
-
-    private boolean isAtEnd() {
-        return currentToken().type == TokenType.EOF;
-    }
-
-    private Token previous() {
-        return tokens.get(index - 1);
-    }
-
     private Token consume(TokenType expectedType, String errorMessage) {
         if (match(expectedType)) {
             Token token = currentToken();
@@ -48,55 +33,14 @@ public class Parser {
             return token;
         }
 
-        // Panic Mode: Report error and throw generic ParserError to unwind stack to
-        // statement boundary
-        error(currentToken(), errorMessage);
         throw new Errors.ParserError(errorMessage, currentToken());
-    }
-
-    private void error(Token token, String message) {
-        if (token.type == TokenType.EOF) {
-            errors.add(new Errors.CompilationError(message, token.line, token.column, 1)); // End of file
-        } else {
-            errors.add(new Errors.CompilationError(message, token.line, token.column, token.length));
-        }
-    }
-
-    private void synchronize() {
-        advance();
-
-        while (!isAtEnd()) {
-            if (previous().type == TokenType.SEMICOLON)
-                return;
-
-            switch (currentToken().type) {
-                case CLASS:
-                case FUNC:
-                case SET:
-                case CONST:
-                case FOR:
-                case IF:
-                case WHILE:
-                case PRINT:
-                case RETURN:
-                    return;
-            }
-
-            advance();
-        }
     }
 
     public AST.ProgramNode parse() {
         List<AST.Node> statements = new ArrayList<>();
 
-        while (!isAtEnd()) {
-            try {
-                AST.Statement stmt = parseStatement();
-                if (stmt != null)
-                    statements.add(stmt);
-            } catch (Errors.ParserError e) {
-                synchronize();
-            }
+        while (currentToken().type != TokenType.EOF) {
+            statements.add(parseStatement());
         }
 
         return new AST.ProgramNode(statements);
@@ -151,12 +95,7 @@ public class Parser {
             return parseClassDeclaration();
         }
 
-        throw errorAndReturn("Unexpected token: " + currentToken());
-    }
-
-    private Errors.ParserError errorAndReturn(String message) {
-        error(currentToken(), message);
-        return new Errors.ParserError(message, currentToken());
+        throw new RuntimeException("Unexpected token: " + currentToken());
     }
 
     private AST.Node parseVariableDeclaration() {
@@ -176,7 +115,7 @@ public class Parser {
             type = consume(TokenType.IDENTIFIER, "Expected data type or class name.").value;
         }
 
-        Token identifierToken = consume(TokenType.IDENTIFIER, "Expected variable name.");
+        String identifier = consume(TokenType.IDENTIFIER, "Expected variable name.").value;
 
         AST.Expression value = null;
         if (match(TokenType.EQUALS)) {
@@ -185,7 +124,7 @@ public class Parser {
         }
 
         consume(TokenType.SEMICOLON, "Unexpected ';' after declaration.");
-        return new AST.VariableDeclarationNode(isConst, type, identifierToken, value);
+        return new AST.VariableDeclarationNode(isConst, type, identifier, value);
     }
 
     private AST.Statement parseExpressionStatement() {
@@ -442,7 +381,7 @@ public class Parser {
                 break;
             case IDENTIFIER:
                 advance();
-                expression = new AST.IdentifierNode(token);
+                expression = new AST.IdentifierNode(token.value);
                 break;
             case LPAREN:
                 advance();
@@ -594,7 +533,7 @@ public class Parser {
         String returnType = consume(TokenType.TYPE, "Expected return type (or void).").value;
 
         // 2. Function Name
-        Token nameToken = consume(TokenType.IDENTIFIER, "Expected function name.");
+        String name = consume(TokenType.IDENTIFIER, "Expected function name.").value;
 
         // 3. Parameters
         consume(TokenType.LPAREN, "Expected '(' after function name.");
@@ -626,12 +565,12 @@ public class Parser {
         }
         consume(TokenType.ENDFUNC, "Expected 'endfunc'.");
 
-        return new AST.FunctionNode(nameToken, parameters, returnType, body);
+        return new AST.FunctionNode(name, parameters, returnType, body);
     }
 
     private AST.ClassNode parseClassDeclaration() {
         consume(TokenType.CLASS, "Expected 'class'.");
-        Token nameToken = consume(TokenType.IDENTIFIER, "Expected class name.");
+        String name = consume(TokenType.IDENTIFIER, "Expected class name.").value;
         consume(TokenType.DO, "Expected 'do' before class body.");
 
         List<AST.VariableDeclarationNode> fields = new ArrayList<>();
@@ -651,7 +590,7 @@ public class Parser {
         }
 
         consume(TokenType.ENDCLASS, "Expected 'endclass'.");
-        return new AST.ClassNode(nameToken, fields, methods);
+        return new AST.ClassNode(name, fields, methods);
     }
 
 }
