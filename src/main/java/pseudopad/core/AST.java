@@ -174,12 +174,14 @@ public class AST {
     }
 
     public static class ClassNode extends Statement {
+        public final Token nameToken;
         public final String name;
         public final List<VariableDeclarationNode> fields;
         public final List<FunctionNode> methods;
 
-        public ClassNode(String name, List<VariableDeclarationNode> fields, List<FunctionNode> methods) {
-            this.name = name;
+        public ClassNode(Token nameToken, List<VariableDeclarationNode> fields, List<FunctionNode> methods) {
+            this.nameToken = nameToken;
+            this.name = nameToken.value;
             this.fields = fields;
             this.methods = methods;
         }
@@ -205,15 +207,19 @@ public class AST {
 
     public static class VariableDeclarationNode extends Statement {
         public final boolean isConst;
+        public final Token typeToken;
         public final String typeName; // number | string | boolean
+        public final Token identifierToken;
         public final String identifier;
         public Expression value; // can be null
 
-        public VariableDeclarationNode(boolean isConst, String typeName,
-                String identifier, Expression value) {
+        public VariableDeclarationNode(boolean isConst, Token typeToken,
+                Token identifierToken, Expression value) {
             this.isConst = isConst;
-            this.typeName = typeName;
-            this.identifier = identifier;
+            this.typeToken = typeToken;
+            this.typeName = typeToken.value;
+            this.identifierToken = identifierToken;
+            this.identifier = identifierToken.value;
             this.value = value;
         }
 
@@ -361,18 +367,29 @@ public class AST {
     }
 
     public static class FunctionNode extends Statement {
-        public record Parameter(String name, String type) {
+        public record Parameter(Token nameToken, Token typeToken) {
+            public String name() {
+                return nameToken.value;
+            }
+
+            public String type() {
+                return typeToken.value;
+            }
         }
 
+        public final Token nameToken;
         public final String name;
         public final List<Parameter> parameters;
+        public final Token returnTypeToken;
         public final String returnType;
         public final List<Statement> body;
 
-        public FunctionNode(String name, List<Parameter> parameters, String returnType, List<Statement> body) {
-            this.name = name;
+        public FunctionNode(Token nameToken, List<Parameter> parameters, Token returnTypeToken, List<Statement> body) {
+            this.nameToken = nameToken;
+            this.name = nameToken.value;
             this.parameters = parameters;
-            this.returnType = returnType;
+            this.returnTypeToken = returnTypeToken;
+            this.returnType = returnTypeToken.value;
             this.body = body;
         }
 

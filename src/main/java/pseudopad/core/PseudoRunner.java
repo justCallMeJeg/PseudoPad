@@ -37,4 +37,32 @@ public class PseudoRunner {
 
         return outputAccumulator.toString();
     }
+
+    public static Errors.CompilationResult compile(String sourceCode) {
+        java.util.List<Errors.CompilationError> errorList = new java.util.ArrayList<>();
+        ProgramNode program = null;
+        try {
+            Lexer lexer = new Lexer(sourceCode);
+            List<Token> tokens = lexer.tokenize();
+
+            Parser parser = new Parser(tokens);
+            program = parser.parse();
+
+            // Run Semantic Analysis
+            SemanticAnalyzer analyzer = new SemanticAnalyzer();
+            errorList.addAll(analyzer.analyze(program));
+
+        } catch (Errors.LexerError e) {
+            errorList.add(new Errors.CompilationError(e.getMessage(), e.line, e.column, 1));
+        } catch (Errors.ParserError e) {
+            int line = e.token != null ? e.token.line : 0;
+            int col = e.token != null ? e.token.column : 0;
+            int len = e.token != null ? e.token.length : 1;
+            errorList.add(new Errors.CompilationError(e.getMessage(), line, col, len));
+        } catch (Exception e) {
+            errorList.add(new Errors.CompilationError("Internal Error: " + e.getMessage(), 0, 0, 0));
+        }
+
+        return new Errors.CompilationResult(program, errorList);
+    }
 }

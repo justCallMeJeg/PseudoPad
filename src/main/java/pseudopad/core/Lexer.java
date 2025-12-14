@@ -81,8 +81,9 @@ public class Lexer {
                             continue;
                         }
                     }
+
                     throw new Errors.LexerError(
-                            "Unexpected character: =" + currentChar() + " at " + line + ":" + column);
+                            "Unexpected character: =" + currentChar(), line, column);
                 }
                 case '!' -> {
                     int start = index;
@@ -93,7 +94,7 @@ public class Lexer {
                         continue;
                     } else {
                         throw new Errors.LexerError(
-                                "Unexpected character: !" + currentChar() + " at " + line + ":" + column);
+                                "Unexpected character: !" + currentChar(), line, column);
                     }
                 }
                 case '<' -> {
@@ -110,8 +111,9 @@ public class Lexer {
                             continue;
                         }
                     }
+
                     throw new Errors.LexerError(
-                            "Unexpected character: <" + currentChar() + " at " + line + ":" + column);
+                            "Unexpected character: <" + currentChar(), line, column);
                 }
                 case '>' -> {
                     int start = index;
@@ -127,10 +129,13 @@ public class Lexer {
                             continue;
                         }
                     }
+
                     throw new Errors.LexerError(
-                            "Unexpected character: <" + currentChar() + " at " + line + ":" + column);
+                            "Unexpected character: >" + currentChar(), line, column);
                 }
-                case ';' -> {
+                case ';' ->
+
+                {
                     tokens.add(simple(TokenType.SEMICOLON));
                     continue;
                 }
@@ -205,7 +210,7 @@ public class Lexer {
 
                     // Check for unterminated comment (EOF before closing #)
                     if (currentChar() == '\0') {
-                        throw new Errors.LexerError("Unterminated comment at line " + line);
+                        throw new Errors.LexerError("Unterminated comment", line, column);
                     }
 
                     advance(); // Consume the closing '#'
@@ -217,7 +222,7 @@ public class Lexer {
                 }
             }
 
-            throw new RuntimeException("Unexpected character: " + c + " at " + line + ":" + column);
+            throw new Errors.LexerError("Unexpected character: " + c, line, column);
         }
 
         return tokens;
@@ -257,7 +262,7 @@ public class Lexer {
         }
 
         if (currentChar() != '"') {
-            throw new RuntimeException("Unterminated string at line " + line);
+            throw new Errors.LexerError("Unterminated string", line, column);
         }
 
         advance();

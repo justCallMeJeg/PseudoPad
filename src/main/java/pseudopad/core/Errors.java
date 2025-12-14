@@ -20,8 +20,19 @@ public class Errors {
 
     // ===== LEXER ERROR =====
     public static class LexerError extends RuntimeException {
+        public final int line;
+        public final int column;
+
+        public LexerError(String message, int line, int column) {
+            super(message);
+            this.line = line;
+            this.column = column;
+        }
+
         public LexerError(String message) {
             super(message);
+            this.line = -1;
+            this.column = -1;
         }
     }
 
@@ -85,6 +96,36 @@ public class Errors {
         @Override
         public synchronized Throwable fillInStackTrace() {
             return this;
+        }
+    }
+
+    // ===== COMPILATION RESULT & ERROR =====
+    public static class CompilationError {
+        public final String message;
+        public final int line;
+        public final int column;
+        public final int length;
+
+        public CompilationError(String message, int line, int column, int length) {
+            this.message = message;
+            this.line = line;
+            this.column = column;
+            this.length = length;
+        }
+
+        @Override
+        public String toString() {
+            return message + " at line " + line + ":" + column;
+        }
+    }
+
+    public static class CompilationResult {
+        public final AST.ProgramNode ast;
+        public final java.util.List<CompilationError> errors;
+
+        public CompilationResult(AST.ProgramNode ast, java.util.List<CompilationError> errors) {
+            this.ast = ast;
+            this.errors = errors;
         }
     }
 

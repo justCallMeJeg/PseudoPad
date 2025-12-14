@@ -113,14 +113,14 @@ public class Parser {
             advance();
         }
 
-        String type;
+        Token typeToken;
         if (match(TokenType.TYPE)) {
-            type = consume(TokenType.TYPE, "Expected type.").value;
+            typeToken = consume(TokenType.TYPE, "Expected type.");
         } else {
-            type = consume(TokenType.IDENTIFIER, "Expected data type or class name.").value;
+            typeToken = consume(TokenType.IDENTIFIER, "Expected data type or class name.");
         }
 
-        String identifier = consume(TokenType.IDENTIFIER, "Expected variable name.").value;
+        Token identifierToken = consume(TokenType.IDENTIFIER, "Expected variable name.");
 
         AST.Expression value = null;
         if (match(TokenType.EQUALS)) {
@@ -129,7 +129,7 @@ public class Parser {
         }
 
         consume(TokenType.SEMICOLON, "Unexpected ';' after declaration.");
-        return new AST.VariableDeclarationNode(isConst, type, identifier, value);
+        return new AST.VariableDeclarationNode(isConst, typeToken, identifierToken, value);
     }
 
     private AST.Statement parseExpressionStatement() {
@@ -535,10 +535,10 @@ public class Parser {
         consume(TokenType.FUNC, "Expected 'func'.");
 
         // 1. Return Type
-        String returnType = consume(TokenType.TYPE, "Expected return type (or void).").value;
+        Token returnTypeToken = consume(TokenType.TYPE, "Expected return type (or void).");
 
         // 2. Function Name
-        String name = consume(TokenType.IDENTIFIER, "Expected function name.").value;
+        Token nameToken = consume(TokenType.IDENTIFIER, "Expected function name.");
 
         // 3. Parameters
         consume(TokenType.LPAREN, "Expected '(' after function name.");
@@ -547,15 +547,15 @@ public class Parser {
         // Check if there are parameters (if the next token is NOT ')')
         if (!match(TokenType.RPAREN)) {
             // Parse the first parameter
-            String type = consume(TokenType.TYPE, "Expected parameter type.").value;
-            String paramName = consume(TokenType.IDENTIFIER, "Expected parameter name.").value;
+            Token type = consume(TokenType.TYPE, "Expected parameter type.");
+            Token paramName = consume(TokenType.IDENTIFIER, "Expected parameter name.");
             parameters.add(new AST.FunctionNode.Parameter(paramName, type));
 
             // Parse subsequent parameters while we see a comma
             while (match(TokenType.COMMA)) {
                 advance(); // Consume ','
-                type = consume(TokenType.TYPE, "Expected parameter type.").value;
-                paramName = consume(TokenType.IDENTIFIER, "Expected parameter name.").value;
+                type = consume(TokenType.TYPE, "Expected parameter type.");
+                paramName = consume(TokenType.IDENTIFIER, "Expected parameter name.");
                 parameters.add(new AST.FunctionNode.Parameter(paramName, type));
             }
         }
@@ -570,12 +570,12 @@ public class Parser {
         }
         consume(TokenType.ENDFUNC, "Expected 'endfunc'.");
 
-        return new AST.FunctionNode(name, parameters, returnType, body);
+        return new AST.FunctionNode(nameToken, parameters, returnTypeToken, body);
     }
 
     private AST.ClassNode parseClassDeclaration() {
         consume(TokenType.CLASS, "Expected 'class'.");
-        String name = consume(TokenType.IDENTIFIER, "Expected class name.").value;
+        Token nameToken = consume(TokenType.IDENTIFIER, "Expected class name.");
         consume(TokenType.DO, "Expected 'do' before class body.");
 
         List<AST.VariableDeclarationNode> fields = new ArrayList<>();
@@ -595,7 +595,7 @@ public class Parser {
         }
 
         consume(TokenType.ENDCLASS, "Expected 'endclass'.");
-        return new AST.ClassNode(name, fields, methods);
+        return new AST.ClassNode(nameToken, fields, methods);
     }
 
 }
