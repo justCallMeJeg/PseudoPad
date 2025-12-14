@@ -9,6 +9,7 @@ import java.util.*;
 public class Parser {
     private final List<Token> tokens;
     private int index = 0;
+    public final List<Errors.CompilationError> errors = new ArrayList<>();
 
     public Parser(List<Token> tokens) {
         this.tokens = new ArrayList<>();
@@ -20,11 +21,19 @@ public class Parser {
     }
 
     private Token currentToken() {
+        if (tokens.isEmpty()) {
+            return new Token(TokenType.EOF, "", 0, 0, 0, 0); // Synthetic EOF
+        }
+        if (index >= tokens.size()) {
+            return tokens.get(tokens.size() - 1); // Should be EOF
+        }
         return tokens.get(index);
     }
 
     private void advance() {
-        index++;
+        if (index < tokens.size() - 1) {
+            index++;
+        }
     }
 
     private boolean match(TokenType type) {
@@ -45,10 +54,42 @@ public class Parser {
         List<AST.Node> statements = new ArrayList<>();
 
         while (currentToken().type != TokenType.EOF) {
-            statements.add(parseStatement());
+            try {
+                statements.add(parseStatement());
+            } catch (Errors.ParserError e) {
+                // Report error and synchronize
+                int line = e.token != null ? e.token.line : 0;
+                int col = e.token != null ? e.token.column : 0;
+                int len = e.token != null ? e.token.length : 1;
+                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len));
+                synchronize();
+            }
         }
 
         return new AST.ProgramNode(statements);
+    }
+
+    private void synchronize() {
+        advance();
+
+        while (currentToken().type != TokenType.EOF) {
+            if (index > 0 && tokens.get(index - 1).type == TokenType.SEMICOLON)
+                return;
+
+            switch (currentToken().type) {
+                case CLASS:
+                case FUNC:
+                case SET:
+                case FOR:
+                case IF:
+                case WHILE:
+                case PRINT:
+                case RETURN:
+                    return;
+            }
+
+            advance();
+        }
     }
 
     private AST.Statement parseStatement() {
@@ -566,7 +607,15 @@ public class Parser {
         consume(TokenType.DO, "Expected 'do' before function body.");
         List<AST.Statement> body = new ArrayList<>();
         while (!match(TokenType.ENDFUNC) && !match(TokenType.EOF)) {
-            body.add((AST.Statement) parseStatement());
+            try {
+                body.add((AST.Statement) parseStatement());
+            } catch (Errors.ParserError e) {
+                int line = e.token != null ? e.token.line : 0;
+                int col = e.token != null ? e.token.column : 0;
+                int len = e.token != null ? e.token.length : 1;
+                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len));
+                synchronize();
+            }
         }
         consume(TokenType.ENDFUNC, "Expected 'endfunc'.");
 
@@ -582,15 +631,23 @@ public class Parser {
         List<AST.FunctionNode> methods = new ArrayList<>();
 
         while (!match(TokenType.ENDCLASS) && !match(TokenType.EOF)) {
-            if (match(TokenType.SET)) {
-                // Reuse existing variable declaration logic
-                fields.add((AST.VariableDeclarationNode) parseVariableDeclaration());
-            } else if (match(TokenType.FUNC)) {
-                // Reuse existing function declaration logic
-                methods.add(parseFunctionDeclaration());
-            } else {
-                throw new Errors.ParserError("Classes can only contain fields ('set') or methods ('func').",
-                        currentToken());
+            try {
+                if (match(TokenType.SET)) {
+                    // Reuse existing variable declaration logic
+                    fields.add((AST.VariableDeclarationNode) parseVariableDeclaration());
+                } else if (match(TokenType.FUNC)) {
+                    // Reuse existing function declaration logic
+                    methods.add(parseFunctionDeclaration());
+                } else {
+                    throw new Errors.ParserError("Classes can only contain fields ('set') or methods ('func').",
+                            currentToken());
+                }
+            } catch (Errors.ParserError e) {
+                int line = e.token != null ? e.token.line : 0;
+                int col = e.token != null ? e.token.column : 0;
+                int len = e.token != null ? e.token.length : 1;
+                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len));
+                synchronize();
             }
         }
 

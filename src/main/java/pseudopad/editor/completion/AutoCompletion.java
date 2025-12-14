@@ -100,6 +100,14 @@ public class AutoCompletion {
             }
         });
 
+        // Focus Listener to hide popup when switching tabs/files
+        textComponent.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                hidePopup();
+            }
+        });
+
         // Key Listener to navigate list
         textComponent.addKeyListener(new KeyAdapter() {
             @Override
@@ -138,9 +146,9 @@ public class AutoCompletion {
                 return;
             }
 
-            // Check previous character to ensure we are typing a word
+            // Check previous character to ensure we are typing a word or dot
             char prevChar = textComponent.getText(caret - 1, 1).charAt(0);
-            if (!Character.isLetterOrDigit(prevChar)) {
+            if (!Character.isLetterOrDigit(prevChar) && prevChar != '.') {
                 hidePopup();
                 return;
             }
@@ -158,19 +166,30 @@ public class AutoCompletion {
         // Filter based on currently typed word
         String prefix = getWordAtCaret();
 
-        if (prefix.isEmpty()) {
-            hidePopup();
-            return;
+        // Check if we just typed a '.' for dot-completion
+        boolean isDotCompletion = false;
+        try {
+            int caret = textComponent.getCaretPosition();
+            if (caret > 0) {
+                char prevChar = textComponent.getText(caret - 1, 1).charAt(0);
+                isDotCompletion = (prevChar == '.');
+            }
+        } catch (BadLocationException e) {
+            // Ignore
         }
 
         List<CompletionItem> filtered = new ArrayList<>();
 
+        // For dot-completion, show all items; otherwise filter by prefix
         for (CompletionItem item : allCompletions) {
-            // Case-insensitive prefix match
-            if (item.getLabel().toLowerCase().startsWith(prefix.toLowerCase())) {
+            if (isDotCompletion || prefix.isEmpty() ||
+                    item.getLabel().toLowerCase().startsWith(prefix.toLowerCase())) {
                 filtered.add(item);
             }
         }
+
+        System.out.println("[DEBUG] prefix='" + prefix + "', allCompletions=" + allCompletions.size() + ", filtered="
+                + filtered.size());
 
         if (filtered.isEmpty()) {
             hidePopup();
@@ -187,13 +206,17 @@ public class AutoCompletion {
     private String getWordAtCaret() {
         try {
             int caret = textComponent.getCaretPosition();
-            int start = Utilities.getWordStart(textComponent, caret);
-            // Safety check: word start might be after caret if we are at start of line?
-            // Utilities.getWordStart usually returns start of word containing pos.
-            if (start > caret)
-                start = caret;
+            if (caret < 0)
+                return "";
 
-            return textComponent.getText(start, caret - start);
+            String text = textComponent.getText(0, caret);
+            int start = caret - 1;
+            while (start >= 0 && Character.isJavaIdentifierPart(text.charAt(start))) {
+                start--;
+            }
+            start++; // First char of word
+
+            return text.substring(start);
         } catch (BadLocationException e) {
             return "";
         }
@@ -203,21 +226,36 @@ public class AutoCompletion {
     private int getWordStartOffset() {
         try {
             int caret = textComponent.getCaretPosition();
-            // Basic logic: backtrack until whitespace or separator
-            // Swing Utilities.getWordStart is smart about this
-            return Utilities.getWordStart(textComponent, caret);
+            if (caret < 0)
+                return 0;
+
+            String text = textComponent.getText(0, caret);
+            int start = caret - 1;
+            while (start >= 0 && Character.isJavaIdentifierPart(text.charAt(start))) {
+                start--;
+            }
+            start++; // First char of word
+
+            return start;
         } catch (BadLocationException e) {
             return textComponent.getCaretPosition();
         }
     }
 
     private void showPopup(List<CompletionItem> items) {
+        System.out.println("[DEBUG] showPopup called with " + items.size() + " items");
         list.setListData(items.toArray(new CompletionItem[0]));
         list.setSelectedIndex(0);
 
         try {
             int caret = textComponent.getCaretPosition();
             Rectangle rect = textComponent.modelToView(caret);
+
+            if (rect == null) {
+                System.out.println("[DEBUG] modelToView returned null");
+                return;
+            }
+
             Point location = rect.getLocation();
             SwingUtilities.convertPointToScreen(location, textComponent);
 
@@ -228,6 +266,7 @@ public class AutoCompletion {
             popup.setSize(200, Math.min(items.size() * 20 + 5, 200)); // Dynamic height
             popup.setVisible(true);
             isShowing = true;
+            System.out.println("[DEBUG] popup shown at " + location);
 
         } catch (BadLocationException e) {
             e.printStackTrace();
@@ -270,10 +309,32 @@ public class AutoCompletion {
             // Remove the partial word
             textComponent.getDocument().remove(start, caret - start);
 
-            // Insert replacement
-            textComponent.getDocument().insertString(start, item.getInsertText(), null);
+            // Calculate indentation of the current line
+            javax.swing.text.Element root = textComponent.getDocument().getDefaultRootElement();
+            int lineIdx = root.getElementIndex(start);
+            javax.swing.text.Element line = root.getElement(lineIdx);
+            int lineStart = line.getStartOffset();
+
+            // Get text from line start up to insertion point to find indentation
+            String linePrefix = textComponent.getText(lineStart, start - lineStart);
+            StringBuilder indent = new StringBuilder();
+            for (char c : linePrefix.toCharArray()) {
+                if (Character.isWhitespace(c)) {
+                    indent.append(c);
+                } else {
+                    break;
+                }
+            }
+            String indentStr = indent.toString();
+
+            // Insert replacement with adjusted indentation for multi-line snippets
+            String textToInsert = item.getInsertText().replace("\n", "\n" + indentStr);
+
+            textComponent.getDocument().insertString(start, textToInsert, null);
 
             // Move caret to specified offset
+            // Note: Since we only indented *subsequent* lines, and currently all snippets
+            // place cursor on the first line, we don't need to adjust cursorOffset.
             textComponent.setCaretPosition(start + item.getCursorOffset());
 
         } catch (BadLocationException e) {

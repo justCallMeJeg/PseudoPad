@@ -47,18 +47,16 @@ public class PseudoRunner {
 
             Parser parser = new Parser(tokens);
             program = parser.parse();
+            errorList.addAll(parser.errors);
 
-            // Run Semantic Analysis
-            SemanticAnalyzer analyzer = new SemanticAnalyzer();
-            errorList.addAll(analyzer.analyze(program));
+            // Run Semantic Analysis if AST is available
+            if (program != null) {
+                SemanticAnalyzer analyzer = new SemanticAnalyzer();
+                errorList.addAll(analyzer.analyze(program));
+            }
 
         } catch (Errors.LexerError e) {
             errorList.add(new Errors.CompilationError(e.getMessage(), e.line, e.column, 1));
-        } catch (Errors.ParserError e) {
-            int line = e.token != null ? e.token.line : 0;
-            int col = e.token != null ? e.token.column : 0;
-            int len = e.token != null ? e.token.length : 1;
-            errorList.add(new Errors.CompilationError(e.getMessage(), line, col, len));
         } catch (Exception e) {
             errorList.add(new Errors.CompilationError("Internal Error: " + e.getMessage(), 0, 0, 0));
         }

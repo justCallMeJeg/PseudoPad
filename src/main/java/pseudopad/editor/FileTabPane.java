@@ -128,11 +128,12 @@ public class FileTabPane extends JPanel {
             undoManager.addEdit(e.getEdit());
         });
 
-        // 5. Auto Completion
-        // new AutoCompletion(textPane, new PseudoCompletionProvider());
+        // 5. Completion (IntelliSense)
+        // 5. Completion (IntelliSense)
+        new AutoCompletion(textPane, new PseudoCompletionProvider());
 
         // 6. Proactive Analysis
-        analysisTimer = new javax.swing.Timer(1000, e -> performAnalysis());
+        analysisTimer = new javax.swing.Timer(500, e -> performAnalysis());
         analysisTimer.setRepeats(false);
 
         // Initial check
@@ -159,7 +160,9 @@ public class FileTabPane extends JPanel {
         // Run in background to avoid freezing UI if large
         new Thread(() -> {
             pseudopad.core.Errors.CompilationResult result = pseudopad.core.PseudoRunner.compile(code);
-            this.cachedAST = result.ast;
+            if (result.ast != null) {
+                this.cachedAST = result.ast;
+            }
 
             SwingUtilities.invokeLater(() -> {
                 // 1. Update Problems View
