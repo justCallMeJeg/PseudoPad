@@ -427,7 +427,7 @@ public class Parser {
                 break;
             case IDENTIFIER:
                 advance();
-                expression = new AST.IdentifierNode(token.value);
+                expression = new AST.IdentifierNode(token);
                 break;
             case LPAREN:
                 advance();

@@ -84,6 +84,19 @@ public class SemanticAnalyzer {
             variableTypes.put(varDecl.identifier, varDecl.typeName); // Add to scope
             verifyType(varDecl.typeToken);
             verifyExpression(varDecl.value);
+
+            // Check if initial value type matches declared type
+            if (varDecl.value != null) {
+                String actualType = inferType(varDecl.value);
+                if (actualType != null && !typesMatch(varDecl.typeName, actualType)) {
+                    errors.add(new Errors.CompilationError(
+                            "Type mismatch: cannot assign '" + actualType.toLowerCase()
+                                    + "' to variable of type '" + varDecl.typeName.toLowerCase() + "'",
+                            varDecl.identifierToken.line,
+                            varDecl.identifierToken.column,
+                            varDecl.identifierToken.length));
+                }
+            }
         } else if (node instanceof FunctionNode funcNode) {
             verifyType(funcNode.returnTypeToken);
 
@@ -255,6 +268,18 @@ public class SemanticAnalyzer {
         } else if (expr instanceof AST.ListLiteralNode list) {
             for (AST.Expression e : list.elements)
                 verifyExpression(e);
+        } else if (expr instanceof AST.IdentifierNode id) {
+            // Check if variable is defined
+            if (!variableTypes.containsKey(id.name)
+                    && !functionSignatures.containsKey(id.name)
+                    && !classConstructors.containsKey(id.name)) {
+                int line = id.token != null ? id.token.line : 0;
+                int col = id.token != null ? id.token.column : 0;
+                int len = id.token != null ? id.token.length : 0;
+                errors.add(new Errors.CompilationError(
+                        "Undefined variable: '" + id.name + "'",
+                        line, col, len));
+            }
         }
     }
 

@@ -51,9 +51,16 @@ public class AST {
 
     public static class IdentifierNode extends Expression {
         public final String name;
+        public final Token token; // For position info
 
         public IdentifierNode(String name) {
             this.name = name;
+            this.token = null; // Legacy constructor
+        }
+
+        public IdentifierNode(Token token) {
+            this.name = token.value;
+            this.token = token;
         }
 
         public String toString() {
