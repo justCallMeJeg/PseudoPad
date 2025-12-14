@@ -22,6 +22,8 @@ public class PseudoRunner {
             Interpreter interpreter = new Interpreter(inputProvider, outputProvider);
             interpreter.run(program);
 
+        } catch (Errors.ExecutionStoppedError e) {
+            outputProvider.print("\n>> " + e.getMessage());
         } catch (Exception e) {
             outputProvider.print("\nruntime error: " + e.getMessage());
         }

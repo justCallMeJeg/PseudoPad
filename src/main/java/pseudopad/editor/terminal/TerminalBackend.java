@@ -35,6 +35,11 @@ public interface TerminalBackend {
     void stop();
 
     /**
+     * Cancels the currently running execution/command but keeps the backend alive.
+     */
+    void cancel();
+
+    /**
      * Sets the project name to be displayed in the prompt.
      * 
      * @param projectName The name of the current project.

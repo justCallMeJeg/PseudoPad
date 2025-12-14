@@ -63,6 +63,12 @@ public class Interpreter {
         }, "function", true);
     }
 
+    private void checkInterrupt() {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new Errors.ExecutionStoppedError();
+        }
+    }
+
     public static class Variable {
         public Object value;
         public String declaredType;
@@ -250,6 +256,7 @@ public class Interpreter {
     }
 
     private void execute(AST.Node node) {
+        checkInterrupt();
         switch (node) {
             case AST.VariableDeclarationNode variableDeclarationNode ->
                 executeVariableDeclaration(variableDeclarationNode);
@@ -313,7 +320,7 @@ public class Interpreter {
 
     private void executePrint(AST.PrintNode node) {
         Object value = evaluate(node.expression);
-        outputProvider.print(String.valueOf(value));
+        outputProvider.print(String.valueOf(value) + System.lineSeparator());
     }
 
     private void executeIf(AST.IfNode node) {
@@ -349,6 +356,7 @@ public class Interpreter {
 
     private void executeWhile(AST.WhileNode node) {
         while (getTruthValue(evaluate(node.condition))) {
+            checkInterrupt();
             try {
                 executeBlock(node.body);
             } catch (Errors.SkipSignal skipSignal) {
@@ -364,6 +372,7 @@ public class Interpreter {
             execute(node.initializer);
 
         while (node.condition == null || getTruthValue(evaluate(node.condition))) {
+            checkInterrupt();
             try {
                 executeBlock(node.body);
             } catch (Errors.SkipSignal skipSignal) {

@@ -20,6 +20,7 @@ public class SimpleTerminalBackend implements TerminalBackend {
     private boolean isRunning = false;
     private String projectName = "PseudoPad";
     private Supplier<String> codeProvider;
+    private Thread executionThread; // Track the running program thread
 
     @Override
     public void sendInput(String input) {
@@ -67,6 +68,9 @@ public class SimpleTerminalBackend implements TerminalBackend {
             case "run":
                 runProgram(response);
                 break;
+            case "stop":
+                cancel();
+                break;
             default:
                 response.append("Unknown command: " + command + "\n");
                 break;
@@ -101,30 +105,37 @@ public class SimpleTerminalBackend implements TerminalBackend {
             return;
         }
 
+        if (executionThread != null && executionThread.isAlive()) {
+            response.append("A program is already running. Type 'stop' to terminate it.\n");
+            return;
+        }
+
         response.append("Running...\n------------------------\n");
 
         // 2. Run in a separate thread so the UI doesn't freeze
         final String sourceCode = code;
 
-        new Thread(() -> {
-            // 3. Define how 'input()' works (Popup Dialog)
-            Interpreter.InputProvider inputProvider = (prompt) -> {
-                return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
-            };
+        executionThread = new Thread(() -> {
+            try {
+                // 3. Define how 'input()' works (Popup Dialog)
+                Interpreter.InputProvider inputProvider = (prompt) -> {
+                    return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
+                };
 
-            // 4. Run directly using PseudoRunner.run(String, InputProvider, OutputProvider)
-            // This allows streaming output directly to the listener!
-            PseudoRunner.run(sourceCode, inputProvider, (msg) -> {
-                if (outputListener != null)
-                    outputListener.accept(msg);
-            });
-
-            // 5. Finished
-            if (outputListener != null) {
-                outputListener.accept("\n" + getPrompt());
+                // 4. Run directly
+                PseudoRunner.run(sourceCode, inputProvider, (msg) -> {
+                    if (outputListener != null)
+                        outputListener.accept(msg);
+                });
+            } finally {
+                // 5. Finished
+                executionThread = null; // Clear reference
+                if (outputListener != null) {
+                    outputListener.accept("\n" + getPrompt());
+                }
             }
-
-        }).start();
+        });
+        executionThread.start();
 
         // Clear the immediate response so we don't print a prompt twice
         response.setLength(0);
@@ -133,6 +144,17 @@ public class SimpleTerminalBackend implements TerminalBackend {
     @Override
     public void stop() {
         isRunning = false;
+        cancel(); // Also cancel any running command
+    }
+
+    @Override
+    public void cancel() {
+        if (executionThread != null && executionThread.isAlive()) {
+            executionThread.interrupt();
+            if (outputListener != null) {
+                outputListener.accept("\n>> Stopping...\n" + getPrompt());
+            }
+        }
     }
 
     @Override

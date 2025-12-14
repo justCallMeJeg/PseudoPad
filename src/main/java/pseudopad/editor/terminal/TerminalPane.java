@@ -46,6 +46,9 @@ public class TerminalPane extends JTextPane {
                     if (getCaretPosition() <= lastPromptPos) {
                         e.consume(); // Prevent deleting prompt/history
                     }
+                } else if (e.getKeyCode() == KeyEvent.VK_C && e.isControlDown()) {
+                    e.consume();
+                    backend.cancel();
                 } else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
                     if (getCaretPosition() <= lastPromptPos) {
                         e.consume();
@@ -81,25 +84,71 @@ public class TerminalPane extends JTextPane {
         }
     }
 
+    private final StringBuilder outputBuffer = new StringBuilder();
+    private javax.swing.Timer outputTimer;
+
     public void appendOutput(String rawText) {
+        synchronized (outputBuffer) {
+            outputBuffer.append(rawText);
+        }
+
+        if (outputTimer == null) {
+            outputTimer = new javax.swing.Timer(50, e -> flushOutput());
+            outputTimer.setRepeats(false);
+            outputTimer.start();
+        } else if (!outputTimer.isRunning()) {
+            outputTimer.restart();
+        }
+    }
+
+    private void flushOutput() {
+        String textToAppend;
+        synchronized (outputBuffer) {
+            if (outputBuffer.length() == 0)
+                return;
+            textToAppend = outputBuffer.toString();
+            outputBuffer.setLength(0);
+        }
+
         SwingUtilities.invokeLater(() -> {
-            String text = rawText;
             try {
+                String text = textToAppend;
+                StyledDocument doc = getStyledDocument();
+
+                // 1. Handle Clear Screen Protocol (\f)
                 if (text.contains("\f")) {
                     setText("");
                     lastPromptPos = 0;
-                    // Append everything after the last \f
                     text = text.substring(text.lastIndexOf("\f") + 1);
                 }
 
                 if (!text.isEmpty()) {
-                    StyledDocument doc = getStyledDocument();
                     SimpleAttributeSet attrs = new SimpleAttributeSet();
                     StyleConstants.setForeground(attrs, getForeground());
 
+                    // 2. Append new text
                     doc.insertString(doc.getLength(), text, attrs);
+
+                    // 3. Infinite Scroll Trap (Truncation)
+                    // Efficient Rendering: Remove in chunks (hysteresis) to avoid constant
+                    // resizing.
+                    // If content exceeds limit, remove old content down to 80% of usage.
+                    int MAX_CHARS = 10000;
+                    int length = doc.getLength();
+                    if (length > MAX_CHARS) {
+                        int targetLength = (int) (MAX_CHARS * 0.8);
+                        int charsToRemove = length - targetLength;
+
+                        // Don't cut in the middle of a prompt if possible, but for now simple cut.
+                        doc.remove(0, charsToRemove);
+
+                        // Adjust prompt position as it shifts with deletion
+                        lastPromptPos = Math.max(0, lastPromptPos - charsToRemove);
+                    }
+
+                    // 4. Update caret and prompt position
                     setCaretPosition(doc.getLength());
-                    lastPromptPos = doc.getLength(); // Update prompt position
+                    lastPromptPos = doc.getLength();
                 }
             } catch (BadLocationException e) {
                 e.printStackTrace();

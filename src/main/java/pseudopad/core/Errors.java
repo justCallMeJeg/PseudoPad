@@ -62,6 +62,18 @@ public class Errors {
         }
     }
 
+    // ===== EXECUTION STOPPED ERROR =====
+    public static class ExecutionStoppedError extends RuntimeException {
+        public ExecutionStoppedError() {
+            super("Execution stopped by user.");
+        }
+
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
+    }
+
     static class BreakSignal extends RuntimeException {
         @Override
         public synchronized Throwable fillInStackTrace() {
