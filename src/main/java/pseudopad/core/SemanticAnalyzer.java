@@ -175,8 +175,18 @@ public class SemanticAnalyzer {
         } else if (node instanceof AST.ReturnNode returnNode) {
             verifyExpression(returnNode.value);
 
+            // Check if void function is trying to return a value
+            if (currentFunctionReturnType != null &&
+                    currentFunctionReturnType.equalsIgnoreCase("void") &&
+                    returnNode.value != null) {
+                errors.add(new Errors.CompilationError(
+                        "Cannot return a value from a void function",
+                        returnNode.keyword.line,
+                        returnNode.keyword.column,
+                        returnNode.keyword.length));
+            }
             // Check if return value type matches expected function return type
-            if (currentFunctionReturnType != null && returnNode.value != null) {
+            else if (currentFunctionReturnType != null && returnNode.value != null) {
                 String actualType = inferType(returnNode.value);
                 if (actualType != null && !typesMatch(currentFunctionReturnType, actualType)) {
                     errors.add(new Errors.CompilationError(

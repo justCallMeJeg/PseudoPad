@@ -132,7 +132,37 @@ public class FileTabPane extends JPanel {
         // 5. Completion (IntelliSense)
         new AutoCompletion(textPane, new PseudoCompletionProvider());
 
-        // 6. Proactive Analysis
+        // 6. Auto-close brackets and quotes
+        textPane.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyTyped(java.awt.event.KeyEvent e) {
+                char c = e.getKeyChar();
+                String closing = getClosingChar(c);
+                if (closing != null) {
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            int pos = textPane.getCaretPosition();
+                            textPane.getDocument().insertString(pos, closing, null);
+                            textPane.setCaretPosition(pos);
+                        } catch (Exception ex) {
+                            // Ignore
+                        }
+                    });
+                }
+            }
+
+            private String getClosingChar(char opening) {
+                return switch (opening) {
+                    case '(' -> ")";
+                    case '[' -> "]";
+                    case '{' -> "}";
+                    case '"' -> "\"";
+                    default -> null;
+                };
+            }
+        });
+
+        // 7. Proactive Analysis
         analysisTimer = new javax.swing.Timer(500, e -> performAnalysis());
         analysisTimer.setRepeats(false);
 
