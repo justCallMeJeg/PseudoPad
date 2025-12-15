@@ -57,6 +57,15 @@ public class PseudoRunner {
 
         } catch (Errors.LexerError e) {
             errorList.add(new Errors.CompilationError(e.getMessage(), e.line, e.column, 1));
+        } catch (Errors.ParserError e) {
+            // Extract position info from token if available
+            int line = 0, col = 0, len = 1;
+            if (e.token != null) {
+                line = e.token.line;
+                col = e.token.column;
+                len = e.token.length > 0 ? e.token.length : 1;
+            }
+            errorList.add(new Errors.CompilationError(e.getMessage(), line, col, len));
         } catch (Exception e) {
             errorList.add(new Errors.CompilationError("Internal Error: " + e.getMessage(), 0, 0, 0));
         }

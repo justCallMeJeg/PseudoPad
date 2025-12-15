@@ -141,7 +141,7 @@ public class Parser {
             return parseClassDeclaration();
         }
 
-        throw new RuntimeException("Unexpected token: " + currentToken());
+        throw new Errors.ParserError("Unexpected token: " + currentToken(), currentToken());
     }
 
     private AST.Node parseVariableDeclaration() {
@@ -445,7 +445,7 @@ public class Parser {
                 expression = new AST.ThisExpressionNode(token); // token is the captured 'this'
                 break;
             default:
-                throw new Errors.ParserError("Unexpected token: " + token);
+                throw new Errors.ParserError("Unexpected token: " + token, token);
         }
 
         return finishIndexing(expression);
