@@ -573,4 +573,39 @@ public class FileTabPane extends JPanel {
     public TextPane getTextPane() {
         return textPane;
     }
+
+    /**
+     * Navigates to a specific line and column in the editor.
+     * Used by clickable error links from the terminal.
+     */
+    public void navigateToPosition(int line, int col) {
+        try {
+            String text = textPane.getText();
+            String[] lines = text.split("\n", -1);
+
+            if (line < 1 || line > lines.length)
+                return;
+
+            // Calculate offset to the start of the line
+            int offset = 0;
+            for (int i = 0; i < line - 1; i++) {
+                offset += lines[i].length() + 1; // +1 for newline
+            }
+
+            // Add column offset (1-indexed)
+            offset += Math.min(col - 1, lines[line - 1].length());
+
+            // Set caret position and request focus
+            textPane.setCaretPosition(offset);
+            textPane.requestFocusInWindow();
+
+            // Scroll to make the caret visible
+            java.awt.Rectangle rect = textPane.modelToView(offset);
+            if (rect != null) {
+                textPane.scrollRectToVisible(rect);
+            }
+        } catch (Exception e) {
+            // Ignore navigation errors
+        }
+    }
 }

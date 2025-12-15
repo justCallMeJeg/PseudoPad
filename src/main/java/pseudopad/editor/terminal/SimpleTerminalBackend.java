@@ -41,43 +41,38 @@ public class SimpleTerminalBackend implements TerminalBackend {
 
         String command = input.trim();
 
-        // Simulate processing
+        // Empty command - just show new prompt
         if (command.isEmpty()) {
-            outputListener.accept("\n" + getPrompt());
+            outputListener.accept(getPrompt());
             return;
         }
 
-        StringBuilder response = new StringBuilder();
-        response.append("\n"); // Newline after the user's input line
-
         switch (command) {
             case "help":
-                response.append("Available commands:\n");
-                response.append("  help    - Show this help\n");
-                response.append("  version - Show version\n");
-                response.append("  clear   - Clear screen\n");
-                response.append("  run     - Run program (placeholder)\n");
-                break;
+                outputListener.accept("Available commands:\n"
+                        + "  help    - Show this help\n"
+                        + "  version - Show version\n"
+                        + "  clear   - Clear screen\n"
+                        + "  run     - Run program\n"
+                        + getPrompt());
+                return;
             case "version":
-                response.append("PseudoPad Terminal v1.0\n");
-                break;
+                outputListener.accept("PseudoPad Terminal v1.0\n" + getPrompt());
+                return;
             case "clear":
-                outputListener.accept("\f");
-                response.setLength(0); // Clear buffer so we don't append extra newlines
-                break;
+                // Clear screen with form feed, then show prompt
+                outputListener.accept("\f" + getPrompt());
+                return;
             case "run":
-                runProgram(response);
-                break;
+                runProgram();
+                return;
             case "stop":
                 cancel();
-                break;
+                return;
             default:
-                response.append("Unknown command: " + command + "\n");
-                break;
+                outputListener.accept("Unknown command: " + command + "\n" + getPrompt());
+                return;
         }
-
-        response.append(getPrompt()); // Prompt
-        outputListener.accept(response.toString());
     }
 
     @Override
@@ -93,7 +88,7 @@ public class SimpleTerminalBackend implements TerminalBackend {
         }
     }
 
-    private void runProgram(StringBuilder response) {
+    private void runProgram() {
         // 1. Get the code
         String code = null;
         if (codeProvider != null) {
@@ -101,16 +96,14 @@ public class SimpleTerminalBackend implements TerminalBackend {
         }
 
         if (code == null || code.trim().isEmpty()) {
-            response.append("No code to execute.\n");
+            outputListener.accept("\nNo code to execute.\n" + getPrompt());
             return;
         }
 
         if (executionThread != null && executionThread.isAlive()) {
-            response.append("A program is already running. Type 'stop' to terminate it.\n");
+            outputListener.accept("\nA program is already running. Type 'stop' to terminate it.\n" + getPrompt());
             return;
         }
-
-        response.append("Running...\n------------------------\n");
 
         // 2. Run in a separate thread so the UI doesn't freeze
         final String sourceCode = code;
@@ -122,23 +115,20 @@ public class SimpleTerminalBackend implements TerminalBackend {
                     return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
                 };
 
-                // 4. Run directly
+                // 4. Run directly - output goes straight to terminal, no extra prompt
                 PseudoRunner.run(sourceCode, inputProvider, (msg) -> {
                     if (outputListener != null)
                         outputListener.accept(msg);
                 });
             } finally {
-                // 5. Finished
+                // 5. Finished - add prompt on new line
                 executionThread = null; // Clear reference
                 if (outputListener != null) {
-                    outputListener.accept("\n" + getPrompt());
+                    outputListener.accept(getPrompt());
                 }
             }
         });
         executionThread.start();
-
-        // Clear the immediate response so we don't print a prompt twice
-        response.setLength(0);
     }
 
     @Override

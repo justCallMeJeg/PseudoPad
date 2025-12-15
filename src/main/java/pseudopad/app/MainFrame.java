@@ -434,6 +434,20 @@ public class MainFrame extends JFrame implements AppController {
         }
     }
 
+    /**
+     * Navigates to a specific line and column in the currently active editor tab.
+     * Used by terminal clickable links to jump to error locations.
+     */
+    public void navigateToLine(int line, int col) {
+        EditorTabbedPane editorPane = getEditorTabbedPane();
+        if (editorPane != null) {
+            java.awt.Component selected = editorPane.getSelectedComponent();
+            if (selected instanceof pseudopad.editor.FileTabPane fileTab) {
+                fileTab.navigateToPosition(line, col);
+            }
+        }
+    }
+
     public void toggleNavigationPanel() {
         // Toggle Logic for Main Split (Left vs Right)
         if (mainLayout.getMainSplitPane().getDividerLocation() < 50) {
