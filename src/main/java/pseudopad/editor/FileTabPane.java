@@ -162,12 +162,143 @@ public class FileTabPane extends JPanel {
             }
         });
 
-        // 7. Proactive Analysis
+        // 7. Smart auto-indent on Enter key (use keyReleased to let completion handle
+        // first)
+        textPane.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    // Skip if completion handled this Enter key
+                    if (AutoCompletion.wasEnterHandledByCompletion()) {
+                        return; // Completion already handled it
+                    }
+                    // Use invokeLater to ensure this happens after other handlers
+                    SwingUtilities.invokeLater(() -> handleEnterKey());
+                }
+            }
+        });
+
+        // 8. Consistent Tab indentation (4 spaces) - Skip if completion is showing
+        textPane.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_TAB) {
+                    // Skip if completion popup is visible (let completion handle Tab)
+                    if (AutoCompletion.isPopupVisible()) {
+                        return;
+                    }
+                    e.consume(); // Prevent default Tab behavior
+                    try {
+                        if (e.isShiftDown()) {
+                            // Shift+Tab: Remove 4 spaces from start of current line
+                            handleShiftTab();
+                        } else {
+                            // Tab: Insert 4 spaces
+                            textPane.getDocument().insertString(
+                                    textPane.getCaretPosition(), "    ", null);
+                        }
+                    } catch (Exception ex) {
+                        // Ignore
+                    }
+                }
+            }
+        });
+
+        // 8. Proactive Analysis
         analysisTimer = new javax.swing.Timer(500, e -> performAnalysis());
         analysisTimer.setRepeats(false);
 
         // Initial check
         SwingUtilities.invokeLater(() -> triggerAnalysis());
+    }
+
+    /**
+     * Handle Enter key with smart auto-indent.
+     * Note: The newline is already inserted by default behavior (since we use
+     * keyReleased).
+     * We just need to add the proper indentation.
+     */
+    private void handleEnterKey() {
+        try {
+            int caretPos = textPane.getCaretPosition();
+            String text = textPane.getText();
+
+            // The newline was already inserted. Find the PREVIOUS line for indentation
+            // context.
+            // Current caret is at the start of the new line (after the newline char).
+            int prevLineEnd = text.lastIndexOf('\n', caretPos - 1);
+            if (prevLineEnd < 0) {
+                return; // No previous line, nothing to indent
+            }
+            int prevLineStart = text.lastIndexOf('\n', prevLineEnd - 1) + 1;
+            String previousLine = text.substring(prevLineStart, prevLineEnd);
+
+            // Get previous line's indentation
+            StringBuilder indent = new StringBuilder();
+            for (char c : previousLine.toCharArray()) {
+                if (c == ' ' || c == '\t') {
+                    indent.append(c);
+                } else {
+                    break;
+                }
+            }
+
+            // Check if we should increase indent (previous line ends with do, then, or
+            // starts block)
+            String trimmedLine = previousLine.trim().toUpperCase();
+            boolean increaseIndent = trimmedLine.endsWith(" DO") ||
+                    trimmedLine.equals("DO") ||
+                    trimmedLine.endsWith(" THEN") ||
+                    trimmedLine.equals("THEN") ||
+                    trimmedLine.equals("ELSE") ||
+                    trimmedLine.startsWith("ELSE ") ||
+                    trimmedLine.startsWith("ELIF ") ||
+                    trimmedLine.startsWith("CLASS ");
+
+            // Build the indentation string (no newline, just spaces)
+            String indentStr = indent.toString();
+            if (increaseIndent) {
+                indentStr += "    "; // Add 4 spaces for new block
+            }
+
+            // Insert the indentation at current position
+            if (!indentStr.isEmpty()) {
+                textPane.getDocument().insertString(caretPos, indentStr, null);
+            }
+
+        } catch (Exception ex) {
+            // Ignore errors
+        }
+    }
+
+    /**
+     * Handle Shift+Tab to remove 4 spaces from start of current line (outdent).
+     */
+    private void handleShiftTab() {
+        try {
+            int caretPos = textPane.getCaretPosition();
+            String text = textPane.getText();
+
+            // Find the start of the current line
+            int lineStart = text.lastIndexOf('\n', caretPos - 1) + 1;
+
+            // Check if line starts with at least 4 spaces
+            int spacesToRemove = 0;
+            for (int i = lineStart; i < text.length() && spacesToRemove < 4; i++) {
+                if (text.charAt(i) == ' ') {
+                    spacesToRemove++;
+                } else {
+                    break;
+                }
+            }
+
+            // Remove the spaces
+            if (spacesToRemove > 0) {
+                textPane.getDocument().remove(lineStart, spacesToRemove);
+            }
+        } catch (Exception ex) {
+            // Ignore errors
+        }
     }
 
     private final javax.swing.Timer analysisTimer;
@@ -351,13 +482,32 @@ public class FileTabPane extends JPanel {
                 }
 
                 this.fileSource = fileToSave;
-                saveFile();
+                // Continue to save below instead of recursive call
+            } else {
+                // User cancelled
+                return false;
             }
         }
 
         try {
-            FileManager.saveFile(fileSource, textPane.getText());
-            originalContent = textPane.getText(); // Update baseline
+            // Format code before saving
+            String content = textPane.getText();
+            String formatted = PseudoFormatter.format(content);
+
+            // Update text pane with formatted content (preserving caret if possible)
+            int caretPos = textPane.getCaretPosition();
+            textPane.setText(formatted);
+            try {
+                textPane.setCaretPosition(Math.min(caretPos, formatted.length()));
+            } catch (Exception ex) {
+                // Ignore caret positioning errors
+            }
+
+            // Re-apply syntax highlighting after format
+            triggerAnalysis();
+
+            FileManager.saveFile(fileSource, formatted);
+            originalContent = formatted; // Update baseline
             isDirty = false;
             updateTabTitle();
 

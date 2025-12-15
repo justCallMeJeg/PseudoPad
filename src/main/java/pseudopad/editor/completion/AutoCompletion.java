@@ -36,9 +36,32 @@ public class AutoCompletion {
 
     private DocumentListener documentListener;
 
+    // Static reference for checking popup visibility from outside
+    private static AutoCompletion activeInstance = null;
+
+    // Flag to track when completion handled an Enter key
+    private static boolean lastEnterHandledByCompletion = false;
+
+    /**
+     * Check if the completion popup is currently visible.
+     */
+    public static boolean isPopupVisible() {
+        return activeInstance != null && activeInstance.isShowing;
+    }
+
+    /**
+     * Check if completion recently handled an Enter key (resets flag after check).
+     */
+    public static boolean wasEnterHandledByCompletion() {
+        boolean result = lastEnterHandledByCompletion;
+        lastEnterHandledByCompletion = false;
+        return result;
+    }
+
     public AutoCompletion(JTextComponent textComponent, CompletionProvider provider) {
         this.textComponent = textComponent;
         this.provider = provider;
+        activeInstance = this;
         initPopup();
         initListeners();
     }
@@ -126,6 +149,7 @@ public class AutoCompletion {
                         break;
                     case KeyEvent.VK_ENTER:
                     case KeyEvent.VK_TAB:
+                        lastEnterHandledByCompletion = true; // Track that completion handled Enter
                         insertSelection();
                         e.consume();
                         break;
