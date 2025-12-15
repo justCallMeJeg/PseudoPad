@@ -25,8 +25,8 @@ import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
 import javax.swing.undo.UndoManager;
 import pseudopad.app.MainFrame;
 import pseudopad.core.Errors.CompilationError;
-import pseudopad.editor.completion.AutoCompletion;
-import pseudopad.editor.completion.PseudoCompletionProvider;
+import pseudopad.editor.intellisense.AutoCompletion;
+import pseudopad.editor.intellisense.PseudoCompletionProvider;
 import pseudopad.ui.components.TextPane;
 import pseudopad.utils.FileManager;
 

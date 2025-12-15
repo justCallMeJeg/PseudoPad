@@ -1,4 +1,4 @@
-package pseudopad.editor.completion;
+package pseudopad.editor.intellisense;
 
 /**
  * Represents a single completion suggestion.

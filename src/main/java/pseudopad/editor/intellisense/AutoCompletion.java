@@ -1,4 +1,4 @@
-package pseudopad.editor.completion;
+package pseudopad.editor.intellisense;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -19,7 +19,6 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
-import javax.swing.text.Utilities;
 
 /**
  * Handles the display and logic of the auto-completion popup.

@@ -1,4 +1,4 @@
-package pseudopad.editor.completion;
+package pseudopad.editor.intellisense;
 
 import java.util.List;
 import javax.swing.text.JTextComponent;
