@@ -17,23 +17,29 @@ public class CompletionItem implements Comparable<CompletionItem> {
     private final String insertText;
     private final int cursorOffset;
     private final Category category;
+    private final String typeInfo; // Type information (e.g., "number", "string", "void")
 
     // Priority boost for context-aware sorting (higher = more relevant)
     private int priorityBoost = 0;
 
     public CompletionItem(String label, String insertText) {
-        this(label, insertText, insertText.length(), Category.IDENTIFIER);
+        this(label, insertText, insertText.length(), Category.IDENTIFIER, null);
     }
 
     public CompletionItem(String label, String insertText, int cursorOffset) {
-        this(label, insertText, cursorOffset, Category.IDENTIFIER);
+        this(label, insertText, cursorOffset, Category.IDENTIFIER, null);
     }
 
     public CompletionItem(String label, String insertText, int cursorOffset, Category category) {
+        this(label, insertText, cursorOffset, category, null);
+    }
+
+    public CompletionItem(String label, String insertText, int cursorOffset, Category category, String typeInfo) {
         this.label = label;
         this.insertText = insertText;
         this.cursorOffset = cursorOffset;
         this.category = category;
+        this.typeInfo = typeInfo;
     }
 
     public String getLabel() {
@@ -52,6 +58,10 @@ public class CompletionItem implements Comparable<CompletionItem> {
         return category;
     }
 
+    public String getTypeInfo() {
+        return typeInfo;
+    }
+
     public int getPriorityBoost() {
         return priorityBoost;
     }
@@ -62,6 +72,9 @@ public class CompletionItem implements Comparable<CompletionItem> {
 
     @Override
     public String toString() {
+        if (typeInfo != null && !typeInfo.isEmpty()) {
+            return label + " : " + typeInfo;
+        }
         return label;
     }
 

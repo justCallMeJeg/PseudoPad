@@ -81,11 +81,26 @@ public class PseudoCompletionProvider implements CompletionProvider {
 
         try {
             tokens = lexer.tokenize();
+
+            // Try to parse AST to get variable types
+            java.util.Map<String, String> varTypes = new java.util.HashMap<>();
+            try {
+                pseudopad.core.Parser parser = new pseudopad.core.Parser(tokens);
+                pseudopad.core.AST.ProgramNode ast = parser.parse();
+                if (ast != null) {
+                    collectVariableTypes(ast.statements, varTypes);
+                }
+            } catch (Exception ex) {
+                // Ignore parse errors for completion purposes
+            }
+
             for (Token token : tokens) {
                 if (token.type == TokenType.IDENTIFIER) {
                     String id = token.value;
                     if (id != null && !seen.contains(id)) {
-                        suggestions.add(new CompletionItem(id, id, id.length(), CompletionItem.Category.IDENTIFIER));
+                        String typeInfo = varTypes.get(id);
+                        suggestions.add(
+                                new CompletionItem(id, id, id.length(), CompletionItem.Category.IDENTIFIER, typeInfo));
                         seen.add(id);
                     }
                 }
@@ -304,6 +319,37 @@ public class PseudoCompletionProvider implements CompletionProvider {
         return null;
     }
 
+    /**
+     * Collect variable and function types from AST for completion type hints.
+     */
+    private void collectVariableTypes(java.util.List<? extends pseudopad.core.AST.Node> nodes,
+            java.util.Map<String, String> varTypes) {
+        for (pseudopad.core.AST.Node node : nodes) {
+            if (node instanceof pseudopad.core.AST.VariableDeclarationNode varDecl) {
+                varTypes.put(varDecl.identifier, varDecl.typeName);
+            } else if (node instanceof pseudopad.core.AST.FunctionNode func) {
+                varTypes.put(func.name, "func → " + func.returnType);
+                // Also collect variables from function body
+                collectVariableTypes(func.body, varTypes);
+            } else if (node instanceof pseudopad.core.AST.ClassNode classNode) {
+                varTypes.put(classNode.name, "class");
+                // Collect fields
+                for (pseudopad.core.AST.VariableDeclarationNode field : classNode.fields) {
+                    varTypes.put(field.identifier, field.typeName);
+                }
+            } else if (node instanceof pseudopad.core.AST.IfNode ifNode) {
+                collectVariableTypes(ifNode.thenBranch, varTypes);
+                if (ifNode.elseBranch != null) {
+                    collectVariableTypes(ifNode.elseBranch, varTypes);
+                }
+            } else if (node instanceof pseudopad.core.AST.WhileNode whileNode) {
+                collectVariableTypes(whileNode.body, varTypes);
+            } else if (node instanceof pseudopad.core.AST.ForNode forNode) {
+                collectVariableTypes(forNode.body, varTypes);
+            }
+        }
+    }
+
     private void populateClassMembers(pseudopad.core.AST.ProgramNode program, String className,
             List<CompletionItem> suggestions) {
         for (pseudopad.core.AST.Node node : program.statements) {
@@ -311,13 +357,15 @@ public class PseudoCompletionProvider implements CompletionProvider {
                 if (classNode.name.equals(className)) {
                     // Fields
                     for (pseudopad.core.AST.VariableDeclarationNode field : classNode.fields) {
-                        suggestions.add(new CompletionItem(field.identifier, field.identifier));
+                        suggestions.add(new CompletionItem(field.identifier, field.identifier,
+                                field.identifier.length(), CompletionItem.Category.MEMBER, field.typeName));
                     }
                     // Methods
                     for (pseudopad.core.AST.FunctionNode method : classNode.methods) {
                         // Skip init possibly?
                         if (!method.name.equals("init")) {
-                            suggestions.add(new CompletionItem(method.name, method.name + "()", 1));
+                            suggestions.add(new CompletionItem(method.name, method.name + "()", 1,
+                                    CompletionItem.Category.MEMBER, "→ " + method.returnType));
                         }
                     }
                     return;
