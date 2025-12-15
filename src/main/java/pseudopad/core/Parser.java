@@ -61,7 +61,7 @@ public class Parser {
                 int line = e.token != null ? e.token.line : 0;
                 int col = e.token != null ? e.token.column : 0;
                 int len = e.token != null ? e.token.length : 1;
-                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len));
+                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len, Errors.ErrorCategory.PARSER));
                 synchronize();
             }
         }
@@ -613,7 +613,7 @@ public class Parser {
                 int line = e.token != null ? e.token.line : 0;
                 int col = e.token != null ? e.token.column : 0;
                 int len = e.token != null ? e.token.length : 1;
-                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len));
+                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len, Errors.ErrorCategory.PARSER));
                 synchronize();
             }
         }
@@ -646,7 +646,7 @@ public class Parser {
                 int line = e.token != null ? e.token.line : 0;
                 int col = e.token != null ? e.token.column : 0;
                 int len = e.token != null ? e.token.length : 1;
-                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len));
+                errors.add(new Errors.CompilationError(e.getMessage(), line, col, len, Errors.ErrorCategory.PARSER));
                 synchronize();
             }
         }

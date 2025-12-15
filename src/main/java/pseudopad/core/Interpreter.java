@@ -288,12 +288,13 @@ public class Interpreter {
             if (!isTypeCompatible(node.typeName, value)) {
                 throw new Errors.TypeError("Type mismatch: expected " + declaredType + " but got value of type " +
                         (value instanceof List ? "list"
-                                : value instanceof Map ? "dict" : value.getClass().getSimpleName()));
+                                : value instanceof Map ? "dict" : value.getClass().getSimpleName()),
+                        node.identifierToken);
             }
         }
 
         if (node.isConst && node.value == null) {
-            throw new Errors.TypeError("Constant declaration cannot be null.");
+            throw new Errors.TypeError("Constant declaration cannot be null.", node.identifierToken);
         }
 
         environment.define(node.identifier, value, node.typeName, node.isConst);

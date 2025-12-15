@@ -23,6 +23,13 @@ public class SemanticAnalyzer {
     private record FunctionSignature(List<String> paramTypes, String returnType) {
     }
 
+    /**
+     * Helper to add a semantic error with proper category.
+     */
+    private void addError(String message, int line, int column, int length) {
+        errors.add(new Errors.CompilationError(message, line, column, length, Errors.ErrorCategory.SEMANTIC));
+    }
+
     public SemanticAnalyzer() {
         // Built-in types
         validTypes.add("NUMBER");
@@ -89,12 +96,11 @@ public class SemanticAnalyzer {
             if (varDecl.value != null) {
                 String actualType = inferType(varDecl.value);
                 if (actualType != null && !typesMatch(varDecl.typeName, actualType)) {
-                    errors.add(new Errors.CompilationError(
-                            "Type mismatch: cannot assign '" + actualType.toLowerCase()
-                                    + "' to variable of type '" + varDecl.typeName.toLowerCase() + "'",
+                    addError("Type mismatch: cannot assign '" + actualType.toLowerCase()
+                            + "' to variable of type '" + varDecl.typeName.toLowerCase() + "'",
                             varDecl.identifierToken.line,
                             varDecl.identifierToken.column,
-                            varDecl.identifierToken.length));
+                            varDecl.identifierToken.length);
                 }
             }
         } else if (node instanceof FunctionNode funcNode) {
@@ -117,12 +123,12 @@ public class SemanticAnalyzer {
             // Check if non-void function has a return statement
             if (!funcNode.returnType.equalsIgnoreCase("void")) {
                 if (!hasReturnStatement(funcNode.body)) {
-                    errors.add(new Errors.CompilationError(
+                    addError(
                             "Function '" + funcNode.name + "' must return a value of type '" + funcNode.returnType
                                     + "'",
                             funcNode.nameToken.line,
                             funcNode.nameToken.column,
-                            funcNode.nameToken.length));
+                            funcNode.nameToken.length);
                 }
             }
 
@@ -179,22 +185,20 @@ public class SemanticAnalyzer {
             if (currentFunctionReturnType != null &&
                     currentFunctionReturnType.equalsIgnoreCase("void") &&
                     returnNode.value != null) {
-                errors.add(new Errors.CompilationError(
-                        "Cannot return a value from a void function",
+                addError("Cannot return a value from a void function",
                         returnNode.keyword.line,
                         returnNode.keyword.column,
-                        returnNode.keyword.length));
+                        returnNode.keyword.length);
             }
             // Check if return value type matches expected function return type
             else if (currentFunctionReturnType != null && returnNode.value != null) {
                 String actualType = inferType(returnNode.value);
                 if (actualType != null && !typesMatch(currentFunctionReturnType, actualType)) {
-                    errors.add(new Errors.CompilationError(
-                            "Type mismatch: cannot return '" + actualType.toLowerCase() + "' from function expecting '"
-                                    + currentFunctionReturnType.toLowerCase() + "'",
+                    addError("Type mismatch: cannot return '" + actualType.toLowerCase() + "' from function expecting '"
+                            + currentFunctionReturnType.toLowerCase() + "'",
                             returnNode.keyword.line,
                             returnNode.keyword.column,
-                            returnNode.keyword.length));
+                            returnNode.keyword.length);
                 }
             }
         } else if (node instanceof AST.ExpressionStatement exprStmt) {
@@ -217,23 +221,23 @@ public class SemanticAnalyzer {
                     FunctionSignature sig = functionSignatures.get(name);
                     int expected = sig.paramTypes.size();
                     if (argCount != expected) {
-                        errors.add(new Errors.CompilationError(
+                        addError(
                                 "Function '" + name + "' expects " + expected + " arguments, but got " + argCount + ".",
                                 call.parenthesis.line,
                                 call.parenthesis.column,
-                                1));
+                                1);
                     } else {
                         // Check argument types
                         for (int i = 0; i < argCount; i++) {
                             String expectedType = sig.paramTypes.get(i);
                             String actualType = inferType(args.get(i));
                             if (actualType != null && !typesMatch(expectedType, actualType)) {
-                                errors.add(new Errors.CompilationError(
+                                addError(
                                         "Function '" + name + "' expects argument " + (i + 1) + " to be " + expectedType
                                                 + ", but got " + actualType + ".",
                                         call.parenthesis.line,
                                         call.parenthesis.column,
-                                        1));
+                                        1);
                             }
                         }
                     }
@@ -243,24 +247,22 @@ public class SemanticAnalyzer {
                     List<String> expectedTypes = classConstructors.get(name);
                     int expected = expectedTypes.size();
                     if (argCount != expected) {
-                        errors.add(new Errors.CompilationError(
-                                "Class constructor '" + name + "' expects " + expected + " arguments, but got "
-                                        + argCount + ".",
+                        addError("Class constructor '" + name + "' expects " + expected + " arguments, but got "
+                                + argCount + ".",
                                 call.parenthesis.line,
                                 call.parenthesis.column,
-                                1));
+                                1);
                     } else {
                         // Check argument types
                         for (int i = 0; i < argCount; i++) {
                             String expectedType = expectedTypes.get(i);
                             String actualType = inferType(args.get(i));
                             if (actualType != null && !typesMatch(expectedType, actualType)) {
-                                errors.add(new Errors.CompilationError(
-                                        "Constructor '" + name + "' expects argument " + (i + 1) + " to be "
-                                                + expectedType + ", but got " + actualType + ".",
+                                addError("Constructor '" + name + "' expects argument " + (i + 1) + " to be "
+                                        + expectedType + ", but got " + actualType + ".",
                                         call.parenthesis.line,
                                         call.parenthesis.column,
-                                        1));
+                                        1);
                             }
                         }
                     }
@@ -286,9 +288,7 @@ public class SemanticAnalyzer {
                 int line = id.token != null ? id.token.line : 0;
                 int col = id.token != null ? id.token.column : 0;
                 int len = id.token != null ? id.token.length : 0;
-                errors.add(new Errors.CompilationError(
-                        "Undefined variable: '" + id.name + "'",
-                        line, col, len));
+                addError("Undefined variable: '" + id.name + "'", line, col, len);
             }
         }
     }
@@ -331,11 +331,10 @@ public class SemanticAnalyzer {
         }
 
         if (!validTypes.contains(typeName)) {
-            errors.add(new Errors.CompilationError(
-                    "Unknown type: '" + typeName + "'",
+            addError("Unknown type: '" + typeName + "'",
                     typeToken.line,
                     typeToken.column,
-                    typeToken.length));
+                    typeToken.length);
         }
     }
 

@@ -123,26 +123,16 @@ public class TerminalPane extends JTextPane {
                 }
 
                 if (!text.isEmpty()) {
-                    SimpleAttributeSet attrs = new SimpleAttributeSet();
-                    StyleConstants.setForeground(attrs, getForeground());
-
-                    // 2. Append new text
-                    doc.insertString(doc.getLength(), text, attrs);
+                    // 2. Parse and render text with ANSI color codes
+                    appendWithAnsiColors(doc, text);
 
                     // 3. Infinite Scroll Trap (Truncation)
-                    // Efficient Rendering: Remove in chunks (hysteresis) to avoid constant
-                    // resizing.
-                    // If content exceeds limit, remove old content down to 80% of usage.
                     int MAX_CHARS = 10000;
                     int length = doc.getLength();
                     if (length > MAX_CHARS) {
                         int targetLength = (int) (MAX_CHARS * 0.8);
                         int charsToRemove = length - targetLength;
-
-                        // Don't cut in the middle of a prompt if possible, but for now simple cut.
                         doc.remove(0, charsToRemove);
-
-                        // Adjust prompt position as it shifts with deletion
                         lastPromptPos = Math.max(0, lastPromptPos - charsToRemove);
                     }
 
@@ -154,6 +144,55 @@ public class TerminalPane extends JTextPane {
                 e.printStackTrace();
             }
         });
+    }
+
+    /**
+     * Parses ANSI escape codes and appends text with appropriate colors.
+     * Supports: \u001B[31m (red), \u001B[32m (green), \u001B[33m (yellow),
+     * \u001B[36m (cyan), \u001B[0m (reset)
+     */
+    private void appendWithAnsiColors(StyledDocument doc, String text) throws BadLocationException {
+        Color currentColor = getForeground();
+        Color RED = new Color(255, 100, 100); // Bright red for errors
+        Color GREEN = new Color(100, 255, 100); // Green for success
+        Color YELLOW = new Color(255, 255, 100); // Yellow for warnings
+        Color CYAN = new Color(100, 200, 255); // Cyan for info
+        Color DEFAULT = getForeground();
+
+        // Regex to match ANSI escape codes: \u001B[XXm
+        java.util.regex.Pattern ansiPattern = java.util.regex.Pattern.compile("\u001B\\[(\\d+)m");
+        java.util.regex.Matcher matcher = ansiPattern.matcher(text);
+
+        int lastEnd = 0;
+        while (matcher.find()) {
+            // Append text before the escape code with current color
+            if (matcher.start() > lastEnd) {
+                String segment = text.substring(lastEnd, matcher.start());
+                SimpleAttributeSet attrs = new SimpleAttributeSet();
+                StyleConstants.setForeground(attrs, currentColor);
+                doc.insertString(doc.getLength(), segment, attrs);
+            }
+
+            // Parse color code and update current color
+            int code = Integer.parseInt(matcher.group(1));
+            switch (code) {
+                case 0 -> currentColor = DEFAULT; // Reset
+                case 31 -> currentColor = RED; // Red
+                case 32 -> currentColor = GREEN; // Green
+                case 33 -> currentColor = YELLOW; // Yellow
+                case 36 -> currentColor = CYAN; // Cyan
+            }
+
+            lastEnd = matcher.end();
+        }
+
+        // Append remaining text after last escape code
+        if (lastEnd < text.length()) {
+            String segment = text.substring(lastEnd);
+            SimpleAttributeSet attrs = new SimpleAttributeSet();
+            StyleConstants.setForeground(attrs, currentColor);
+            doc.insertString(doc.getLength(), segment, attrs);
+        }
     }
 
     public void runCommand(String command) {
