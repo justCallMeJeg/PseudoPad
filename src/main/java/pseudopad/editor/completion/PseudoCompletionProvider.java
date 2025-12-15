@@ -82,13 +82,34 @@ public class PseudoCompletionProvider implements CompletionProvider {
         try {
             tokens = lexer.tokenize();
 
-            // Try to parse AST to get variable types
+            // Try to parse AST to get variable types and create function/class completions
             java.util.Map<String, String> varTypes = new java.util.HashMap<>();
+            pseudopad.core.AST.ProgramNode ast = null;
             try {
                 pseudopad.core.Parser parser = new pseudopad.core.Parser(tokens);
-                pseudopad.core.AST.ProgramNode ast = parser.parse();
+                ast = parser.parse();
                 if (ast != null) {
                     collectVariableTypes(ast.statements, varTypes);
+
+                    // Add function completions with parameter placeholders
+                    for (pseudopad.core.AST.Node node : ast.statements) {
+                        if (node instanceof pseudopad.core.AST.FunctionNode func) {
+                            if (!seen.contains(func.name)) {
+                                String insertText = buildFunctionCallSnippet(func);
+                                String typeInfo = "func → " + func.returnType;
+                                suggestions.add(new CompletionItem(func.name, insertText,
+                                        func.name.length() + 1, CompletionItem.Category.IDENTIFIER, typeInfo));
+                                seen.add(func.name);
+                            }
+                        } else if (node instanceof pseudopad.core.AST.ClassNode classNode) {
+                            if (!seen.contains(classNode.name)) {
+                                String insertText = buildConstructorSnippet(classNode);
+                                suggestions.add(new CompletionItem(classNode.name, insertText,
+                                        classNode.name.length() + 1, CompletionItem.Category.IDENTIFIER, "class"));
+                                seen.add(classNode.name);
+                            }
+                        }
+                    }
                 }
             } catch (Exception ex) {
                 // Ignore parse errors for completion purposes
@@ -360,17 +381,58 @@ public class PseudoCompletionProvider implements CompletionProvider {
                         suggestions.add(new CompletionItem(field.identifier, field.identifier,
                                 field.identifier.length(), CompletionItem.Category.MEMBER, field.typeName));
                     }
-                    // Methods
+                    // Methods with parameter snippets
                     for (pseudopad.core.AST.FunctionNode method : classNode.methods) {
-                        // Skip init possibly?
                         if (!method.name.equals("init")) {
-                            suggestions.add(new CompletionItem(method.name, method.name + "()", 1,
-                                    CompletionItem.Category.MEMBER, "→ " + method.returnType));
+                            String insertText = buildFunctionCallSnippet(method);
+                            suggestions.add(new CompletionItem(method.name, insertText,
+                                    method.name.length() + 1, CompletionItem.Category.MEMBER,
+                                    "→ " + method.returnType));
                         }
                     }
                     return;
                 }
             }
         }
+    }
+
+    /**
+     * Build a function call snippet with parameter placeholders.
+     * Example: "myFunc(param1, param2)"
+     */
+    private String buildFunctionCallSnippet(pseudopad.core.AST.FunctionNode func) {
+        StringBuilder sb = new StringBuilder(func.name);
+        sb.append("(");
+        for (int i = 0; i < func.parameters.size(); i++) {
+            if (i > 0)
+                sb.append(", ");
+            sb.append(func.parameters.get(i).name());
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
+    /**
+     * Build a class constructor call snippet.
+     * Example: "new ClassName(param1, param2)"
+     */
+    private String buildConstructorSnippet(pseudopad.core.AST.ClassNode classNode) {
+        // Find init method if it exists
+        for (pseudopad.core.AST.FunctionNode method : classNode.methods) {
+            if (method.name.equals("init")) {
+                StringBuilder sb = new StringBuilder("new ");
+                sb.append(classNode.name);
+                sb.append("(");
+                for (int i = 0; i < method.parameters.size(); i++) {
+                    if (i > 0)
+                        sb.append(", ");
+                    sb.append(method.parameters.get(i).name());
+                }
+                sb.append(")");
+                return sb.toString();
+            }
+        }
+        // No init method, just use empty parentheses
+        return "new " + classNode.name + "()";
     }
 }
