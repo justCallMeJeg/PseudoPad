@@ -6,6 +6,8 @@ import java.awt.Toolkit;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 import pseudopad.utils.IconManager;
 import pseudopad.utils.ThemeManager;
@@ -20,6 +22,13 @@ public class ActionController {
 
     public ActionController(AppController appController) {
         this.appController = appController;
+
+        // Listen for theme changes and refresh all action icons
+        UIManager.addPropertyChangeListener(e -> {
+            if ("lookAndFeel".equals(e.getPropertyName())) {
+                SwingUtilities.invokeLater(this::refreshIcons);
+            }
+        });
     }
 
     public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
@@ -331,6 +340,36 @@ public class ActionController {
     private String getKeyString(KeyStroke key) {
         // Simple helper to format tooltip text (e.g., "Ctrl+O")
         return KeyEvent.getKeyModifiersText(key.getModifiers()) + "+" + KeyEvent.getKeyText(key.getKeyCode());
+    }
+
+    /**
+     * Refreshes all action icons after a theme change.
+     * Called automatically when the look and feel changes.
+     */
+    private void refreshIcons() {
+        refreshActionIcon(NEW_PROJECT, "new_project");
+        refreshActionIcon(OPEN_PROJECT, "open_project");
+        refreshActionIcon(SAVE, "save");
+        refreshActionIcon(UNDO, "undo");
+        refreshActionIcon(REDO, "redo");
+        refreshActionIcon(CUT, "content_cut");
+        refreshActionIcon(COPY, "content_copy");
+        refreshActionIcon(PASTE, "content_paste");
+        refreshActionIcon(DELETE, "delete");
+        refreshActionIcon(TOGGLE_NAV_PANEL, "sidebar");
+        refreshActionIcon(TOGGLE_OUTPUT_PANEL, "terminal");
+        refreshActionIcon(RUN_PROJECT, "run");
+        refreshActionIcon(TOGGLE_PROJECTS, "folder");
+        refreshActionIcon(TOGGLE_FILES, "file_tree");
+        refreshActionIcon(TOGGLE_FILE_OUTLINE, "outline");
+        refreshActionIcon(TOGGLE_OUTPUT, "terminal");
+        refreshActionIcon(TOGGLE_PROBLEMS, "warning");
+        refreshActionIcon(TOGGLE_LOGS, "log");
+    }
+
+    private void refreshActionIcon(Action action, String iconName) {
+        action.putValue(Action.SMALL_ICON, IconManager.get(iconName, 16));
+        action.putValue(Action.LARGE_ICON_KEY, IconManager.get(iconName, 32));
     }
     // </editor-fold>
 }

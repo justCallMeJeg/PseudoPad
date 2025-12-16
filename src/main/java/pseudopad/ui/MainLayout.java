@@ -440,8 +440,8 @@ public class MainLayout extends JPanel {
 
     private String getIconNameForPanel(String panelId) {
         return switch (panelId) {
-            case WindowManager.PANEL_PROJECTS -> "new_project";
-            case WindowManager.PANEL_FILES -> "folder";
+            case WindowManager.PANEL_PROJECTS -> "project"; // Custom PseudoPad project icon
+            case WindowManager.PANEL_FILES -> "files"; // File multiple icon (not folder)
             case WindowManager.PANEL_FILE_OUTLINE -> "outline";
             case WindowManager.PANEL_OUTPUT -> "terminal";
             case WindowManager.PANEL_PROBLEMS -> "warning";

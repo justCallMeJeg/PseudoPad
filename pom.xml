@@ -34,5 +34,16 @@
             <artifactId>gson</artifactId>
             <version>2.13.2</version>
         </dependency>
+        <!-- Ikonli Icon Pack -->
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-swing</artifactId>
+            <version>12.3.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kordamp.ikonli</groupId>
+            <artifactId>ikonli-materialdesign2-pack</artifactId>
+            <version>12.3.1</version>
+        </dependency>
     </dependencies>
 </project>

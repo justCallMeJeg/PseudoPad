@@ -144,14 +144,27 @@ public class TabbedPane extends JTabbedPane {
 
     public void setMinimizeAction(ActionListener listener) {
         JButton minBtn = new JButton();
-        if (IconManager.get("minimize") != null) {
-            minBtn.setIcon(IconManager.get("minimize"));
-        } else {
-            minBtn.setText("—");
-        }
+        refreshMinimizeIcon(minBtn);
         minBtn.setToolTipText("Minimize View");
         minBtn.addActionListener(listener);
         addRightHeaderButton(minBtn);
+
+        // Listen for theme changes and refresh the icon
+        javax.swing.UIManager.addPropertyChangeListener(e -> {
+            if ("lookAndFeel".equals(e.getPropertyName())) {
+                javax.swing.SwingUtilities.invokeLater(() -> refreshMinimizeIcon(minBtn));
+            }
+        });
+    }
+
+    private void refreshMinimizeIcon(JButton minBtn) {
+        javax.swing.Icon icon = IconManager.get("minimize");
+        if (icon != null) {
+            minBtn.setIcon(icon);
+            minBtn.setText("");
+        } else {
+            minBtn.setText("—");
+        }
     }
 
     private void updateCloseButtons() {

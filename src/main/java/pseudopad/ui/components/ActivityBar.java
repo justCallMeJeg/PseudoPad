@@ -1,6 +1,7 @@
 package pseudopad.ui.components;
 
 import com.formdev.flatlaf.FlatClientProperties;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.ActionListener;
@@ -13,10 +14,13 @@ import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
+import pseudopad.app.WindowManager;
+
 /**
  * A vertical bar on the left edge that shows icon buttons for hidden navigation
  * panels.
  * Only visible when there are hidden panels.
+ * Buttons are ordered consistently based on panel order (same as tabs).
  * 
  * @author Geger John Paul Gabayeron
  */
@@ -40,7 +44,8 @@ public class ActivityBar extends JPanel {
     }
 
     /**
-     * Adds a restore button for a hidden panel.
+     * Adds a restore button for a hidden panel at the correct position.
+     * Buttons are ordered based on WindowManager.getDefaultPanelOrder().
      * 
      * @param panelId Unique identifier for the panel
      * @param icon    Icon to display on the button
@@ -55,15 +60,42 @@ public class ActivityBar extends JPanel {
         JButton button = new JButton(icon);
         button.setToolTipText(tooltip);
         button.addActionListener(onClick);
+        button.putClientProperty("panelId", panelId); // Store panelId for ordering
         styleButton(button);
 
         panelButtons.put(panelId, button);
-        buttonContainer.add(button);
-        buttonContainer.add(Box.createVerticalStrut(4));
+
+        // Find correct insertion position based on panel order
+        int insertIndex = findInsertionIndex(panelId);
+
+        // Each button is followed by a spacing strut, so multiply by 2
+        int componentIndex = insertIndex * 2;
+
+        buttonContainer.add(button, componentIndex);
+        buttonContainer.add(Box.createVerticalStrut(4), componentIndex + 1);
 
         updateVisibility();
         buttonContainer.revalidate();
         buttonContainer.repaint();
+    }
+
+    /**
+     * Finds the correct insertion index for a new button based on panel order.
+     * Uses global ordering: Projects > Files > Outline > Output > Problems > Logs
+     */
+    private int findInsertionIndex(String newPanelId) {
+        int targetOrder = WindowManager.getDefaultPanelOrder(newPanelId);
+
+        int insertIndex = 0;
+
+        for (String existingPanelId : panelButtons.keySet()) {
+            int existingOrder = WindowManager.getDefaultPanelOrder(existingPanelId);
+            if (targetOrder > existingOrder) {
+                insertIndex++;
+            }
+        }
+
+        return insertIndex;
     }
 
     /**
@@ -86,7 +118,10 @@ public class ActivityBar extends JPanel {
                 buttonContainer.remove(idx);
                 // Remove the strut after it (if exists)
                 if (idx < buttonContainer.getComponentCount()) {
-                    buttonContainer.remove(idx);
+                    Component next = buttonContainer.getComponent(idx);
+                    if (next instanceof Box.Filler) {
+                        buttonContainer.remove(idx);
+                    }
                 }
             }
 

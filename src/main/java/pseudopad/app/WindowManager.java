@@ -169,17 +169,17 @@ public class WindowManager {
     }
 
     /**
-     * Returns the default order index for a panel within its group.
-     * Lower index = appears first (leftmost).
+     * Returns the default order index for a panel.
+     * Global ordering: Projects > Files > Outline > Output > Problems > Logs
      */
     public static int getDefaultPanelOrder(String panelId) {
         return switch (panelId) {
             case PANEL_PROJECTS -> 0;
             case PANEL_FILES -> 1;
-            case PANEL_FILE_OUTLINE -> 0; // Only one in bottom nav
-            case PANEL_OUTPUT -> 0;
-            case PANEL_PROBLEMS -> 1;
-            case PANEL_LOGS -> 2;
+            case PANEL_FILE_OUTLINE -> 2;
+            case PANEL_OUTPUT -> 3;
+            case PANEL_PROBLEMS -> 4;
+            case PANEL_LOGS -> 5;
             default -> 99;
         };
     }

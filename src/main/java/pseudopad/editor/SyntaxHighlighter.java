@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -17,6 +18,7 @@ import pseudopad.utils.ThemeManager;
 
 /**
  * Applies syntax highlighting to a StyledDocument using the PseudoPad Lexer.
+ * Automatically updates colors when theme changes.
  * 
  * @author Geger John Paul Gabayeron
  */
@@ -34,21 +36,34 @@ public class SyntaxHighlighter {
         this.defaultStyle = new SimpleAttributeSet();
 
         initStyles();
+
+        // Listen for theme changes and re-apply highlighting
+        UIManager.addPropertyChangeListener(e -> {
+            if ("lookAndFeel".equals(e.getPropertyName())) {
+                SwingUtilities.invokeLater(() -> {
+                    initStyles();
+                    highlight();
+                });
+            }
+        });
     }
 
     private void initStyles() {
         boolean isDark = ThemeManager.getInstance().isDarkMode();
 
+        // Clear existing styles
+        tokenStyles.clear();
+
         // Reset default style
         StyleConstants.setForeground(defaultStyle, isDark ? new Color(220, 220, 220) : Color.BLACK);
 
-        // Define Colors
+        // Define Colors based on theme
         Color keywordColor = isDark ? new Color(86, 156, 214) : new Color(0, 0, 255); // Blue
         Color stringColor = isDark ? new Color(206, 145, 120) : new Color(163, 21, 21); // Red/Orange
         Color numberColor = isDark ? new Color(181, 206, 168) : new Color(9, 134, 88); // Green
         Color typeColor = isDark ? new Color(78, 201, 176) : new Color(43, 145, 175); // Teal
         Color funcColor = isDark ? new Color(220, 220, 170) : new Color(121, 94, 38); // Yellow/Brown
-        Color identifierColor = isDark ? new Color(220, 220, 220) : new Color(220, 220, 220); //
+        Color identifierColor = isDark ? new Color(220, 220, 220) : new Color(50, 50, 50);// Light/Dark text
         Color commentColor = isDark ? new Color(106, 153, 85, 180) : new Color(0, 128, 0, 180); // Green with alpha
 
         // Map TokenTypes to Styles
