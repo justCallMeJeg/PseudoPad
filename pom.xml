@@ -97,7 +97,7 @@
                         <configuration>
                             <headerType>gui</headerType>
                             <outfile>target/PseudoPad.exe</outfile>
-                            <jar>target/PseudoPad-0.0-DEV.jar</jar>
+                            <jar>${project.build.directory}/${project.artifactId}-${project.version}.jar</jar>
                             <errTitle>PseudoPad Error</errTitle>
                             <icon>src/main/resources/icons/app.ico</icon>
                             <classPath>
