@@ -1,0 +1,890 @@
+package pseudopad.editor;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.event.UndoableEditEvent;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.text.DefaultHighlighter;
+import javax.swing.text.Element;
+import javax.swing.text.Highlighter;
+import javax.swing.text.DefaultHighlighter.DefaultHighlightPainter;
+import javax.swing.undo.UndoManager;
+import pseudopad.app.MainFrame;
+import pseudopad.core.Errors.CompilationError;
+import pseudopad.editor.intellisense.AutoCompletion;
+import pseudopad.editor.intellisense.PseudoCompletionProvider;
+import pseudopad.settings.SettingsManager;
+import pseudopad.ui.components.TextPane;
+import pseudopad.utils.FileManager;
+
+/**
+ *
+ * @author Geger John Paul Gabayeron
+ */
+public class FileTabPane extends JPanel {
+    private final TextPane textPane;
+    private final JScrollPane scrollPane;
+    private final RowNumberHeader lineNumbers;
+    private final SyntaxHighlighter highlighter;
+    private final FindReplaceBar findReplaceBar; // NEW
+
+    private File fileSource; // Null if it's a new "Untitled" file
+    private String originalContent;
+    private boolean isDirty = false;
+    private String tabTitle; // Store the clean title (without *)
+
+    // Settings-controlled values
+    private int tabWidth = 4;
+
+    private final UndoManager undoManager = new UndoManager();
+
+    public FileTabPane() {
+        this(null);
+    }
+
+    public FileTabPane(File source) {
+        super(new BorderLayout());
+
+        this.fileSource = source;
+
+        if (source != null) {
+            try {
+                this.originalContent = FileManager.readFile(source);
+            } catch (IOException ex) {
+                System.err.println("Failed to open file: " + ex);
+                this.originalContent = "";
+            }
+        } else {
+            this.originalContent = "";
+        }
+
+        // 1. Initialize Editor
+        textPane = new TextPane();
+        textPane.setText(this.originalContent);
+
+        // Apply font from settings
+        String fontFamily = SettingsManager.getInstance().get(SettingsManager.EDITOR_FONT_FAMILY);
+        int fontSize = SettingsManager.getInstance().get(SettingsManager.EDITOR_FONT_SIZE);
+        textPane.setFont(new Font(fontFamily, Font.PLAIN, fontSize));
+        textPane.setCaretPosition(0);
+
+        // Listen for font settings changes
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_FONT_FAMILY,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    Font currentFont = textPane.getFont();
+                    textPane.setFont(new Font(newVal, currentFont.getStyle(), currentFont.getSize()));
+                }));
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_FONT_SIZE,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    Font currentFont = textPane.getFont();
+                    textPane.setFont(new Font(currentFont.getFamily(), currentFont.getStyle(), newVal));
+                }));
+
+        // Colors
+        boolean isDark = pseudopad.utils.ThemeManager.getInstance().isDarkMode();
+        if (isDark) {
+            textPane.setCaretColor(Color.WHITE);
+            textPane.setSelectionColor(new Color(75, 110, 175));
+        } else {
+            textPane.setCaretColor(Color.BLACK);
+            textPane.setSelectionColor(new Color(173, 214, 255));
+        }
+
+        // Syntax Highlighting
+        highlighter = new SyntaxHighlighter(textPane.getStyledDocument());
+        highlighter.highlight();
+
+        // 2. Scroll & Gutter
+        scrollPane = new JScrollPane(textPane);
+        lineNumbers = new RowNumberHeader(textPane);
+
+        // Apply initial line numbers visibility from settings
+        boolean showLineNumbers = SettingsManager.getInstance().get(SettingsManager.EDITOR_SHOW_LINE_NUMBERS);
+        scrollPane.setRowHeaderView(showLineNumbers ? lineNumbers : null);
+
+        // Listen for line numbers visibility changes
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_SHOW_LINE_NUMBERS,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    scrollPane.setRowHeaderView(newVal ? lineNumbers : null);
+                }));
+
+        // Apply initial tab width from settings
+        tabWidth = SettingsManager.getInstance().get(SettingsManager.EDITOR_TAB_WIDTH);
+
+        // Listen for tab width changes
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_TAB_WIDTH,
+                (key, oldVal, newVal) -> tabWidth = newVal);
+
+        add(scrollPane, BorderLayout.CENTER);
+
+        // --- Find & Replace Bar ---
+        findReplaceBar = new FindReplaceBar(textPane, () -> {
+            // Close callback
+            clearSearchHighlights();
+            textPane.requestFocusInWindow();
+        });
+
+        // Define Logic
+        findReplaceBar.setActions(
+                e -> findNext(true), // Next
+                e -> findNext(false), // Prev
+                e -> replaceCurrent(),
+                e -> replaceAll());
+
+        // Listen for "Live" search updates
+        findReplaceBar.addFindDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) {
+                highlightAllMatches();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                highlightAllMatches();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                highlightAllMatches();
+            }
+        });
+
+        findReplaceBar.setVisible(false); // Hidden by default
+        add(findReplaceBar, BorderLayout.NORTH);
+
+        // 3. Track Changes
+        textPane.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                checkDirty();
+                triggerAnalysis();
+                highlighter.highlight();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                checkDirty();
+                triggerAnalysis();
+                highlighter.highlight();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                checkDirty();
+                triggerAnalysis();
+            }
+        });
+
+        // 4. Undo Manager
+        undoManager.setLimit(100); // Limit history to prevent memory issues
+        textPane.getDocument().addUndoableEditListener((UndoableEditEvent e) -> {
+            if (e.getEdit() instanceof javax.swing.text.AbstractDocument.DefaultDocumentEvent de) {
+                if (de.getType() == javax.swing.event.DocumentEvent.EventType.CHANGE) {
+                    return;
+                }
+            }
+            undoManager.addEdit(e.getEdit());
+        });
+
+        // 5. Completion (IntelliSense)
+        // 5. Completion (IntelliSense)
+        new AutoCompletion(textPane, new PseudoCompletionProvider());
+
+        // 6. Auto-close brackets and quotes
+        textPane.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyTyped(java.awt.event.KeyEvent e) {
+                char c = e.getKeyChar();
+                String closing = getClosingChar(c);
+                if (closing != null) {
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            int pos = textPane.getCaretPosition();
+                            textPane.getDocument().insertString(pos, closing, null);
+                            textPane.setCaretPosition(pos);
+                        } catch (Exception ex) {
+                            // Ignore
+                        }
+                    });
+                }
+            }
+
+            private String getClosingChar(char opening) {
+                return switch (opening) {
+                    case '(' -> ")";
+                    case '[' -> "]";
+                    case '{' -> "}";
+                    case '"' -> "\"";
+                    default -> null;
+                };
+            }
+        });
+
+        // 7. Smart auto-indent on Enter key (use keyReleased to let completion handle
+        // first)
+        textPane.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyReleased(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    // Skip if completion handled this Enter key
+                    if (AutoCompletion.wasEnterHandledByCompletion()) {
+                        return; // Completion already handled it
+                    }
+                    // Use invokeLater to ensure this happens after other handlers
+                    SwingUtilities.invokeLater(() -> handleEnterKey());
+                }
+            }
+        });
+
+        // 8. Consistent Tab indentation - Skip if completion is showing
+        textPane.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_TAB) {
+                    // Skip if completion popup is visible (let completion handle Tab)
+                    if (AutoCompletion.isPopupVisible()) {
+                        return;
+                    }
+                    e.consume(); // Prevent default Tab behavior
+                    try {
+                        if (e.isShiftDown()) {
+                            // Shift+Tab: Remove spaces from start of current line
+                            handleShiftTab();
+                        } else {
+                            // Tab: Insert spaces based on setting
+                            String spaces = " ".repeat(tabWidth);
+                            textPane.getDocument().insertString(
+                                    textPane.getCaretPosition(), spaces, null);
+                        }
+                    } catch (Exception ex) {
+                        // Ignore
+                    }
+                }
+            }
+        });
+
+        // 8. Proactive Analysis
+        analysisTimer = new javax.swing.Timer(500, e -> performAnalysis());
+        analysisTimer.setRepeats(false);
+
+        // Initial check
+        SwingUtilities.invokeLater(() -> triggerAnalysis());
+
+        updateThemeHighlighters(); // Init painters
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        updateThemeHighlighters();
+        if (findReplaceBar != null && findReplaceBar.isVisible()) {
+            highlightAllMatches();
+        }
+    }
+
+    private void updateThemeHighlighters() {
+        if (pseudopad.utils.ThemeManager.getInstance().isDarkMode()) {
+            detectedPainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 255, 0, 100)); // Yellow
+            activePainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 140, 0, 180)); // Dark Orange
+        } else {
+            detectedPainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 255, 0, 100)); // Yellow
+            activePainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 165, 0, 180)); // Orange
+        }
+    }
+
+    /**
+     * Handle Enter key with smart auto-indent.
+     * Note: The newline is already inserted by default behavior (since we use
+     * keyReleased).
+     * We just need to add the proper indentation.
+     */
+    private void handleEnterKey() {
+        try {
+            int caretPos = textPane.getCaretPosition();
+            String text = textPane.getText();
+
+            // The newline was already inserted. Find the PREVIOUS line for indentation
+            // context.
+            // Current caret is at the start of the new line (after the newline char).
+            int prevLineEnd = text.lastIndexOf('\n', caretPos - 1);
+            if (prevLineEnd < 0) {
+                return; // No previous line, nothing to indent
+            }
+            int prevLineStart = text.lastIndexOf('\n', prevLineEnd - 1) + 1;
+            String previousLine = text.substring(prevLineStart, prevLineEnd);
+
+            // Get previous line's indentation
+            StringBuilder indent = new StringBuilder();
+            for (char c : previousLine.toCharArray()) {
+                if (c == ' ' || c == '\t') {
+                    indent.append(c);
+                } else {
+                    break;
+                }
+            }
+
+            // Check if we should increase indent (previous line ends with do, then, or
+            // starts block)
+            String trimmedLine = previousLine.trim().toUpperCase();
+            boolean increaseIndent = trimmedLine.endsWith(" DO") ||
+                    trimmedLine.equals("DO") ||
+                    trimmedLine.endsWith(" THEN") ||
+                    trimmedLine.equals("THEN") ||
+                    trimmedLine.equals("ELSE") ||
+                    trimmedLine.startsWith("ELSE ") ||
+                    trimmedLine.startsWith("ELIF ") ||
+                    trimmedLine.startsWith("CLASS ");
+
+            // Build the indentation string (no newline, just spaces)
+            String indentStr = indent.toString();
+            if (increaseIndent) {
+                indentStr += "    "; // Add 4 spaces for new block
+            }
+
+            // Insert the indentation at current position
+            if (!indentStr.isEmpty()) {
+                textPane.getDocument().insertString(caretPos, indentStr, null);
+            }
+
+        } catch (Exception ex) {
+            // Ignore errors
+        }
+    }
+
+    /**
+     * Handle Shift+Tab to remove spaces from start of current line (outdent).
+     */
+    private void handleShiftTab() {
+        try {
+            int caretPos = textPane.getCaretPosition();
+            String text = textPane.getText();
+
+            // Find the start of the current line
+            int lineStart = text.lastIndexOf('\n', caretPos - 1) + 1;
+
+            // Check if line starts with at least tabWidth spaces
+            int spacesToRemove = 0;
+            for (int i = lineStart; i < text.length() && spacesToRemove < tabWidth; i++) {
+                if (text.charAt(i) == ' ') {
+                    spacesToRemove++;
+                } else {
+                    break;
+                }
+            }
+
+            // Remove the spaces
+            if (spacesToRemove > 0) {
+                textPane.getDocument().remove(lineStart, spacesToRemove);
+            }
+        } catch (Exception ex) {
+            // Ignore errors
+        }
+    }
+
+    private final javax.swing.Timer analysisTimer;
+
+    // Search Highlighting Fields
+    private Highlighter.HighlightPainter detectedPainter;
+    private Highlighter.HighlightPainter activePainter;
+    private final java.util.List<Object> searchHighlights = new java.util.ArrayList<>();
+    private Object activeHighlightTag = null;
+
+    private pseudopad.core.AST.ProgramNode cachedAST;
+
+    private void triggerAnalysis() {
+        analysisTimer.restart();
+    }
+
+    private void performAnalysis() {
+        // Skip analysis for non-source files
+        if (fileSource != null && !fileSource.getName().endsWith(pseudopad.app.AppConstants.FILE_EXTENSION)) {
+            return;
+        }
+
+        String code = textPane.getText();
+
+        // Run in background to avoid freezing UI if large
+        new Thread(() -> {
+            pseudopad.core.Errors.CompilationResult result = pseudopad.core.PseudoRunner.compile(code);
+            if (result.ast != null) {
+                this.cachedAST = result.ast;
+            }
+
+            SwingUtilities.invokeLater(() -> {
+                // 1. Update Problems View
+                if (MainFrame.getInstance() != null) {
+                    pseudopad.ui.MainLayout layout = (pseudopad.ui.MainLayout) MainFrame.getInstance().getContentPane();
+
+                    pseudopad.editor.ProblemsPanel problems = layout.getProblemsPanel();
+                    if (problems != null) {
+                        problems.updateErrors(fileSource, result.errors);
+                    }
+
+                    // Update Outline if this tab is active
+                    if (isShowing()) {
+                        pseudopad.editor.FileOutlinePanel outline = layout.getFileOutlinePanel();
+                        if (outline != null) {
+                            outline.updateOutline(result.ast);
+                        }
+                    }
+                }
+
+                // 2. Update Editor Highlights
+                updateHighlighter(result.errors);
+            });
+        }).start();
+    }
+
+    public pseudopad.core.AST.ProgramNode getCachedAST() {
+        return cachedAST;
+    }
+
+    private void updateHighlighter(List<CompilationError> errors) {
+        Highlighter h = textPane.getHighlighter();
+        h.removeAllHighlights();
+
+        DefaultHighlightPainter painter = new DefaultHighlighter.DefaultHighlightPainter(
+                new Color(255, 100, 100, 50)); // Light Red
+
+        for (CompilationError error : errors) {
+            try {
+                // Map line/col to offset
+                Element root = textPane.getDocument().getDefaultRootElement();
+                int line = Math.max(0, error.line - 1);
+                if (line >= root.getElementCount())
+                    continue;
+
+                Element lineElem = root.getElement(line);
+                int start = lineElem.getStartOffset() + Math.max(0, error.column - 1);
+                int end = start + Math.max(1, error.length); // Ensure at least 1 char width
+
+                // Clamp to line end
+                end = Math.min(end, lineElem.getEndOffset() - 1);
+                if (end <= start)
+                    end = start + 1; // Fallback
+
+                h.addHighlight(start, end, painter);
+            } catch (Exception e) {
+                // Ignore invalid positions
+            }
+        }
+
+        Set<Integer> errorLines = new HashSet<>();
+        for (CompilationError error : errors) {
+            errorLines.add(error.line); // 1-based
+        }
+        lineNumbers.setErrorLines(errorLines);
+    }
+
+    private void checkDirty() {
+        // Optimization: First check length. If lengths differ, it's definitely changed.
+        // This avoids expensive String comparisons for every single keystroke.
+        int currentLength = textPane.getDocument().getLength();
+        int originalLength = originalContent.length();
+
+        boolean changed;
+        if (currentLength != originalLength) {
+            changed = true;
+        } else {
+            // Only do the expensive check if lengths match (e.g. replaced a char)
+            changed = !textPane.getText().equals(originalContent);
+        }
+
+        if (changed != isDirty) {
+            isDirty = changed;
+            updateTabTitle();
+        }
+    }
+
+    private void updateTabTitle() {
+        // We need to find our parent TabbedPane to update the title
+        EditorTabbedPane parentTab = (EditorTabbedPane) SwingUtilities.getAncestorOfClass(EditorTabbedPane.class, this);
+        if (parentTab != null) {
+            int index = parentTab.indexOfComponent(this);
+            if (index != -1) {
+                // If we have a file source, ALWAYS use its name as the base title
+                if (fileSource != null) {
+                    tabTitle = fileSource.getName();
+                } else if (tabTitle == null) {
+                    // If no file source and no title set, grab it from the tab (initial state)
+                    tabTitle = parentTab.getTitleAt(index).replace("*", "").trim();
+                }
+
+                String newTitle = tabTitle + (isDirty ? " *" : "");
+                parentTab.setTitleAt(index, newTitle);
+
+                parentTab.setForegroundAt(index, isDirty ? Color.CYAN : null); // Simple visual cue
+            }
+        }
+    }
+
+    public boolean requestClose() {
+        if (!isDirty)
+            return true; // Safe to close
+
+        String name = (fileSource != null) ? fileSource.getName() : (tabTitle != null ? tabTitle : "Untitled");
+
+        int choice = JOptionPane.showConfirmDialog(null,
+                "Do you want to save changes to '" + name + "'?",
+                "Unsaved Changes",
+                JOptionPane.YES_NO_CANCEL_OPTION);
+
+        if (choice == JOptionPane.CANCEL_OPTION || choice == JOptionPane.CLOSED_OPTION) {
+            return false; // Abort closing
+        }
+
+        if (choice == JOptionPane.YES_OPTION) {
+            return saveFile(); // Close only if save succeeds
+        }
+
+        return true; // NO_OPTION -> Discard changes and close
+    }
+
+    public boolean saveFile() {
+        if (fileSource == null) {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Specify a file to save");
+
+            // Set default directory to current project if available
+            if (MainFrame.getInstance() != null && MainFrame.getInstance().getCurrentProjectPath() != null) {
+                fileChooser.setCurrentDirectory(MainFrame.getInstance().getCurrentProjectPath());
+            }
+
+            // Optional: Set a file filter (e.g., only .txt files)
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("Text Documents (*.pc)", "pc");
+            fileChooser.setFileFilter(filter);
+
+            // Show the Save dialog
+            int userSelection = fileChooser.showSaveDialog(this);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+                String filePath = fileToSave.getAbsolutePath();
+
+                // Ensure the file has the correct extension if needed (optional logic)
+                if (!filePath.toLowerCase().endsWith(".pc")) {
+                    fileToSave = new File(filePath + ".pc");
+                }
+
+                this.fileSource = fileToSave;
+                // Continue to save below instead of recursive call
+            } else {
+                // User cancelled
+                return false;
+            }
+        }
+
+        try {
+            // Format code before saving
+            String content = textPane.getText();
+            String formatted = content;
+
+            if (fileSource != null) {
+                if (fileSource.getName().endsWith(".json")) {
+                    try {
+                        // JSON Formatting
+                        com.google.gson.JsonElement je = com.google.gson.JsonParser.parseString(content);
+                        com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
+                        formatted = gson.toJson(je);
+                    } catch (com.google.gson.JsonSyntaxException e) {
+                        // Invalid JSON, ignore formatting and save as is
+                        System.err.println("Invalid JSON, skipping formatting: " + e.getMessage());
+                        formatted = content;
+                    }
+                } else if (fileSource.getName().endsWith(".pc")) {
+                    // Pseudo Code Formatting
+                    formatted = PseudoFormatter.format(content);
+                }
+            }
+
+            // Update text pane with formatted content (preserving caret if possible)
+            if (!content.equals(formatted)) {
+                int caretPos = textPane.getCaretPosition();
+                textPane.setText(formatted);
+                try {
+                    textPane.setCaretPosition(Math.min(caretPos, formatted.length()));
+                } catch (Exception ex) {
+                    // Ignore caret positioning errors
+                }
+            }
+
+            // Re-apply syntax highlighting after format
+            triggerAnalysis();
+
+            FileManager.saveFile(fileSource, formatted);
+            originalContent = formatted; // Update baseline
+            isDirty = false;
+            updateTabTitle();
+
+            // Refresh File Explorer if we just saved a new file
+            if (MainFrame.getInstance() != null) {
+                MainFrame.getInstance().refreshFileExplorer();
+            }
+
+            return true;
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Error saving file: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ----- EDIT ACTIONS -----
+
+    public void undo() {
+        if (undoManager.canUndo()) {
+            undoManager.undo();
+        }
+    }
+
+    public void redo() {
+        if (undoManager.canRedo()) {
+            undoManager.redo();
+        }
+    }
+
+    public void cut() {
+        textPane.cut();
+    }
+
+    public void copy() {
+        textPane.copy();
+    }
+
+    public void paste() {
+        textPane.paste();
+    }
+
+    // ----- SETTERS and GETTERS -----
+
+    public File getFile() {
+        return fileSource;
+    }
+
+    public void setFile(File file) {
+        this.fileSource = file;
+    }
+
+    public void updateFileSource(File newFile) {
+        this.fileSource = newFile;
+        // Reset title so it gets refreshed from the new file name
+        this.tabTitle = null;
+        updateTabTitle();
+    }
+
+    public String getText() {
+        return textPane.getText();
+    }
+
+    public TextPane getTextPane() {
+        return textPane;
+    }
+
+    /**
+     * Navigates to a specific line and column in the editor.
+     * Used by clickable error links from the terminal.
+     */
+    public void navigateToPosition(int line, int col) {
+        try {
+            String text = textPane.getText();
+            String[] lines = text.split("\n", -1);
+
+            if (line < 1 || line > lines.length)
+                return;
+
+            // Calculate offset to the start of the line
+            int offset = 0;
+            for (int i = 0; i < line - 1; i++) {
+                offset += lines[i].length() + 1; // +1 for newline
+            }
+
+            // Add column offset (1-indexed)
+            offset += Math.min(col - 1, lines[line - 1].length());
+
+            // Set caret position and request focus
+            textPane.setCaretPosition(offset);
+            textPane.requestFocusInWindow();
+
+            // Scroll to make the caret visible
+            java.awt.Rectangle rect = textPane.modelToView(offset);
+            if (rect != null) {
+                textPane.scrollRectToVisible(rect);
+            }
+        } catch (Exception e) {
+            // Ignore navigation errors
+        }
+    }
+
+    // ----- SEARCH LOGIC -----
+
+    public void showFind() {
+        if (findReplaceBar.isVisible() && !findReplaceBar.isReplaceMode()) {
+            findReplaceBar.close();
+        } else {
+            findReplaceBar.setReplaceMode(false);
+            findReplaceBar.open();
+            highlightAllMatches();
+        }
+    }
+
+    public void showReplace() {
+        if (findReplaceBar.isVisible() && findReplaceBar.isReplaceMode()) {
+            findReplaceBar.close();
+        } else {
+            findReplaceBar.setReplaceMode(true);
+            findReplaceBar.open();
+            highlightAllMatches();
+        }
+    }
+
+    private void findNext(boolean forward) {
+        String query = findReplaceBar.getFindText();
+        if (query.isEmpty())
+            return;
+
+        String text = textPane.getText();
+        boolean matchCase = findReplaceBar.isMatchCase();
+
+        if (!matchCase) {
+            query = query.toLowerCase();
+            text = text.toLowerCase();
+        }
+
+        int caret = textPane.getCaretPosition();
+        int index = -1;
+
+        if (forward) {
+            index = text.indexOf(query, caret);
+            if (index == -1) {
+                // Wrap around
+                index = text.indexOf(query);
+            }
+        } else {
+            // Search backwards from caret
+            // String.lastIndexOf searches backwards starting FROM the index
+            // We want to start searching before the selection
+            int startFrom = Math.max(0, textPane.getSelectionStart() - 1);
+            index = text.lastIndexOf(query, startFrom);
+            if (index == -1) {
+                // Wrap around to end
+                index = text.lastIndexOf(query);
+            }
+        }
+
+        if (index != -1) {
+            textPane.select(index, index + findReplaceBar.getFindText().length());
+            textPane.requestFocusInWindow();
+            highlightActiveMatch(index, index + findReplaceBar.getFindText().length());
+        } else {
+            java.awt.Toolkit.getDefaultToolkit().beep();
+        }
+    }
+
+    // --- HIGHLIGHTING HELPERS ---
+
+    private void clearSearchHighlights() {
+        Highlighter h = textPane.getHighlighter();
+        for (Object tag : searchHighlights) {
+            h.removeHighlight(tag);
+        }
+        searchHighlights.clear();
+        if (activeHighlightTag != null) {
+            h.removeHighlight(activeHighlightTag);
+            activeHighlightTag = null;
+        }
+    }
+
+    private void highlightAllMatches() {
+        clearSearchHighlights();
+
+        String query = findReplaceBar.getFindText();
+        if (query.isEmpty())
+            return;
+
+        String text = textPane.getText();
+        boolean matchCase = findReplaceBar.isMatchCase();
+
+        if (!matchCase) {
+            query = query.toLowerCase();
+            text = text.toLowerCase();
+        }
+
+        Highlighter h = textPane.getHighlighter();
+        int index = 0;
+        int len = query.length();
+
+        try {
+            while ((index = text.indexOf(query, index)) >= 0) {
+                Object tag = h.addHighlight(index, index + len, detectedPainter);
+                searchHighlights.add(tag);
+                index += len; // Move past correlation
+            }
+        } catch (Exception e) {
+            // Ignore highlight errors
+        }
+    }
+
+    private void highlightActiveMatch(int start, int end) {
+        Highlighter h = textPane.getHighlighter();
+        if (activeHighlightTag != null) {
+            h.removeHighlight(activeHighlightTag);
+        }
+        try {
+            // Add on top of others
+            activeHighlightTag = h.addHighlight(start, end, activePainter);
+        } catch (Exception e) {
+            // Ignore
+        }
+    }
+
+    private void replaceCurrent() {
+        String selection = textPane.getSelectedText();
+        String query = findReplaceBar.getFindText();
+
+        // Check if current selection matches query
+        if (selection != null) {
+            boolean matchCase = findReplaceBar.isMatchCase();
+            if (matchCase ? selection.equals(query) : selection.equalsIgnoreCase(query)) {
+                // Perform replace
+                textPane.replaceSelection(findReplaceBar.getReplaceText());
+                // Find next
+                findNext(true);
+            } else {
+                // Selection doesn't match, just find next
+                findNext(true);
+            }
+        } else {
+            findNext(true);
+        }
+    }
+
+    private void replaceAll() {
+        String query = findReplaceBar.getFindText();
+        if (query.isEmpty())
+            return;
+
+        String replacement = findReplaceBar.getReplaceText();
+        String text = textPane.getText();
+
+        if (!findReplaceBar.isMatchCase()) {
+            // Regex for case insensitive literal replace is tricky without Regex Pattern
+            // Simpler to just use string replacement if we want case insensitive
+            text = text.replaceAll("(?i)" + java.util.regex.Pattern.quote(query),
+                    java.util.regex.Matcher.quoteReplacement(replacement));
+        } else {
+            text = text.replace(query, replacement);
+        }
+
+        textPane.setText(text);
+    }
+}

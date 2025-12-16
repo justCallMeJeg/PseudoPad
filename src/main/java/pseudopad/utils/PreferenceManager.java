@@ -1,0 +1,173 @@
+package pseudopad.utils;
+
+import java.io.File;
+import java.util.prefs.Preferences;
+import pseudopad.app.MainFrame;
+
+/**
+ *
+ * @author Geger John Paul Gabayeron
+ */
+public class PreferenceManager {
+    private static PreferenceManager INSTANCE;
+    private final Preferences prefs;
+
+    // --- KEYS ---
+    public static enum KEY {
+        // Theme key removed
+    }
+
+    public static final String KEY_LAST_PROJECT = "last_project_path";
+
+    // Private constructor for Singleton
+    private PreferenceManager() {
+        // This creates a node specifically for this class's package
+        this.prefs = Preferences.userNodeForPackage(MainFrame.class);
+    }
+
+    // Singleton Accessor
+    public static PreferenceManager getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new PreferenceManager();
+        }
+        return INSTANCE;
+    }
+
+    public void savePreference(KEY prefKey, String value) {
+        // Generic save if needed remains, though enum is empty now
+        if (prefKey != null)
+            prefs.put(prefKey.toString(), value);
+    }
+
+    // --- PROJECT SETTINGS ---
+
+    public void saveLastProject(File projectPath) {
+        if (projectPath != null) {
+            prefs.put(KEY_LAST_PROJECT, projectPath.getAbsolutePath());
+        } else {
+            prefs.remove(KEY_LAST_PROJECT);
+        }
+    }
+
+    public File loadLastProject() {
+        String path = prefs.get(KEY_LAST_PROJECT, null);
+        if (path != null) {
+            File file = new File(path);
+            if (file.exists() && file.isDirectory()) {
+                return file;
+            }
+        }
+        return null; // No valid last project found
+    }
+
+    // --- RECENT PROJECTS ---
+    private static final String KEY_RECENT_PROJECTS = "recent_projects";
+    private static final int MAX_RECENT_PROJECTS = 10;
+
+    public void addRecentProject(File projectPath) {
+        if (projectPath == null || !projectPath.exists())
+            return;
+
+        java.util.List<File> recent = getRecentProjects();
+        // Remove if exists (to move to top)
+        recent.removeIf(f -> f.getAbsolutePath().equals(projectPath.getAbsolutePath()));
+        // Add to top
+        recent.add(0, projectPath);
+        // Trim
+        if (recent.size() > MAX_RECENT_PROJECTS) {
+            recent = recent.subList(0, MAX_RECENT_PROJECTS);
+        }
+
+        saveRecentProjects(recent);
+    }
+
+    public java.util.List<File> getRecentProjects() {
+        String raw = prefs.get(KEY_RECENT_PROJECTS, "");
+        java.util.List<File> list = new java.util.ArrayList<>();
+        if (!raw.isEmpty()) {
+            String[] paths = raw.split(java.util.regex.Pattern.quote("|"));
+            for (String path : paths) {
+                File f = new File(path);
+                if (f.exists() && f.isDirectory()) {
+                    list.add(f);
+                }
+            }
+        }
+        return list;
+    }
+
+    private void saveRecentProjects(java.util.List<File> projects) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < projects.size(); i++) {
+            if (i > 0)
+                sb.append("|");
+            sb.append(projects.get(i).getAbsolutePath());
+        }
+        prefs.put(KEY_RECENT_PROJECTS, sb.toString());
+    }
+
+    // --- WINDOW SETTINGS (Global Fallback) ---
+    private static final String KEY_WIN_WIDTH = "win_width";
+    private static final String KEY_WIN_HEIGHT = "win_height";
+    private static final String KEY_WIN_X = "win_x";
+    private static final String KEY_WIN_Y = "win_y";
+    private static final String KEY_WIN_STATE = "win_state";
+    private static final String KEY_DIV_MAIN = "div_main";
+    private static final String KEY_DIV_EDITOR = "div_editor";
+    private static final String KEY_DIV_NAV = "div_nav";
+
+    public void saveWindowState(int width, int height, int x, int y, int state) {
+        prefs.putInt(KEY_WIN_WIDTH, width);
+        prefs.putInt(KEY_WIN_HEIGHT, height);
+        prefs.putInt(KEY_WIN_X, x);
+        prefs.putInt(KEY_WIN_Y, y);
+        prefs.putInt(KEY_WIN_STATE, state);
+    }
+
+    public int[] loadWindowState() {
+        // Returns [width, height, x, y, state]
+        // Defaults: 1280x720, -1, -1, Normal
+        return new int[] {
+                prefs.getInt(KEY_WIN_WIDTH, 1280),
+                prefs.getInt(KEY_WIN_HEIGHT, 720),
+                prefs.getInt(KEY_WIN_X, -1),
+                prefs.getInt(KEY_WIN_Y, -1),
+                prefs.getInt(KEY_WIN_STATE, 0)
+        };
+    }
+
+    public void saveDividerLocations(int main, int editor, int nav) {
+        prefs.putInt(KEY_DIV_MAIN, main);
+        prefs.putInt(KEY_DIV_EDITOR, editor);
+        prefs.putInt(KEY_DIV_NAV, nav);
+    }
+
+    public int[] loadDividerLocations() {
+        // Returns [main, editor, nav]
+        return new int[] {
+                prefs.getInt(KEY_DIV_MAIN, -1),
+                prefs.getInt(KEY_DIV_EDITOR, -1),
+                prefs.getInt(KEY_DIV_NAV, -1)
+        };
+    }
+
+    // --- DIALOG SETTINGS ---
+    private static final String KEY_LAST_DIALOG_DIR = "last_dialog_dir";
+
+    public void saveLastDialogDir(File dir) {
+        if (dir != null) {
+            prefs.put(KEY_LAST_DIALOG_DIR, dir.getAbsolutePath());
+        }
+    }
+
+    public File loadLastDialogDir() {
+        String path = prefs.get(KEY_LAST_DIALOG_DIR, null);
+        if (path != null) {
+            File file = new File(path);
+            if (file.exists() && file.isDirectory()) {
+                return file;
+            }
+        }
+        return new File(System.getProperty("user.home")); // Default
+    }
+}

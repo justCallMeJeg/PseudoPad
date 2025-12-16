@@ -1,0 +1,35 @@
+package pseudopad.core;
+
+/**
+ * 
+ * @author Joseph Mikhaeli Jalandoni
+ */
+public enum TokenType {
+    SET, CONST, PRINT,
+
+    TYPE, NUMBER, STRING, BOOLEAN, NULL, LIST, DICT,
+
+    IDENTIFIER,
+
+    EQUALS,
+    SEMICOLON,
+    LPAREN, RPAREN,
+
+    PLUS, MINUS, MULT, DIV, MOD, CARET,
+    EQUAL_EQUAL, BANG_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL,
+    AND, OR, NOT,
+    IF, THEN, ELIF, ELSE, ENDIF,
+
+    WHILE, DO, ENDWHILE,
+    FOR, ENDFOR,
+    BREAK, SKIP,
+
+    LBRACKET, RBRACKET, LBRACE, RBRACE, COMMA, COLON, DOT,
+
+    FUNC, ENDFUNC, RETURN,
+    CLASS, ENDCLASS, THIS,
+
+    COMMENT,
+
+    EOF
+}

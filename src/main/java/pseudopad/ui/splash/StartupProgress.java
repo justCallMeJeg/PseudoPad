@@ -1,4 +1,4 @@
-package pseudopad.app;
+package pseudopad.ui.splash;
 
 /**
  *
@@ -7,7 +7,7 @@ package pseudopad.app;
 public class StartupProgress {
     private final int progress;
     private final String message;
-    
+
     public StartupProgress(int progress, String message) {
         this.progress = progress;
         this.message = message;

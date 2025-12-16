@@ -30,11 +30,11 @@
 
   <Layout class="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout"/>
   <SubComponents>
-    <Container class="pseudopad.ui.components.ImagePanel" name="imagePanel3">
+    <Container class="pseudopad.ui.components.ImagePanel" name="ImagePanel">
       <Properties>
         <Property name="alignmentX" type="float" value="0.0"/>
         <Property name="alignmentY" type="float" value="0.0"/>
-        <Property name="imageResourcePath" type="java.lang.String" value="/img/PseudoPad_SplashScreenTitle.png"/>
+        <Property name="imageResourcePath" type="java.lang.String" value=""/>
       </Properties>
       <Constraints>
         <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout" value="org.netbeans.modules.form.compat2.layouts.DesignBorderLayout$BorderConstraintsDescription">
