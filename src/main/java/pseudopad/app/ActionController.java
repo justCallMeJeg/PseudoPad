@@ -233,6 +233,30 @@ public class ActionController {
             appController.deleteItem();
         }
     };
+    public final Action FIND = new AbstractAction("Find") {
+        {
+            setup(this, "search",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_F, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.findAction();
+        }
+    };
+
+    public final Action REPLACE = new AbstractAction("Replace") {
+        {
+            setup(this, "replace",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_R, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.replaceAction();
+        }
+    };
+
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Theme Related Actions">
@@ -438,6 +462,8 @@ public class ActionController {
         refreshActionIcon(COPY, "content_copy");
         refreshActionIcon(PASTE, "content_paste");
         refreshActionIcon(DELETE, "delete");
+        refreshActionIcon(FIND, "search");
+        refreshActionIcon(REPLACE, "replace");
         refreshActionIcon(TOGGLE_NAV_PANEL, "sidebar");
         refreshActionIcon(TOGGLE_OUTPUT_PANEL, "terminal");
         refreshActionIcon(RUN_PROJECT, "run");

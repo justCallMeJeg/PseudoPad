@@ -39,4 +39,8 @@ public interface AppController {
     void togglePanel(String panelId);
 
     void resetWindows();
+
+    void findAction();
+
+    void replaceAction();
 }

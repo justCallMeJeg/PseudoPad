@@ -448,6 +448,28 @@ public class MainFrame extends JFrame implements AppController {
         }
     }
 
+    @Override
+    public void findAction() {
+        EditorTabbedPane editorPane = getEditorTabbedPane();
+        if (editorPane != null) {
+            java.awt.Component selected = editorPane.getSelectedComponent();
+            if (selected instanceof pseudopad.editor.FileTabPane fileTab) {
+                fileTab.showFind();
+            }
+        }
+    }
+
+    @Override
+    public void replaceAction() {
+        EditorTabbedPane editorPane = getEditorTabbedPane();
+        if (editorPane != null) {
+            java.awt.Component selected = editorPane.getSelectedComponent();
+            if (selected instanceof pseudopad.editor.FileTabPane fileTab) {
+                fileTab.showReplace();
+            }
+        }
+    }
+
     public void toggleNavigationPanel() {
         // Toggle Logic for Main Split (Left vs Right)
         if (mainLayout.getMainSplitPane().getDividerLocation() < 50) {

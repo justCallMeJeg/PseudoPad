@@ -40,6 +40,7 @@ public class FileTabPane extends JPanel {
     private final JScrollPane scrollPane;
     private final RowNumberHeader lineNumbers;
     private final SyntaxHighlighter highlighter;
+    private final FindReplaceBar findReplaceBar; // NEW
 
     private File fileSource; // Null if it's a new "Untitled" file
     private String originalContent;
@@ -129,6 +130,38 @@ public class FileTabPane extends JPanel {
                 (key, oldVal, newVal) -> tabWidth = newVal);
 
         add(scrollPane, BorderLayout.CENTER);
+
+        // --- Find & Replace Bar ---
+        findReplaceBar = new FindReplaceBar(textPane, () -> {
+            // Close callback
+            clearSearchHighlights();
+            textPane.requestFocusInWindow();
+        });
+
+        // Define Logic
+        findReplaceBar.setActions(
+                e -> findNext(true), // Next
+                e -> findNext(false), // Prev
+                e -> replaceCurrent(),
+                e -> replaceAll());
+
+        // Listen for "Live" search updates
+        findReplaceBar.addFindDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) {
+                highlightAllMatches();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                highlightAllMatches();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                highlightAllMatches();
+            }
+        });
+
+        findReplaceBar.setVisible(false); // Hidden by default
+        add(findReplaceBar, BorderLayout.NORTH);
 
         // 3. Track Changes
         textPane.getDocument().addDocumentListener(new DocumentListener() {
@@ -247,6 +280,27 @@ public class FileTabPane extends JPanel {
 
         // Initial check
         SwingUtilities.invokeLater(() -> triggerAnalysis());
+
+        updateThemeHighlighters(); // Init painters
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        updateThemeHighlighters();
+        if (findReplaceBar != null && findReplaceBar.isVisible()) {
+            highlightAllMatches();
+        }
+    }
+
+    private void updateThemeHighlighters() {
+        if (pseudopad.utils.ThemeManager.getInstance().isDarkMode()) {
+            detectedPainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 255, 0, 100)); // Yellow
+            activePainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 140, 0, 180)); // Dark Orange
+        } else {
+            detectedPainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 255, 0, 100)); // Yellow
+            activePainter = new DefaultHighlighter.DefaultHighlightPainter(new Color(255, 165, 0, 180)); // Orange
+        }
     }
 
     /**
@@ -339,12 +393,12 @@ public class FileTabPane extends JPanel {
     }
 
     private final javax.swing.Timer analysisTimer;
-    private final Object highlightTag = new Object(); // Marker for our highlights (not easily doable with
-                                                      // DefaultHighlighter, we track references if needed, or clear
-                                                      // all)
-    // Actually, we should probably clear only error highlights.
-    // For simplicity, we can remove all highlights that match our painter, or just
-    // clear all if syntax highlighting is done via Styles.
+
+    // Search Highlighting Fields
+    private Highlighter.HighlightPainter detectedPainter;
+    private Highlighter.HighlightPainter activePainter;
+    private final java.util.List<Object> searchHighlights = new java.util.ArrayList<>();
+    private Object activeHighlightTag = null;
 
     private pseudopad.core.AST.ProgramNode cachedAST;
 
@@ -669,5 +723,168 @@ public class FileTabPane extends JPanel {
         } catch (Exception e) {
             // Ignore navigation errors
         }
+    }
+
+    // ----- SEARCH LOGIC -----
+
+    public void showFind() {
+        if (findReplaceBar.isVisible() && !findReplaceBar.isReplaceMode()) {
+            findReplaceBar.close();
+        } else {
+            findReplaceBar.setReplaceMode(false);
+            findReplaceBar.open();
+            highlightAllMatches();
+        }
+    }
+
+    public void showReplace() {
+        if (findReplaceBar.isVisible() && findReplaceBar.isReplaceMode()) {
+            findReplaceBar.close();
+        } else {
+            findReplaceBar.setReplaceMode(true);
+            findReplaceBar.open();
+            highlightAllMatches();
+        }
+    }
+
+    private void findNext(boolean forward) {
+        String query = findReplaceBar.getFindText();
+        if (query.isEmpty())
+            return;
+
+        String text = textPane.getText();
+        boolean matchCase = findReplaceBar.isMatchCase();
+
+        if (!matchCase) {
+            query = query.toLowerCase();
+            text = text.toLowerCase();
+        }
+
+        int caret = textPane.getCaretPosition();
+        int index = -1;
+
+        if (forward) {
+            index = text.indexOf(query, caret);
+            if (index == -1) {
+                // Wrap around
+                index = text.indexOf(query);
+            }
+        } else {
+            // Search backwards from caret
+            // String.lastIndexOf searches backwards starting FROM the index
+            // We want to start searching before the selection
+            int startFrom = Math.max(0, textPane.getSelectionStart() - 1);
+            index = text.lastIndexOf(query, startFrom);
+            if (index == -1) {
+                // Wrap around to end
+                index = text.lastIndexOf(query);
+            }
+        }
+
+        if (index != -1) {
+            textPane.select(index, index + findReplaceBar.getFindText().length());
+            textPane.requestFocusInWindow();
+            highlightActiveMatch(index, index + findReplaceBar.getFindText().length());
+        } else {
+            java.awt.Toolkit.getDefaultToolkit().beep();
+        }
+    }
+
+    // --- HIGHLIGHTING HELPERS ---
+
+    private void clearSearchHighlights() {
+        Highlighter h = textPane.getHighlighter();
+        for (Object tag : searchHighlights) {
+            h.removeHighlight(tag);
+        }
+        searchHighlights.clear();
+        if (activeHighlightTag != null) {
+            h.removeHighlight(activeHighlightTag);
+            activeHighlightTag = null;
+        }
+    }
+
+    private void highlightAllMatches() {
+        clearSearchHighlights();
+
+        String query = findReplaceBar.getFindText();
+        if (query.isEmpty())
+            return;
+
+        String text = textPane.getText();
+        boolean matchCase = findReplaceBar.isMatchCase();
+
+        if (!matchCase) {
+            query = query.toLowerCase();
+            text = text.toLowerCase();
+        }
+
+        Highlighter h = textPane.getHighlighter();
+        int index = 0;
+        int len = query.length();
+
+        try {
+            while ((index = text.indexOf(query, index)) >= 0) {
+                Object tag = h.addHighlight(index, index + len, detectedPainter);
+                searchHighlights.add(tag);
+                index += len; // Move past correlation
+            }
+        } catch (Exception e) {
+            // Ignore highlight errors
+        }
+    }
+
+    private void highlightActiveMatch(int start, int end) {
+        Highlighter h = textPane.getHighlighter();
+        if (activeHighlightTag != null) {
+            h.removeHighlight(activeHighlightTag);
+        }
+        try {
+            // Add on top of others
+            activeHighlightTag = h.addHighlight(start, end, activePainter);
+        } catch (Exception e) {
+            // Ignore
+        }
+    }
+
+    private void replaceCurrent() {
+        String selection = textPane.getSelectedText();
+        String query = findReplaceBar.getFindText();
+
+        // Check if current selection matches query
+        if (selection != null) {
+            boolean matchCase = findReplaceBar.isMatchCase();
+            if (matchCase ? selection.equals(query) : selection.equalsIgnoreCase(query)) {
+                // Perform replace
+                textPane.replaceSelection(findReplaceBar.getReplaceText());
+                // Find next
+                findNext(true);
+            } else {
+                // Selection doesn't match, just find next
+                findNext(true);
+            }
+        } else {
+            findNext(true);
+        }
+    }
+
+    private void replaceAll() {
+        String query = findReplaceBar.getFindText();
+        if (query.isEmpty())
+            return;
+
+        String replacement = findReplaceBar.getReplaceText();
+        String text = textPane.getText();
+
+        if (!findReplaceBar.isMatchCase()) {
+            // Regex for case insensitive literal replace is tricky without Regex Pattern
+            // Simpler to just use string replacement if we want case insensitive
+            text = text.replaceAll("(?i)" + java.util.regex.Pattern.quote(query),
+                    java.util.regex.Matcher.quoteReplacement(replacement));
+        } else {
+            text = text.replace(query, replacement);
+        }
+
+        textPane.setText(text);
     }
 }

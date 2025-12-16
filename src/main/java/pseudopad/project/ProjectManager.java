@@ -2,6 +2,8 @@ package pseudopad.project;
 
 import com.google.gson.Gson;
 
+import pseudopad.app.AppConstants;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -12,8 +14,8 @@ import java.io.IOException;
  * @author Geger John Paul Gabayeron
  */
 public class ProjectManager {
-    private static final String CONFIG_FOLDER = pseudopad.app.AppConstants.CONFIG_DIR_NAME;
-    private static final String CONFIG_FILE = pseudopad.app.AppConstants.CONFIG_FILE_NAME;
+    private static final String CONFIG_FOLDER = AppConstants.CONFIG_DIR_NAME;
+    private static final String CONFIG_FILE = AppConstants.CONFIG_FILE_NAME;
     private static final Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
 
     public static boolean isValidProject(File directory) {
