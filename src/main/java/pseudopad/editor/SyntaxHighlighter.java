@@ -66,6 +66,8 @@ public class SyntaxHighlighter {
         Color identifierColor = isDark ? new Color(220, 220, 220) : new Color(50, 50, 50);// Light/Dark text
         Color commentColor = isDark ? new Color(106, 153, 85, 180) : new Color(0, 128, 0, 180); // Green with alpha
 
+        Color punctuationColor = isDark ? new Color(220, 220, 220) : new Color(50, 50, 50); // Light/Dark text
+
         // Map TokenTypes to Styles
         registerStyle(TokenType.SET, keywordColor);
         registerStyle(TokenType.CONST, keywordColor);
@@ -92,6 +94,7 @@ public class SyntaxHighlighter {
         registerStyle(TokenType.OR, keywordColor);
         registerStyle(TokenType.NOT, keywordColor);
         registerStyle(TokenType.BOOLEAN, keywordColor);
+        registerStyle(TokenType.NULL, keywordColor);
 
         registerStyle(TokenType.IDENTIFIER, identifierColor);
         registerStyle(TokenType.TYPE, typeColor);
@@ -99,6 +102,14 @@ public class SyntaxHighlighter {
         registerStyle(TokenType.STRING, stringColor);
         registerStyle(TokenType.NUMBER, numberColor);
         registerStyle(TokenType.COMMENT, commentColor);
+
+        // Punctuation
+        registerStyle(TokenType.LBRACE, punctuationColor);
+        registerStyle(TokenType.RBRACE, punctuationColor);
+        registerStyle(TokenType.LBRACKET, punctuationColor);
+        registerStyle(TokenType.RBRACKET, punctuationColor);
+        registerStyle(TokenType.COLON, punctuationColor);
+        registerStyle(TokenType.COMMA, punctuationColor);
     }
 
     private void registerStyle(TokenType type, Color color) {
@@ -123,11 +134,21 @@ public class SyntaxHighlighter {
                     return;
                 }
 
-                for (Token token : tokens) {
+                for (int i = 0; i < tokens.size(); i++) {
+                    Token token = tokens.get(i);
                     if (token.type == TokenType.EOF)
                         continue;
 
                     AttributeSet style = tokenStyles.get(token.type);
+
+                    // JSON Key Logic: If String is followed by Colon, color it like a Type (Teal)
+                    if (token.type == TokenType.STRING) {
+                        // Look ahead for colon
+                        if (i + 1 < tokens.size() && tokens.get(i + 1).type == TokenType.COLON) {
+                            style = tokenStyles.get(TokenType.TYPE);
+                        }
+                    }
+
                     if (style != null) {
                         doc.setCharacterAttributes(token.startIndex, token.length, style, false);
                     }

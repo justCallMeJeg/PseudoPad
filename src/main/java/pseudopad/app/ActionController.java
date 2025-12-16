@@ -15,6 +15,7 @@ import javax.swing.UIManager;
 import pseudopad.settings.SettingsManager;
 import pseudopad.ui.settings.SettingsDialog;
 import pseudopad.utils.IconManager;
+import pseudopad.utils.I18nManager;
 import pseudopad.utils.ThemeManager;
 
 /**
@@ -35,7 +36,8 @@ public class ActionController {
         });
     }
 
-    public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
+    public final Action NEW_PROJECT = new AbstractAction(I18nManager.get("action.new_project"),
+            IconManager.get("new_project")) {
         {
             setup(this, "new_project", KeyStroke.getKeyStroke(KeyEvent.VK_N,
                     Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
@@ -48,7 +50,7 @@ public class ActionController {
         }
     };
 
-    public final Action OPEN_PROJECT = new AbstractAction("Open Project...") {
+    public final Action OPEN_PROJECT = new AbstractAction(I18nManager.get("action.open_project")) {
         {
             setup(this, "open_project",
                     KeyStroke.getKeyStroke(KeyEvent.VK_O,
@@ -62,7 +64,7 @@ public class ActionController {
         }
     };
 
-    public final Action CLOSE_PROJECT = new AbstractAction("Close Project") {
+    public final Action CLOSE_PROJECT = new AbstractAction(I18nManager.get("action.close_project")) {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Close Project");
@@ -70,7 +72,7 @@ public class ActionController {
         }
     };
 
-    public final Action SAVE = new AbstractAction("Save") {
+    public final Action SAVE = new AbstractAction(I18nManager.get("action.save")) {
         {
             setup(this, "save",
                     KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -83,7 +85,7 @@ public class ActionController {
         }
     };
 
-    public final Action OPEN_SETTINGS = new AbstractAction("Settings...") {
+    public final Action OPEN_SETTINGS = new AbstractAction(I18nManager.get("action.settings")) {
         {
             setup(this, "settings",
                     KeyStroke.getKeyStroke(KeyEvent.VK_COMMA, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -97,7 +99,7 @@ public class ActionController {
         }
     };
 
-    public final Action OPEN_GLOBAL_SETTINGS = new AbstractAction("Open Global Settings (JSON)") {
+    public final Action OPEN_GLOBAL_SETTINGS = new AbstractAction(I18nManager.get("action.settings.global")) {
         {
             putValue(Action.SMALL_ICON, IconManager.get("settings"));
         }
@@ -110,7 +112,7 @@ public class ActionController {
         }
     };
 
-    public final Action OPEN_PROJECT_SETTINGS = new AbstractAction("Open Project Settings (JSON)") {
+    public final Action OPEN_PROJECT_SETTINGS = new AbstractAction(I18nManager.get("action.settings.project")) {
         {
             putValue(Action.SMALL_ICON, IconManager.get("settings"));
             setEnabled(false); // Disabled until a project is opened
@@ -154,14 +156,14 @@ public class ActionController {
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(null,
-                    "Failed to open settings file: " + ex.getMessage(),
+                    I18nManager.get("msg.error.settings_open") + " " + ex.getMessage(),
                     "Error",
                     JOptionPane.ERROR_MESSAGE);
         }
     }
 
     // <editor-fold defaultstate="collapsed" desc="Edit Actions">
-    public final Action UNDO = new AbstractAction("Undo") {
+    public final Action UNDO = new AbstractAction(I18nManager.get("action.undo")) {
         {
             setup(this, "undo",
                     KeyStroke.getKeyStroke(KeyEvent.VK_Z, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -173,7 +175,7 @@ public class ActionController {
         }
     };
 
-    public final Action REDO = new AbstractAction("Redo") {
+    public final Action REDO = new AbstractAction(I18nManager.get("action.redo")) {
         {
             setup(this, "redo",
                     KeyStroke.getKeyStroke(KeyEvent.VK_Y, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -185,7 +187,7 @@ public class ActionController {
         }
     };
 
-    public final Action CUT = new AbstractAction("Cut") {
+    public final Action CUT = new AbstractAction(I18nManager.get("action.cut")) {
         {
             setup(this, "content_cut",
                     KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -197,7 +199,7 @@ public class ActionController {
         }
     };
 
-    public final Action COPY = new AbstractAction("Copy") {
+    public final Action COPY = new AbstractAction(I18nManager.get("action.copy")) {
         {
             setup(this, "content_copy",
                     KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -209,7 +211,7 @@ public class ActionController {
         }
     };
 
-    public final Action PASTE = new AbstractAction("Paste") {
+    public final Action PASTE = new AbstractAction(I18nManager.get("action.paste")) {
         {
             setup(this, "content_paste",
                     KeyStroke.getKeyStroke(KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -221,7 +223,7 @@ public class ActionController {
         }
     };
 
-    public final Action DELETE = new AbstractAction("Delete") {
+    public final Action DELETE = new AbstractAction(I18nManager.get("action.delete")) {
         {
             setup(this, "delete", KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0));
         }
@@ -234,7 +236,7 @@ public class ActionController {
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="Theme Related Actions">
-    public final Action THEME_LIGHT = new AbstractAction("Light") {
+    public final Action THEME_LIGHT = new AbstractAction(I18nManager.get("theme.light")) {
         {
             putValue(Action.SHORT_DESCRIPTION, "Change UI theme to Light Mode");
         }
@@ -247,7 +249,7 @@ public class ActionController {
         }
     };
 
-    public final Action THEME_DARK = new AbstractAction("Dark") {
+    public final Action THEME_DARK = new AbstractAction(I18nManager.get("theme.dark")) {
         {
             putValue(Action.SHORT_DESCRIPTION, "Change UI theme to Dark Mode");
         }
@@ -260,7 +262,7 @@ public class ActionController {
         }
     };
 
-    public final Action THEME_SYSTEM = new AbstractAction("System") {
+    public final Action THEME_SYSTEM = new AbstractAction(I18nManager.get("theme.system")) {
         {
             putValue(Action.SHORT_DESCRIPTION, "Change UI theme to OS's Preference");
         }
@@ -275,7 +277,7 @@ public class ActionController {
     // </editor-fold>
 
     // <editor-fold defaultstate="collapsed" desc="View Actions">
-    public final Action TOGGLE_NAV_PANEL = new AbstractAction("Toggle Navigation") {
+    public final Action TOGGLE_NAV_PANEL = new AbstractAction(I18nManager.get("action.toggle_nav")) {
         {
             setup(this, "sidebar",
                     KeyStroke.getKeyStroke(KeyEvent.VK_1, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -287,7 +289,7 @@ public class ActionController {
         }
     };
 
-    public final Action TOGGLE_OUTPUT_PANEL = new AbstractAction("Toggle Output") {
+    public final Action TOGGLE_OUTPUT_PANEL = new AbstractAction(I18nManager.get("action.toggle_output")) {
         {
             setup(this, "terminal",
                     KeyStroke.getKeyStroke(KeyEvent.VK_2, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
@@ -300,7 +302,7 @@ public class ActionController {
     };
     // </editor-fold>
 
-    public final Action RUN_PROJECT = new AbstractAction("Run Project") {
+    public final Action RUN_PROJECT = new AbstractAction(I18nManager.get("action.run_project")) {
         {
             setup(this, "run",
                     KeyStroke.getKeyStroke(KeyEvent.VK_F6, 0));
@@ -392,7 +394,7 @@ public class ActionController {
         }
     };
 
-    public final Action RESET_WINDOWS = new AbstractAction("Reset Windows") {
+    public final Action RESET_WINDOWS = new AbstractAction(I18nManager.get("action.reset_windows")) {
         @Override
         public void actionPerformed(ActionEvent e) {
             appController.resetWindows();

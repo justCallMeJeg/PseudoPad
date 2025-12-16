@@ -6,6 +6,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JRadioButtonMenuItem;
 
 import pseudopad.app.ActionController;
+import pseudopad.utils.I18nManager;
 import pseudopad.utils.ThemeManager;
 
 /**
@@ -26,7 +27,7 @@ public class AppMenuBar extends JMenuBar {
     }
 
     private void initFileMenu() {
-        JMenu fileMenu = new JMenu("File");
+        JMenu fileMenu = new JMenu(I18nManager.get("menu.file"));
 
         // You just add the Action! Swing handles the Text, Icon, AND Shortcut
         // automatically.
@@ -41,7 +42,7 @@ public class AppMenuBar extends JMenuBar {
         fileMenu.addSeparator();
 
         // Settings submenu
-        JMenu settingsMenu = new JMenu("Settings");
+        JMenu settingsMenu = new JMenu(I18nManager.get("action.settings")); // Reusing property or new one
         settingsMenu.add(new JMenuItem(actions.OPEN_SETTINGS));
         settingsMenu.addSeparator();
         settingsMenu.add(new JMenuItem(actions.OPEN_GLOBAL_SETTINGS));
@@ -52,7 +53,7 @@ public class AppMenuBar extends JMenuBar {
     }
 
     private void initEditMenu() {
-        JMenu editMenu = new JMenu("Edit");
+        JMenu editMenu = new JMenu(I18nManager.get("menu.edit"));
 
         editMenu.add(new JMenuItem(actions.UNDO));
         editMenu.add(new JMenuItem(actions.REDO));
@@ -66,13 +67,13 @@ public class AppMenuBar extends JMenuBar {
     }
 
     private void initRunMenu() {
-        JMenu runMenu = new JMenu("Run");
+        JMenu runMenu = new JMenu(I18nManager.get("menu.run"));
         runMenu.add(new JMenuItem(actions.RUN_PROJECT));
         add(runMenu);
     }
 
     private void initWindowMenu() {
-        JMenu windowMenu = new JMenu("Window");
+        JMenu windowMenu = new JMenu(I18nManager.get("menu.window"));
 
         // Primary Toggles
         windowMenu.add(new JMenuItem(actions.TOGGLE_NAV_PANEL));
@@ -93,7 +94,7 @@ public class AppMenuBar extends JMenuBar {
         windowMenu.add(new JMenuItem(actions.RESET_WINDOWS));
         windowMenu.addSeparator();
 
-        JMenu themeMenu = new JMenu("Theme");
+        JMenu themeMenu = new JMenu(I18nManager.get("setting.theme"));
 
         javax.swing.ButtonGroup themeGroup = new javax.swing.ButtonGroup();
 
@@ -138,7 +139,7 @@ public class AppMenuBar extends JMenuBar {
     }
 
     private void initHelpMenu() {
-        JMenu helpMenu = new JMenu("Help");
+        JMenu helpMenu = new JMenu(I18nManager.get("menu.help"));
         add(helpMenu);
     }
 }

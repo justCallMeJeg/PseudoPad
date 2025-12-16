@@ -7,7 +7,7 @@ package pseudopad.core;
 public enum TokenType {
     SET, CONST, PRINT,
 
-    TYPE, NUMBER, STRING, BOOLEAN, LIST, DICT,
+    TYPE, NUMBER, STRING, BOOLEAN, NULL, LIST, DICT,
 
     IDENTIFIER,
 

@@ -12,9 +12,9 @@ import java.io.IOException;
  * @author Geger John Paul Gabayeron
  */
 public class ProjectManager {
-    private static final String CONFIG_FOLDER = ".pseudopad";
-    private static final String CONFIG_FILE = "project.json";
-    private static final Gson gson = new Gson(); // Or use standard properties if no GSON
+    private static final String CONFIG_FOLDER = pseudopad.app.AppConstants.CONFIG_DIR_NAME;
+    private static final String CONFIG_FILE = pseudopad.app.AppConstants.CONFIG_FILE_NAME;
+    private static final Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
 
     public static boolean isValidProject(File directory) {
         if (!directory.isDirectory()) {
@@ -51,7 +51,7 @@ public class ProjectManager {
         // 4. Create a default Main file (Optional but good UX)
         File mainFile = new File(projectRoot, "main.pc");
         try (FileWriter writer = new FileWriter(mainFile)) {
-            writer.write("START\n    PROMPT \"Hello " + name + "!\"\nEND");
+            writer.write("print(\"Hello World!\");");
         }
     }
 

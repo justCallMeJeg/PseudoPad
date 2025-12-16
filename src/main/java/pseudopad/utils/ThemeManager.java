@@ -51,9 +51,8 @@ public class ThemeManager {
     }
 
     public void changeTheme(THEMES theme) {
-        // Save to both SettingsManager (new) and PreferenceManager (backwards compat)
+        // Save to SettingsManager (new)
         SettingsManager.getInstance().setTheme(theme);
-        PreferenceManager.getInstance().saveTheme(theme);
         currentTheme = theme;
 
         switch (theme) {

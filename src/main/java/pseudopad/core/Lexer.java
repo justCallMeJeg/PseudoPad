@@ -280,6 +280,7 @@ public class Lexer {
         keywords.put("PRINT", TokenType.PRINT);
         keywords.put("TRUE", TokenType.BOOLEAN);
         keywords.put("FALSE", TokenType.BOOLEAN);
+        keywords.put("NULL", TokenType.NULL);
         keywords.put("NUMBER", TokenType.TYPE);
         keywords.put("STRING", TokenType.TYPE);
         keywords.put("BOOLEAN", TokenType.TYPE);

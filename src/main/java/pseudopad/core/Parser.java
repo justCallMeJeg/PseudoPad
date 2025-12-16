@@ -86,6 +86,9 @@ public class Parser {
                 case PRINT:
                 case RETURN:
                     return;
+                default:
+                    // Continue advancing for other tokens
+                    break;
             }
 
             advance();
@@ -424,6 +427,10 @@ public class Parser {
             case BOOLEAN:
                 advance();
                 expression = new AST.LiteralNode(Boolean.parseBoolean(token.value), "BOOLEAN");
+                break;
+            case NULL:
+                advance();
+                expression = new AST.LiteralNode(null, "NULL");
                 break;
             case IDENTIFIER:
                 advance();

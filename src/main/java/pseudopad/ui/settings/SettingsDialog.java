@@ -9,6 +9,7 @@ import javax.swing.border.EmptyBorder;
 import pseudopad.settings.SettingsCategory;
 import pseudopad.settings.SettingsKey;
 import pseudopad.settings.SettingsManager;
+import pseudopad.utils.I18nManager;
 import pseudopad.utils.ThemeManager;
 
 /**
@@ -24,7 +25,7 @@ public class SettingsDialog extends JDialog {
     private JList<SettingsCategory> categoryList;
 
     public SettingsDialog(Frame parent) {
-        super(parent, "Settings", true);
+        super(parent, I18nManager.get("dialog.settings.title"), true);
         initComponents();
         setMinimumSize(new Dimension(700, 500));
         setSize(800, 550);
@@ -88,22 +89,22 @@ public class SettingsDialog extends JDialog {
         panel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0,
                 UIManager.getColor("Separator.foreground")));
 
-        JButton resetButton = new JButton("Reset to Defaults");
+        JButton resetButton = new JButton(I18nManager.get("button.reset"));
         resetButton.addActionListener(e -> resetToDefaults());
 
-        JButton cancelButton = new JButton("Cancel");
+        JButton cancelButton = new JButton(I18nManager.get("button.cancel"));
         cancelButton.addActionListener(e -> dispose());
 
-        JButton applyButton = new JButton("Apply");
+        JButton applyButton = new JButton(I18nManager.get("button.apply"));
         applyButton.addActionListener(e -> applyChangesImmediately());
 
-        JButton okButton = new JButton("OK");
+        JButton okButton = new JButton(I18nManager.get("button.ok"));
         okButton.addActionListener(e -> {
             if (!pendingChanges.isEmpty()) {
                 applyChangesImmediately();
                 JOptionPane.showMessageDialog(this,
-                        "Settings saved successfully.",
-                        "Settings",
+                        I18nManager.get("msg.settings.saved") + "\n" + I18nManager.get("msg.settings.restart"),
+                        I18nManager.get("dialog.settings.title"),
                         JOptionPane.INFORMATION_MESSAGE);
             }
             dispose();
@@ -169,7 +170,9 @@ public class SettingsDialog extends JDialog {
         JPanel labelPanel = new JPanel();
         labelPanel.setLayout(new BoxLayout(labelPanel, BoxLayout.Y_AXIS));
 
-        JLabel nameLabel = new JLabel(key.getDisplayName());
+        // Use key.getKey() to lookup localized name, e.g. "appearance.theme" maps to
+        // "Theme"
+        JLabel nameLabel = new JLabel(I18nManager.get(key.getKey()));
         nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         labelPanel.add(nameLabel);
 
@@ -200,6 +203,15 @@ public class SettingsDialog extends JDialog {
         // Handle theme specially
         if (key == SettingsManager.THEME) {
             JComboBox<String> combo = new JComboBox<>(new String[] { "LIGHT", "DARK", "SYSTEM" });
+            combo.setSelectedItem(currentValue);
+            combo.setPreferredSize(new Dimension(120, 25));
+            combo.addActionListener(e -> pendingChanges.put(key, combo.getSelectedItem()));
+            return combo;
+        }
+
+        // Handle language specially
+        if (key == SettingsManager.APPEARANCE_LANGUAGE) {
+            JComboBox<String> combo = new JComboBox<>(new String[] { "English", "Spanish" });
             combo.setSelectedItem(currentValue);
             combo.setPreferredSize(new Dimension(120, 25));
             combo.addActionListener(e -> pendingChanges.put(key, combo.getSelectedItem()));
@@ -281,8 +293,9 @@ public class SettingsDialog extends JDialog {
 
     private void resetToDefaults() {
         int result = JOptionPane.showConfirmDialog(this,
-                "Reset all settings to their default values?",
-                "Reset Settings",
+                "Reset all settings to their default values?", // Should be localized too but I defined defaults in
+                                                               // English properties
+                I18nManager.get("button.reset"),
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE);
 
@@ -304,7 +317,8 @@ public class SettingsDialog extends JDialog {
             super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
             if (value instanceof SettingsCategory category) {
-                setText(category.getDisplayName());
+                // e.g. "category.appearance" maps to "Appearance"
+                setText(I18nManager.get("category." + category.name().toLowerCase()));
                 setBorder(new EmptyBorder(10, 15, 10, 15));
             }
 

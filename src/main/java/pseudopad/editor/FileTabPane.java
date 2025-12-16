@@ -353,8 +353,8 @@ public class FileTabPane extends JPanel {
     }
 
     private void performAnalysis() {
-        // Skip analysis for files in the .pseudopad settings folder
-        if (fileSource != null && fileSource.getAbsolutePath().contains(".pseudopad")) {
+        // Skip analysis for non-source files
+        if (fileSource != null && !fileSource.getName().endsWith(pseudopad.app.AppConstants.FILE_EXTENSION)) {
             return;
         }
 
@@ -534,15 +534,35 @@ public class FileTabPane extends JPanel {
         try {
             // Format code before saving
             String content = textPane.getText();
-            String formatted = PseudoFormatter.format(content);
+            String formatted = content;
+
+            if (fileSource != null) {
+                if (fileSource.getName().endsWith(".json")) {
+                    try {
+                        // JSON Formatting
+                        com.google.gson.JsonElement je = com.google.gson.JsonParser.parseString(content);
+                        com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
+                        formatted = gson.toJson(je);
+                    } catch (com.google.gson.JsonSyntaxException e) {
+                        // Invalid JSON, ignore formatting and save as is
+                        System.err.println("Invalid JSON, skipping formatting: " + e.getMessage());
+                        formatted = content;
+                    }
+                } else if (fileSource.getName().endsWith(".pc")) {
+                    // Pseudo Code Formatting
+                    formatted = PseudoFormatter.format(content);
+                }
+            }
 
             // Update text pane with formatted content (preserving caret if possible)
-            int caretPos = textPane.getCaretPosition();
-            textPane.setText(formatted);
-            try {
-                textPane.setCaretPosition(Math.min(caretPos, formatted.length()));
-            } catch (Exception ex) {
-                // Ignore caret positioning errors
+            if (!content.equals(formatted)) {
+                int caretPos = textPane.getCaretPosition();
+                textPane.setText(formatted);
+                try {
+                    textPane.setCaretPosition(Math.min(caretPos, formatted.length()));
+                } catch (Exception ex) {
+                    // Ignore caret positioning errors
+                }
             }
 
             // Re-apply syntax highlighting after format

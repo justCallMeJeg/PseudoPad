@@ -14,27 +14,9 @@ public class PreferenceManager {
 
     // --- KEYS ---
     public static enum KEY {
-        THEME("app_theme");
-
-        private final String keyString;
-
-        // The constructor for the enum constants
-        KEY(String keyString) {
-            this.keyString = keyString;
-        }
-
-        // A public method to retrieve the associated String value
-        public String getKey() {
-            return this.keyString;
-        }
-
-        @Override
-        public String toString() {
-            return this.keyString;
-        }
+        // Theme key removed
     }
 
-    public static final String KEY_THEME = "app_theme";
     public static final String KEY_LAST_PROJECT = "last_project_path";
 
     // Private constructor for Singleton
@@ -52,22 +34,9 @@ public class PreferenceManager {
     }
 
     public void savePreference(KEY prefKey, String value) {
-        prefs.put(prefKey.getKey(), value);
-    }
-
-    // --- THEME SETTINGS ---
-
-    public void saveTheme(ThemeManager.THEMES theme) {
-        prefs.put(KEY_THEME, theme.name());
-    }
-
-    public ThemeManager.THEMES loadTheme() {
-        String themeName = prefs.get(KEY_THEME, ThemeManager.THEMES.SYSTEM.name());
-        try {
-            return ThemeManager.THEMES.valueOf(themeName);
-        } catch (IllegalArgumentException e) {
-            return ThemeManager.THEMES.SYSTEM; // Fallback
-        }
+        // Generic save if needed remains, though enum is empty now
+        if (prefKey != null)
+            prefs.put(prefKey.toString(), value);
     }
 
     // --- PROJECT SETTINGS ---

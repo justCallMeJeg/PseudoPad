@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 
+import pseudopad.utils.I18nManager;
 import pseudopad.utils.ThemeManager;
 
 /**
@@ -23,7 +24,7 @@ public class SettingsManager {
     private static SettingsManager INSTANCE;
 
     // JSON storage
-    private static final String SETTINGS_DIR = ".pseudopad";
+    private static final String SETTINGS_DIR = pseudopad.app.AppConstants.CONFIG_DIR_NAME;
     private static final String SETTINGS_FILE = "settings.json";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -45,6 +46,10 @@ public class SettingsManager {
     public static final SettingsKey<String> THEME = new SettingsKey<>(
             "appearance.theme", SettingsCategory.APPEARANCE, "SYSTEM",
             String.class, "Theme", "Application color theme (LIGHT, DARK, SYSTEM)", false);
+
+    public static final SettingsKey<String> APPEARANCE_LANGUAGE = new SettingsKey<>(
+            "appearance.language", SettingsCategory.APPEARANCE, "English",
+            String.class, "Language", "Application language (English, Spanish)", false);
 
     public static final SettingsKey<Integer> ICON_SIZE = new SettingsKey<>(
             "appearance.icon.size", SettingsCategory.APPEARANCE, 16,
@@ -121,6 +126,14 @@ public class SettingsManager {
     private SettingsManager() {
         registerAllKeys();
         loadGlobalSettings();
+
+        // Initialize I18n
+        String lang = get(APPEARANCE_LANGUAGE);
+        if ("Spanish".equalsIgnoreCase(lang)) {
+            I18nManager.getInstance().setLocale(new Locale("es"));
+        } else {
+            I18nManager.getInstance().setLocale(Locale.ENGLISH);
+        }
     }
 
     public static SettingsManager getInstance() {
@@ -132,6 +145,7 @@ public class SettingsManager {
 
     private void registerAllKeys() {
         allKeys.add(THEME);
+        allKeys.add(APPEARANCE_LANGUAGE);
         allKeys.add(ICON_SIZE);
         allKeys.add(EDITOR_FONT_FAMILY);
         allKeys.add(EDITOR_FONT_SIZE);

@@ -27,6 +27,10 @@ public class AppConstants {
     public static final String DEFAULT_TAB_TITLE = "Untitled";
     public static final String FILE_EXTENSION = ".pc";
 
+    // Configuration
+    public static final String CONFIG_DIR_NAME = ".pseudopad";
+    public static final String CONFIG_FILE_NAME = "project.json";
+
     // Dialogs
     public static final String DIALOG_TITLE_NEW_PROJECT = "New Project";
     public static final String DIALOG_TITLE_OPEN_PROJECT = "Open Project Folder";
