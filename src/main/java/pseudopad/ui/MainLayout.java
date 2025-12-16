@@ -501,14 +501,15 @@ public class MainLayout extends JPanel {
             // Tabs are closable - wiring is done via TabbedPane's close callback
         }
 
-        static void addTabIfNotExists(TabbedPane tabPane, String title, Component comp) {
-            for (int i = 0; i < tabPane.getTabCount(); i++) {
-                if (tabPane.getComponentAt(i) == comp) {
-                    return;
-                }
-            }
-            tabPane.addTab(title, comp);
-        }
+        // static void addTabIfNotExists(TabbedPane tabPane, String title, Component
+        // comp) {
+        // for (int i = 0; i < tabPane.getTabCount(); i++) {
+        // if (tabPane.getComponentAt(i) == comp) {
+        // return;
+        // }
+        // }
+        // tabPane.addTab(title, comp);
+        // }
 
         static void removeTabByComponent(TabbedPane tabPane, Component comp) {
             int index = tabPane.indexOfComponent(comp);
@@ -518,12 +519,12 @@ public class MainLayout extends JPanel {
         }
 
         // Legacy method - kept for compatibility but prefer removeTabByComponent
-        static void removeTab(TabbedPane tabPane, String title) {
-            int index = tabPane.indexOfTab(title);
-            if (index >= 0) {
-                tabPane.removeTabAt(index);
-            }
-        }
+        // static void removeTab(TabbedPane tabPane, String title) {
+        // int index = tabPane.indexOfTab(title);
+        // if (index >= 0) {
+        // tabPane.removeTabAt(index);
+        // }
+        // }
 
         private static String getPanelIdForComponent(Component comp) {
             // Reverse lookup

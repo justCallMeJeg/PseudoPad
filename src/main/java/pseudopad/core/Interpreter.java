@@ -515,8 +515,10 @@ public class Interpreter {
 
             if (target instanceof List<?> list) {
                 int i = ((Number) key).intValue();
+                // TODO: Check bounds
                 ((List<Object>) list).set(i, value);
             } else if (target instanceof Map<?, ?> map) {
+                // TODO: Check key type
                 ((Map<Object, Object>) map).put(key, value);
             } else {
                 throw new Errors.RuntimeError("Cannot assign to type: " + target.getClass());
@@ -589,6 +591,7 @@ public class Interpreter {
 
         // 1. BUILT-INS FOR LISTS
         if (object instanceof List) {
+            // TODO: Check bounds
             List<Object> list = (List<Object>) object;
             switch (name) {
                 case "append":
@@ -687,6 +690,7 @@ public class Interpreter {
 
         // 3. BUILT-INS FOR DICTIONARIES (MAPS)
         if (object instanceof Map) {
+            // TODO: Check bounds
             Map<Object, Object> map = (Map<Object, Object>) object;
             switch (name) {
                 case "keys":

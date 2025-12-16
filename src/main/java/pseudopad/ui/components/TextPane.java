@@ -21,7 +21,7 @@ import javax.swing.text.StyledDocument;
 public class TextPane extends JTextPane {
 
     // Key for marking text that should follow theme
-    private static final String THEME_AWARE_KEY = "themeAware";
+    // private static final String THEME_AWARE_KEY = "themeAware";
 
     public TextPane() {
         super();

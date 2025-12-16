@@ -4,8 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.List;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTree;
@@ -149,15 +147,15 @@ public class FileOutlinePanel extends JPanel {
             return node.toString();
         }
 
-        public String getIconKey() {
-            if (node instanceof AST.FunctionNode)
-                return "Function";
-            if (node instanceof AST.ClassNode)
-                return "Class";
-            if (node instanceof AST.VariableDeclarationNode)
-                return "Variable";
-            return "Default";
-        }
+        // public String getIconKey() {
+        // if (node instanceof AST.FunctionNode)
+        // return "Function";
+        // if (node instanceof AST.ClassNode)
+        // return "Class";
+        // if (node instanceof AST.VariableDeclarationNode)
+        // return "Variable";
+        // return "Default";
+        // }
     }
 
     private static class OutlineTreeCellRenderer extends DefaultTreeCellRenderer {

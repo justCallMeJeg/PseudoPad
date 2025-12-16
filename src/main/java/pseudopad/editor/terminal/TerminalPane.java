@@ -428,7 +428,7 @@ public class TerminalPane extends JTextPane {
      * \u001B[36m (cyan), \u001B[0m (reset)
      */
     private void appendWithAnsiColors(StyledDocument doc, String text) throws BadLocationException {
-        Color currentColor = getForeground();
+        // Color currentColor = getForeground();
         Color RED = new Color(255, 100, 100); // Bright red for errors
         Color GREEN = new Color(100, 255, 100); // Green for success
         Color YELLOW = new Color(255, 255, 100); // Yellow for warnings

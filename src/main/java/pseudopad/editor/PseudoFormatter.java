@@ -6,7 +6,7 @@ package pseudopad.editor;
  */
 public class PseudoFormatter {
 
-    private static final int INDENT_SIZE = 4;
+    // private static final int INDENT_SIZE = 4;
     private static final String INDENT = "    "; // 4 spaces
 
     /**

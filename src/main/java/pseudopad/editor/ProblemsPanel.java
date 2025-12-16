@@ -170,12 +170,12 @@ public class ProblemsPanel extends JPanel {
     private static class FileNodeData {
         final String displayName;
         final String key;
-        final File file;
+        // final File file;
 
         public FileNodeData(String displayName, String key, File file) {
             this.displayName = displayName;
             this.key = key;
-            this.file = file;
+            // this.file = file;
         }
 
         @Override
