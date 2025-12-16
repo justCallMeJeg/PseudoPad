@@ -131,7 +131,11 @@ public class ProblemsPanel extends JPanel {
         });
     }
 
-    private void updateTabTitleCount() {
+    /**
+     * Updates the tab title to show the current error count.
+     * Call this after re-adding the panel to a TabbedPane.
+     */
+    public void updateTabTitleCount() {
         int totalErrors = 0;
         for (int i = 0; i < root.getChildCount(); i++) {
             DefaultMutableTreeNode node = (DefaultMutableTreeNode) root.getChildAt(i);

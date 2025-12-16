@@ -34,4 +34,9 @@ public interface AppController {
     void toggleOutputPanel();
 
     void runProject();
+
+    // Panel visibility management
+    void togglePanel(String panelId);
+
+    void resetWindows();
 }

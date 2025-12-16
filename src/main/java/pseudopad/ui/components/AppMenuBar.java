@@ -65,9 +65,23 @@ public class AppMenuBar extends JMenuBar {
     private void initWindowMenu() {
         JMenu windowMenu = new JMenu("Window");
 
+        // Primary Toggles
         windowMenu.add(new JMenuItem(actions.TOGGLE_NAV_PANEL));
         windowMenu.add(new JMenuItem(actions.TOGGLE_OUTPUT_PANEL));
 
+        windowMenu.addSeparator();
+
+        // Individual Panel Toggles
+        addPanelToggle(windowMenu, actions.TOGGLE_PROJECTS, pseudopad.app.WindowManager.PANEL_PROJECTS);
+        addPanelToggle(windowMenu, actions.TOGGLE_FILES, pseudopad.app.WindowManager.PANEL_FILES);
+        addPanelToggle(windowMenu, actions.TOGGLE_FILE_OUTLINE, pseudopad.app.WindowManager.PANEL_FILE_OUTLINE);
+        windowMenu.addSeparator();
+        addPanelToggle(windowMenu, actions.TOGGLE_OUTPUT, pseudopad.app.WindowManager.PANEL_OUTPUT);
+        addPanelToggle(windowMenu, actions.TOGGLE_PROBLEMS, pseudopad.app.WindowManager.PANEL_PROBLEMS);
+        addPanelToggle(windowMenu, actions.TOGGLE_LOGS, pseudopad.app.WindowManager.PANEL_LOGS);
+
+        windowMenu.addSeparator();
+        windowMenu.add(new JMenuItem(actions.RESET_WINDOWS));
         windowMenu.addSeparator();
 
         JMenu themeMenu = new JMenu("Theme");
@@ -85,8 +99,6 @@ public class AppMenuBar extends JMenuBar {
         themeMenu.add(lightItem);
         themeMenu.add(darkItem);
         themeMenu.add(systemItem);
-        // themeMenu.addSeparator();
-        // themeMenu.add(new JMenuItem("Customize..."));
 
         ThemeManager.THEMES currentTheme = ThemeManager.getInstance().getCurrentTheme();
 
@@ -98,6 +110,22 @@ public class AppMenuBar extends JMenuBar {
 
         windowMenu.add(themeMenu);
         add(windowMenu);
+    }
+
+    private void addPanelToggle(JMenu menu, javax.swing.Action action, String panelId) {
+        javax.swing.JCheckBoxMenuItem item = new javax.swing.JCheckBoxMenuItem(action);
+
+        // Initialize state
+        item.setSelected(pseudopad.app.WindowManager.getInstance().isPanelVisible(panelId));
+
+        // Listen for external changes (e.g. ActivityBar restore)
+        pseudopad.app.WindowManager.getInstance().addPanelChangeListener((id, visible) -> {
+            if (id.equals(panelId)) {
+                item.setSelected(visible);
+            }
+        });
+
+        menu.add(item);
     }
 
     private void initHelpMenu() {

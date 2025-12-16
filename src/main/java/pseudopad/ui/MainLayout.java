@@ -4,11 +4,14 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.io.File;
+import java.util.function.BiConsumer;
+
 import javax.swing.BorderFactory;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
@@ -20,6 +23,8 @@ import javax.swing.text.StyledDocument;
 import pseudopad.app.ActionController;
 import pseudopad.app.AppConstants;
 import pseudopad.app.MainFrame;
+import pseudopad.app.WindowManager;
+import pseudopad.core.AST.ProgramNode;
 import pseudopad.editor.EditorTabbedPane;
 import pseudopad.editor.FileTabPane;
 import pseudopad.editor.ProblemsPanel;
@@ -31,11 +36,15 @@ import pseudopad.editor.statusbar.StatusBar;
 import pseudopad.editor.FileOutlinePanel;
 import pseudopad.editor.terminal.SimpleTerminalBackend;
 import pseudopad.editor.terminal.TerminalPane;
+import pseudopad.ui.components.ActivityBar;
 import pseudopad.ui.components.AppMenuBar;
 import pseudopad.ui.components.AppToolBar;
 import pseudopad.ui.components.RecentProjectsPanel;
 import pseudopad.ui.components.TabbedPane;
 import pseudopad.ui.components.TextPane;
+import pseudopad.utils.IconManager;
+
+import java.awt.Component;
 
 /**
  * Manages the UI layout and components for the MainFrame.
@@ -57,9 +66,13 @@ public class MainLayout extends JPanel {
     private EditorTabbedPane editorTabbedPane;
     private TabbedPane bottomEditorTabbedPane;
 
+    private ActivityBar activityBar;
+
     private TerminalPane terminalTextPane;
     private TextPane logTextPane;
     private StatusBar statusBar;
+    private JScrollPane logScrollPane;
+    private JScrollPane terminalScrollPane;
 
     private CursorPositionWidget cursorWidget;
     private ReadOnlyWidget readOnlyWidget;
@@ -86,6 +99,9 @@ public class MainLayout extends JPanel {
 
         AppToolBar toolBar = new AppToolBar(this.appActions);
         add(toolBar, BorderLayout.NORTH);
+
+        // Add Activity Bar (West of main layout)
+        add(activityBar, BorderLayout.WEST);
 
         this.mainSplitPane.setResizeWeight(AppConstants.MAIN_SPLIT_RESIZE_WEIGHT);
         this.mainSplitPane.setOrientation(JSplitPane.HORIZONTAL_SPLIT);
@@ -115,8 +131,8 @@ public class MainLayout extends JPanel {
         });
 
         this.topNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
-        this.topNavigationTabbedPane.add("Projects", projectExplorer);
-        this.topNavigationTabbedPane.add("Files", fileExplorer);
+        // Tabs added dynamically now via WindowManager
+
         this.topNavigationTabbedPane.setMinimizeAction(e -> {
             if (this.navigationSplitPane.getDividerLocation() < 50) {
                 this.navigationSplitPane.setDividerLocation(0.5);
@@ -131,7 +147,8 @@ public class MainLayout extends JPanel {
         });
 
         this.bottomNavigationTabbedPane.setMinimumSize(new Dimension(200, 100));
-        this.bottomNavigationTabbedPane.add("File Outline", fileOutlinePanel);
+        // Tabs added dynamically now via WindowManager
+
         this.bottomNavigationTabbedPane.setMinimizeAction(e -> {
             if (this.navigationSplitPane.getDividerLocation() >= this.navigationSplitPane.getMaximumDividerLocation()
                     - 50) {
@@ -158,16 +175,10 @@ public class MainLayout extends JPanel {
         this.logTextPane.setEditable(false);
         // this.terminalTextPane.setEditable(false);
 
-        JScrollPane logScrollPane = new JScrollPane(logTextPane);
-        JScrollPane terminalScrollPane = new JScrollPane(terminalTextPane);
+        logScrollPane = new JScrollPane(logTextPane);
+        terminalScrollPane = new JScrollPane(terminalTextPane);
 
-        this.bottomEditorTabbedPane.add("Output", terminalScrollPane);
-        this.bottomEditorTabbedPane.add("Problems", problemsPanel);
-        this.bottomEditorTabbedPane.add("Logs", logScrollPane);
-
-        this.editorSplitPane.setBottomComponent(bottomEditorTabbedPane);
-
-        this.mainSplitPane.setRightComponent(this.editorSplitPane);
+        // Tabs added dynamically now via WindowManager
 
         this.editorSplitPane.setBottomComponent(bottomEditorTabbedPane);
 
@@ -199,12 +210,52 @@ public class MainLayout extends JPanel {
 
         updateStatusBarWidgets(cursorWidget, readOnlyWidget);
         updateFileOutline();
+
+        // Final Step: Wire up visibility listeners and init state
+        setupPanelVisibilityListeners();
+
+        // Wire close callbacks so clicking X triggers WindowManager
+        setupTabCloseCallbacks();
+    }
+
+    private void setupTabCloseCallbacks() {
+        BiConsumer<JTabbedPane, Integer> topNavCallback = (tabbedPane, tabIndex) -> {
+            Component comp = tabbedPane.getComponentAt(tabIndex);
+            String panelId = TabPaneUtils.getPanelIdForComponent(comp);
+            if (panelId != null) {
+                WindowManager.getInstance().hidePanel(panelId);
+            }
+        };
+
+        BiConsumer<JTabbedPane, Integer> bottomNavCallback = (tabbedPane, tabIndex) -> {
+            Component comp = tabbedPane.getComponentAt(tabIndex);
+            String panelId = TabPaneUtils.getPanelIdForComponent(comp);
+            if (panelId != null) {
+                WindowManager.getInstance().hidePanel(panelId);
+            }
+        };
+
+        BiConsumer<JTabbedPane, Integer> outputCallback = (tabbedPane, tabIndex) -> {
+            Component comp = tabbedPane.getComponentAt(tabIndex);
+            String panelId = TabPaneUtils.getPanelIdForComponent(comp);
+            if (panelId != null) {
+                WindowManager.getInstance().hidePanel(panelId);
+            }
+        };
+
+        // Set FlatLaf property directly to override constructor's default
+        topNavigationTabbedPane.putClientProperty(
+                com.formdev.flatlaf.FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, topNavCallback);
+        bottomNavigationTabbedPane.putClientProperty(
+                com.formdev.flatlaf.FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, bottomNavCallback);
+        bottomEditorTabbedPane.putClientProperty(
+                com.formdev.flatlaf.FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK, outputCallback);
     }
 
     private void updateFileOutline() {
-        java.awt.Component selected = editorTabbedPane.getSelectedComponent();
+        Component selected = editorTabbedPane.getSelectedComponent();
         if (selected instanceof FileTabPane fileTab) {
-            pseudopad.core.AST.ProgramNode ast = fileTab.getCachedAST();
+            ProgramNode ast = fileTab.getCachedAST();
             fileOutlinePanel.updateOutline(ast);
         } else {
             fileOutlinePanel.updateOutline(null);
@@ -225,6 +276,263 @@ public class MainLayout extends JPanel {
         }
     }
 
+    private void setupPanelVisibilityListeners() {
+        WindowManager wm = WindowManager.getInstance();
+
+        // Define handling logic - execute synchronously since we're called from EDT
+        java.util.function.BiConsumer<String, Boolean> handler = (panelId, isVisible) -> {
+            if (isVisible) {
+                restorePanel(panelId);
+            } else {
+                removePanel(panelId);
+            }
+        };
+
+        // Add listener
+        wm.addPanelChangeListener(handler);
+
+        // Initialize state (trigger logic for default or persisted values)
+        // Important: We call this AFTER components are created but BEFORE window shows
+        // ideally,
+        // to setup tabs.
+        restorePanel(WindowManager.PANEL_PROJECTS);
+        restorePanel(WindowManager.PANEL_FILES);
+        restorePanel(WindowManager.PANEL_FILE_OUTLINE);
+        restorePanel(WindowManager.PANEL_OUTPUT);
+        restorePanel(WindowManager.PANEL_PROBLEMS);
+        restorePanel(WindowManager.PANEL_LOGS);
+    }
+
+    private void removePanel(String panelId) {
+        String name = WindowManager.getPanelName(panelId);
+        Component comp = getComponentForPanel(panelId);
+
+        if (WindowManager.isNavigationPanel(panelId)) {
+            // Remove from TabPane by component (titles may change)
+            if (comp != null) {
+                TabPaneUtils.removeTabByComponent(topNavigationTabbedPane, comp);
+                TabPaneUtils.removeTabByComponent(bottomNavigationTabbedPane, comp);
+            }
+
+            // Add to Activity Bar
+            String iconName = getIconNameForPanel(panelId);
+            javax.swing.Icon icon = IconManager.get(iconName);
+
+            activityBar.showRestoreButton(panelId, icon,
+                    name, e -> WindowManager.getInstance().showPanel(panelId));
+
+            // Auto-collapse if empty
+            checkAndCollapseNavigationPanes();
+
+        } else if (WindowManager.isOutputPanel(panelId)) {
+            // Remove from Bottom Editor Tabs by component (titles may change, e.g.
+            // "Problems [ 5 ]")
+            if (comp != null) {
+                TabPaneUtils.removeTabByComponent(bottomEditorTabbedPane, comp);
+            }
+
+            // Add to Activity Bar (consistent with navigation panels)
+            String iconName = getIconNameForPanel(panelId);
+            javax.swing.Icon icon = IconManager.get(iconName);
+
+            activityBar.showRestoreButton(panelId, icon,
+                    name, e -> WindowManager.getInstance().showPanel(panelId));
+
+            // Auto-collapse if empty
+            checkAndCollapseOutputPane();
+        }
+    }
+
+    private void checkAndCollapseNavigationPanes() {
+        // If top nav is empty, collapse it to bottom
+        if (topNavigationTabbedPane.getTabCount() == 0 && bottomNavigationTabbedPane.getTabCount() > 0) {
+            navigationSplitPane.setDividerLocation(0.0);
+        }
+        // If bottom nav is empty, collapse it to top
+        if (bottomNavigationTabbedPane.getTabCount() == 0 && topNavigationTabbedPane.getTabCount() > 0) {
+            navigationSplitPane.setDividerLocation(1.0);
+        }
+        // If both are empty, collapse entire nav
+        if (topNavigationTabbedPane.getTabCount() == 0 && bottomNavigationTabbedPane.getTabCount() == 0) {
+            mainSplitPane.setDividerLocation(0.0);
+        }
+    }
+
+    private void checkAndCollapseOutputPane() {
+        // If output tabbed pane is empty, collapse output area
+        if (bottomEditorTabbedPane.getTabCount() == 0) {
+            editorSplitPane.setDividerLocation(1.0);
+        }
+    }
+
+    private void restorePanel(String panelId) {
+        String name = WindowManager.getPanelName(panelId);
+        Component comp = getComponentForPanel(panelId);
+
+        if (comp == null)
+            return;
+
+        if (WindowManager.isNavigationPanel(panelId)) {
+            // Remove from Activity Bar
+            activityBar.hideRestoreButton(panelId);
+
+            // Add to appropriate TabPane at correct position
+            if (WindowManager.PANEL_FILE_OUTLINE.equals(panelId)) {
+                TabPaneUtils.addTabAtCorrectPosition(bottomNavigationTabbedPane, name, comp, panelId);
+            } else {
+                // Projects and Files go to Top Nav
+                TabPaneUtils.addTabAtCorrectPosition(topNavigationTabbedPane, name, comp, panelId);
+            }
+
+            // Check if we need to expand the navigation split
+            checkAndExpandNavigationSplit();
+
+        } else if (WindowManager.isOutputPanel(panelId)) {
+            // Remove from Activity Bar
+            activityBar.hideRestoreButton(panelId);
+
+            // Add to Bottom Editor Tabs at correct position
+            TabPaneUtils.addTabAtCorrectPosition(bottomEditorTabbedPane, name, comp, panelId);
+
+            // Special case: Problems panel needs to update its title to show error count
+            if (WindowManager.PANEL_PROBLEMS.equals(panelId) && comp instanceof ProblemsPanel pp) {
+                SwingUtilities.invokeLater(pp::updateTabTitleCount);
+            }
+
+            // Check if we need to expand the editor split
+            checkAndExpandEditorSplit();
+        }
+    }
+
+    private void checkAndExpandNavigationSplit() {
+        // If nav was collapsed, expand it
+        if (mainSplitPane.getDividerLocation() < 50) {
+            mainSplitPane.setDividerLocation(0.25);
+        }
+        // Also check inner nav split
+        if (topNavigationTabbedPane.getTabCount() > 0 && navigationSplitPane.getDividerLocation() < 50) {
+            navigationSplitPane.setDividerLocation(0.5);
+        }
+        if (bottomNavigationTabbedPane.getTabCount() > 0 &&
+                navigationSplitPane.getDividerLocation() > navigationSplitPane.getMaximumDividerLocation() - 50) {
+            navigationSplitPane.setDividerLocation(0.5);
+        }
+    }
+
+    private void checkAndExpandEditorSplit() {
+        // If output was collapsed, expand it
+        if (editorSplitPane.getDividerLocation() > editorSplitPane.getMaximumDividerLocation() - 50) {
+            editorSplitPane.setDividerLocation(0.75);
+        }
+    }
+
+    private Component getComponentForPanel(String panelId) {
+        return switch (panelId) {
+            case WindowManager.PANEL_PROJECTS -> projectExplorer;
+            case WindowManager.PANEL_FILES -> fileExplorer;
+            case WindowManager.PANEL_FILE_OUTLINE -> fileOutlinePanel;
+            case WindowManager.PANEL_OUTPUT -> terminalScrollPane;
+            case WindowManager.PANEL_PROBLEMS -> problemsPanel;
+            case WindowManager.PANEL_LOGS -> logScrollPane;
+            default -> null;
+        };
+    }
+
+    private String getIconNameForPanel(String panelId) {
+        return switch (panelId) {
+            case WindowManager.PANEL_PROJECTS -> "new_project";
+            case WindowManager.PANEL_FILES -> "folder";
+            case WindowManager.PANEL_FILE_OUTLINE -> "outline";
+            case WindowManager.PANEL_OUTPUT -> "terminal";
+            case WindowManager.PANEL_PROBLEMS -> "warning";
+            case WindowManager.PANEL_LOGS -> "log";
+            default -> "file";
+        };
+    }
+
+    // Internal helper for tab management
+    private static class TabPaneUtils {
+        /**
+         * Adds a tab at the correct position based on panel order.
+         * 
+         * @param tabPane The target TabbedPane
+         * @param title   The tab title
+         * @param comp    The component
+         * @param panelId The panel ID (for ordering)
+         */
+        static void addTabAtCorrectPosition(TabbedPane tabPane, String title, Component comp, String panelId) {
+            // Check if already exists
+            for (int i = 0; i < tabPane.getTabCount(); i++) {
+                if (tabPane.getComponentAt(i) == comp) {
+                    return; // Already exists
+                }
+            }
+
+            int targetOrder = WindowManager.getDefaultPanelOrder(panelId);
+            int insertIndex = tabPane.getTabCount(); // Default: add at end
+
+            // Find the correct insertion point
+            for (int i = 0; i < tabPane.getTabCount(); i++) {
+                Component existingComp = tabPane.getComponentAt(i);
+                String existingPanelId = getPanelIdForComponent(existingComp);
+                if (existingPanelId != null) {
+                    int existingOrder = WindowManager.getDefaultPanelOrder(existingPanelId);
+                    if (targetOrder < existingOrder) {
+                        insertIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            tabPane.insertTab(title, null, comp, null, insertIndex);
+            // Tabs are closable - wiring is done via TabbedPane's close callback
+        }
+
+        static void addTabIfNotExists(TabbedPane tabPane, String title, Component comp) {
+            for (int i = 0; i < tabPane.getTabCount(); i++) {
+                if (tabPane.getComponentAt(i) == comp) {
+                    return;
+                }
+            }
+            tabPane.addTab(title, comp);
+        }
+
+        static void removeTabByComponent(TabbedPane tabPane, Component comp) {
+            int index = tabPane.indexOfComponent(comp);
+            if (index >= 0) {
+                tabPane.removeTabAt(index);
+            }
+        }
+
+        // Legacy method - kept for compatibility but prefer removeTabByComponent
+        static void removeTab(TabbedPane tabPane, String title) {
+            int index = tabPane.indexOfTab(title);
+            if (index >= 0) {
+                tabPane.removeTabAt(index);
+            }
+        }
+
+        private static String getPanelIdForComponent(Component comp) {
+            // Reverse lookup
+            if (comp instanceof RecentProjectsPanel)
+                return WindowManager.PANEL_PROJECTS;
+            if (comp instanceof FileExplorer)
+                return WindowManager.PANEL_FILES;
+            if (comp instanceof FileOutlinePanel)
+                return WindowManager.PANEL_FILE_OUTLINE;
+            if (comp instanceof JScrollPane scroll) {
+                Component view = scroll.getViewport().getView();
+                if (view instanceof TerminalPane)
+                    return WindowManager.PANEL_OUTPUT;
+                if (view instanceof TextPane)
+                    return WindowManager.PANEL_LOGS;
+            }
+            if (comp instanceof ProblemsPanel)
+                return WindowManager.PANEL_PROBLEMS;
+            return null;
+        }
+    }
+
     private void initComponents() {
         this.mainSplitPane = new JSplitPane();
         this.navigationSplitPane = new JSplitPane();
@@ -236,6 +544,9 @@ public class MainLayout extends JPanel {
         this.projectExplorer = new RecentProjectsPanel(mainFrame);
         this.editorTabbedPane = new EditorTabbedPane(mainFrame);
         this.bottomEditorTabbedPane = new TabbedPane();
+
+        // New Activity Bar
+        this.activityBar = new ActivityBar();
 
         SimpleTerminalBackend backend = new SimpleTerminalBackend();
         backend.setCodeProvider(() -> {

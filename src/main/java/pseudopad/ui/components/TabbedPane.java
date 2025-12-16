@@ -31,19 +31,22 @@ import pseudopad.utils.IconManager;
  */
 public class TabbedPane extends JTabbedPane {
     public static final String PROP_IS_CLOSABLE = "is_closable";
-    
+
     private boolean dragging = false;
     private int draggedTabIndex = -1;
-    private int targetTabIndex = -1; 
+    private int targetTabIndex = -1;
     private BufferedImage tabImage = null;
 
     private JPanel headerToolbar;
     private JPanel leftButtonPanel;
     private JPanel rightButtonPanel;
 
+    // Custom close callback - if set, this is called instead of default removeTabAt
+    private BiConsumer<JTabbedPane, Integer> customCloseCallback = null;
+
     public TabbedPane() {
         super();
-        
+
         // 1. Setup FlatLaf
         this.putClientProperty(FlatClientProperties.TABBED_PANE_SHOW_TAB_SEPARATORS, true);
         this.putClientProperty(FlatClientProperties.TABBED_PANE_SCROLL_BUTTONS_POLICY, "asNeeded");
@@ -52,9 +55,12 @@ public class TabbedPane extends JTabbedPane {
         // 2. Handle Close Logic
         this.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSE_CALLBACK,
                 (BiConsumer<JTabbedPane, Integer>) (tabPane, tabIndex) -> {
-                    tabPane.removeTabAt(tabIndex);
-                }
-        );
+                    if (customCloseCallback != null) {
+                        customCloseCallback.accept(tabPane, tabIndex);
+                    } else {
+                        tabPane.removeTabAt(tabIndex);
+                    }
+                });
 
         this.addChangeListener(e -> updateCloseButtons());
 
@@ -62,7 +68,17 @@ public class TabbedPane extends JTabbedPane {
         initDragDrop();
         initHeaderToolbar();
     }
-    
+
+    /**
+     * Sets a custom callback that is invoked when a tab close button is clicked.
+     * The callback receives the TabbedPane and the tab index to close.
+     * 
+     * @param callback The callback, or null to use default behavior (remove tab).
+     */
+    public void setTabCloseCallback(BiConsumer<JTabbedPane, Integer> callback) {
+        this.customCloseCallback = callback;
+    }
+
     private void initHeaderToolbar() {
         // Use BorderLayout to strictly separate Left and Right components
         headerToolbar = new JPanel(new BorderLayout());
@@ -73,7 +89,7 @@ public class TabbedPane extends JTabbedPane {
         leftButtonPanel = new JPanel();
         leftButtonPanel.setLayout(new BoxLayout(leftButtonPanel, BoxLayout.LINE_AXIS));
         leftButtonPanel.setOpaque(false);
-        
+
         rightButtonPanel = new JPanel();
         rightButtonPanel.setLayout(new BoxLayout(rightButtonPanel, BoxLayout.LINE_AXIS));
         rightButtonPanel.setOpaque(false);
@@ -106,7 +122,7 @@ public class TabbedPane extends JTabbedPane {
     public void addRightHeaderButton(JButton button) {
         styleHeaderButton(button);
         // Add gap before the button to separate it from neighbors
-        rightButtonPanel.add(Box.createHorizontalStrut(2)); 
+        rightButtonPanel.add(Box.createHorizontalStrut(2));
         rightButtonPanel.add(button);
         headerToolbar.revalidate();
         headerToolbar.repaint();
@@ -114,14 +130,14 @@ public class TabbedPane extends JTabbedPane {
 
     public void setMinimizeAction(Action action) {
         JButton minBtn = new JButton(action);
-        
+
         // If action has no icon, use fallback text
         if (minBtn.getIcon() == null) {
-             minBtn.setText("-"); 
+            minBtn.setText("-");
         } else {
-             minBtn.setText(""); // Clear text if icon exists
+            minBtn.setText(""); // Clear text if icon exists
         }
-        
+
         minBtn.setToolTipText("Minimize View");
         addRightHeaderButton(minBtn);
     }
@@ -129,9 +145,9 @@ public class TabbedPane extends JTabbedPane {
     public void setMinimizeAction(ActionListener listener) {
         JButton minBtn = new JButton();
         if (IconManager.get("minimize") != null) {
-             minBtn.setIcon(IconManager.get("minimize"));
+            minBtn.setIcon(IconManager.get("minimize"));
         } else {
-             minBtn.setText("—"); 
+            minBtn.setText("—");
         }
         minBtn.setToolTipText("Minimize View");
         minBtn.addActionListener(listener);
@@ -146,10 +162,10 @@ public class TabbedPane extends JTabbedPane {
             java.awt.Component c = getComponentAt(i);
             if (c instanceof JComponent jComponent) {
                 boolean isSelected = (i == selectedIndex);
-                
+
                 // NEW LOGIC: Check if the tab is marked as NOT closable
                 Object closableProp = jComponent.getClientProperty(PROP_IS_CLOSABLE);
-                
+
                 if (closableProp != null && Boolean.FALSE.equals(closableProp)) {
                     // Force hide close button, even if selected
                     jComponent.putClientProperty(FlatClientProperties.TABBED_PANE_TAB_CLOSABLE, false);
@@ -164,6 +180,12 @@ public class TabbedPane extends JTabbedPane {
     @Override
     public void addTab(String title, Component component) {
         super.addTab(title, component);
+        updateCloseButtons();
+    }
+
+    @Override
+    public void insertTab(String title, javax.swing.Icon icon, Component component, String tip, int index) {
+        super.insertTab(title, icon, component, tip, index);
         updateCloseButtons();
     }
 
@@ -184,7 +206,8 @@ public class TabbedPane extends JTabbedPane {
 
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (!dragging || draggedTabIndex == -1) return;
+                if (!dragging || draggedTabIndex == -1)
+                    return;
                 int hoverIndex = indexAtLocation(e.getX(), e.getY());
                 if (hoverIndex != -1) {
                     targetTabIndex = hoverIndex;
@@ -192,7 +215,7 @@ public class TabbedPane extends JTabbedPane {
                     if (getTabCount() > 0) {
                         Rectangle lastTab = getBoundsAt(getTabCount() - 1);
                         if (e.getX() > lastTab.x + lastTab.width) {
-                            targetTabIndex = getTabCount(); 
+                            targetTabIndex = getTabCount();
                         }
                     }
                 }
@@ -216,7 +239,8 @@ public class TabbedPane extends JTabbedPane {
     }
 
     private void moveTab(int src, int dst) {
-        if (dst >= getTabCount()) dst = getTabCount() - 1;
+        if (dst >= getTabCount())
+            dst = getTabCount() - 1;
         Component comp = getComponentAt(src);
         String title = getTitleAt(src);
         Icon icon = getIconAt(src);
@@ -242,8 +266,8 @@ public class TabbedPane extends JTabbedPane {
                 bounds = getBoundsAt(getTabCount() - 1);
                 x = bounds.x + bounds.width;
             }
-            g2.setColor(new Color(0, 153, 204)); 
-            g2.fillRect(x - 2, bounds.y, 4, bounds.height); 
+            g2.setColor(new Color(0, 153, 204));
+            g2.fillRect(x - 2, bounds.y, 4, bounds.height);
             g2.dispose();
         }
     }

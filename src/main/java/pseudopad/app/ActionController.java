@@ -211,7 +211,6 @@ public class ActionController {
     };
     // </editor-fold>
 
-    // <editor-fold defaultstate="collapsed" desc="Run Actions">
     public final Action RUN_PROJECT = new AbstractAction("Run Project") {
         {
             setup(this, "run",
@@ -221,6 +220,93 @@ public class ActionController {
         @Override
         public void actionPerformed(ActionEvent e) {
             appController.runProject();
+        }
+    };
+    // </editor-fold>
+
+    // <editor-fold defaultstate="collapsed" desc="Panel Toggle Actions">
+    public final Action TOGGLE_PROJECTS = new AbstractAction("Projects") {
+        {
+            setup(this, "folder",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_1,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.togglePanel(WindowManager.PANEL_PROJECTS);
+        }
+    };
+
+    public final Action TOGGLE_FILES = new AbstractAction("Files") {
+        {
+            setup(this, "file_tree",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_2,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.togglePanel(WindowManager.PANEL_FILES);
+        }
+    };
+
+    public final Action TOGGLE_FILE_OUTLINE = new AbstractAction("File Outline") {
+        {
+            setup(this, "outline",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_3,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.togglePanel(WindowManager.PANEL_FILE_OUTLINE);
+        }
+    };
+
+    public final Action TOGGLE_OUTPUT = new AbstractAction("Output") {
+        {
+            setup(this, "terminal",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_4,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.togglePanel(WindowManager.PANEL_OUTPUT);
+        }
+    };
+
+    public final Action TOGGLE_PROBLEMS = new AbstractAction("Problems") {
+        {
+            setup(this, "warning",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_5,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.togglePanel(WindowManager.PANEL_PROBLEMS);
+        }
+    };
+
+    public final Action TOGGLE_LOGS = new AbstractAction("Logs") {
+        {
+            setup(this, "log",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_6,
+                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.togglePanel(WindowManager.PANEL_LOGS);
+        }
+    };
+
+    public final Action RESET_WINDOWS = new AbstractAction("Reset Windows") {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            appController.resetWindows();
         }
     };
     // </editor-fold>

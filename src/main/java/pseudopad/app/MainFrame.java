@@ -498,6 +498,20 @@ public class MainFrame extends JFrame implements AppController {
         mainLayout.runTerminalCommand("run");
     }
 
+    @Override
+    public void togglePanel(String panelId) {
+        WindowManager.getInstance().togglePanel(panelId);
+    }
+
+    @Override
+    public void resetWindows() {
+        WindowManager.getInstance().resetWindows();
+        // Also reset divider positions
+        mainLayout.getMainSplitPane().setDividerLocation(0.25);
+        mainLayout.getNavigationSplitPane().setDividerLocation(0.5);
+        mainLayout.getEditorSplitPane().setDividerLocation(0.75);
+    }
+
     // ----- UI/UX Logic -----
 
     // initUIComponents and initComponents moved to MainLayout
