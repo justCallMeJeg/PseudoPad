@@ -36,6 +36,11 @@ public class TerminalPane extends JTextPane {
     private int lastPromptPos = 0;
     private boolean clearingTerminal = false; // Flag to allow clear operation to bypass filter
 
+    // Command History
+    private final java.util.List<String> commandHistory = new java.util.ArrayList<>();
+    private int historyIndex = -1;
+    private String tempInputBuffer = ""; // Stores current input when browsing history
+
     public TerminalPane(TerminalBackend backend) {
         this.backend = backend;
 
@@ -110,8 +115,12 @@ public class TerminalPane extends JTextPane {
                     if (getCaretPosition() <= lastPromptPos) {
                         e.consume();
                     }
-                } else if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN) {
-                    e.consume(); // Disable history navigation for now
+                } else if (e.getKeyCode() == KeyEvent.VK_UP) {
+                    e.consume();
+                    navigateHistory(-1);
+                } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                    e.consume();
+                    navigateHistory(1);
                 } else if (e.getKeyCode() == KeyEvent.VK_HOME) {
                     // Home key goes to start of editable area, not start of document
                     e.consume();
@@ -326,6 +335,13 @@ public class TerminalPane extends JTextPane {
             // Update lastPromptPos to after the newline - command output will appear here
             lastPromptPos = getDocument().getLength();
 
+            // Add to history if not empty
+            if (!input.trim().isEmpty()) {
+                commandHistory.add(input);
+                historyIndex = -1; // Reset history index
+                tempInputBuffer = "";
+            }
+
             backend.sendInput(input);
 
         } catch (BadLocationException ex) {
@@ -393,11 +409,11 @@ public class TerminalPane extends JTextPane {
                     // 4. Update caret position
                     setCaretPosition(doc.getLength());
 
-                    // 5. Update lastPromptPos ONLY if this output ends with a prompt
-                    // (Prompts typically end with "> ")
-                    if (text.endsWith("> ") || text.trim().endsWith(">")) {
-                        lastPromptPos = doc.getLength();
-                    }
+                    // 5. Update lastPromptPos to the end of the document
+                    // This ensures that any output from the program (prompts, logs) becomes
+                    // "read-only"
+                    // and the user input starts fresh after it.
+                    lastPromptPos = doc.getLength();
                 }
             } catch (BadLocationException e) {
                 e.printStackTrace();
@@ -529,6 +545,74 @@ public class TerminalPane extends JTextPane {
             case 36 -> cyan;
             default -> def;
         };
+    }
+
+    private void navigateHistory(int direction) {
+        // 0. Save current input if we are starting navigation
+        if (historyIndex == -1) {
+            try {
+                int len = getDocument().getLength();
+                if (len > lastPromptPos) {
+                    tempInputBuffer = getText(lastPromptPos, len - lastPromptPos);
+                } else {
+                    tempInputBuffer = "";
+                }
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // 1. Update Index
+        int newIndex = historyIndex + direction;
+
+        // Clamp logic
+        // If going UP (direction -1)
+        // - If index < 0, stay at 0 (oldest command)
+        // - But if history is empty, do nothing
+        // If going DOWN (direction 1)
+        // - If index >= size, go to -1 (empty/temp buffer)
+
+        if (commandHistory.isEmpty())
+            return;
+
+        if (direction < 0) { // UP
+            if (historyIndex == -1) {
+                newIndex = commandHistory.size() - 1;
+            } else {
+                newIndex = Math.max(0, newIndex);
+            }
+        } else { // DOWN
+            if (newIndex >= commandHistory.size()) {
+                newIndex = -1;
+            }
+        }
+
+        if (newIndex == historyIndex)
+            return; // No change
+
+        historyIndex = newIndex;
+
+        // 2. Update Input Area
+        try {
+            // Remove current input
+            int len = getDocument().getLength();
+            if (len > lastPromptPos) {
+                getDocument().remove(lastPromptPos, len - lastPromptPos);
+            }
+
+            // Insert new text
+            String textToInsert;
+            if (historyIndex == -1) {
+                textToInsert = tempInputBuffer;
+            } else {
+                textToInsert = commandHistory.get(historyIndex);
+            }
+
+            getDocument().insertString(lastPromptPos, textToInsert, null);
+
+        } catch (BadLocationException e) {
+            e.printStackTrace();
+        }
     }
 
     public void runCommand(String command) {

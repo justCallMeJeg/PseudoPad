@@ -8,6 +8,9 @@ import pseudopad.core.Interpreter;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 /**
  * A lightweight terminal backend that runs purely in Java.
  * Useful for testing or as a base for custom interpreters.
@@ -22,15 +25,20 @@ public class SimpleTerminalBackend implements TerminalBackend {
     private Supplier<String> codeProvider;
     private Thread executionThread; // Track the running program thread
 
+    // Blocking Queue for Inline Input
+    private final BlockingQueue<String> inputQueue = new LinkedBlockingQueue<>();
+    private volatile boolean isWaitingForInput = false;
+
     @Override
     public void sendInput(String input) {
         if (!isRunning)
             return;
 
-        // Echo the input (optional, depending on how TerminalPane handles it,
-        // but usually backends might echo or the UI handles it.
-        // Let's assume UI handles local echo for now, or we send it back as output.)
-        // For a "terminal" feel, usually the backend output includes the result.
+        // If the running program is waiting for input, feed it into the queue
+        if (isWaitingForInput && executionThread != null && executionThread.isAlive()) {
+            inputQueue.offer(input);
+            return;
+        }
 
         processCommand(input);
     }
@@ -110,9 +118,35 @@ public class SimpleTerminalBackend implements TerminalBackend {
 
         executionThread = new Thread(() -> {
             try {
-                // 3. Define how 'input()' works (Popup Dialog)
-                Interpreter.InputProvider inputProvider = (prompt) -> {
-                    return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
+                // 3. Define Input Provider
+                Interpreter.InputProvider inputProvider = new Interpreter.InputProvider() {
+                    @Override
+                    public String read(String prompt) {
+                        try {
+                            // Print the prompt to the terminal
+                            if (outputListener != null) {
+                                outputListener.accept(prompt);
+                            }
+
+                            // Wait for input
+                            isWaitingForInput = true;
+                            // Clear any previous stray input
+                            inputQueue.clear();
+
+                            String input = inputQueue.take(); // Blocks until input available
+                            return input;
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            throw new RuntimeException("Input interrupted");
+                        } finally {
+                            isWaitingForInput = false;
+                        }
+                    }
+
+                    @Override
+                    public String readPopup(String prompt) {
+                        return JOptionPane.showInputDialog(null, prompt, "Input", JOptionPane.QUESTION_MESSAGE);
+                    }
                 };
 
                 // 4. Run directly - output goes straight to terminal, no extra prompt
@@ -123,6 +157,7 @@ public class SimpleTerminalBackend implements TerminalBackend {
             } finally {
                 // 5. Finished - add prompt on new line
                 executionThread = null; // Clear reference
+                isWaitingForInput = false;
                 if (outputListener != null) {
                     outputListener.accept(getPrompt());
                 }

@@ -8,9 +8,12 @@ import java.util.*;
  */
 public class Interpreter {
     // --- 1. NEW INTERFACE ---
-    // This allows the GUI to tell us how to get input (e.g., via JOptionPane)
+    // This allows the GUI to tell us how to get input (e.g., via JOptionPane or
+    // Terminal)
     public interface InputProvider {
         String read(String prompt);
+
+        String readPopup(String prompt);
     }
 
     // --- 2. UPDATED FIELDS ---
@@ -35,10 +38,19 @@ public class Interpreter {
     // --- 4. DEFAULT CONSTRUCTOR (For Testing/Console) ---
     // Keeps your old Scanner logic as a fallback so tests don't break
     public Interpreter() {
-        this.inputProvider = (prompt) -> {
-            System.out.print(prompt);
-            try (Scanner scanner = new Scanner(System.in)) { // Fix resource leak
-                return scanner.nextLine();
+        this.inputProvider = new InputProvider() {
+            @Override
+            public String read(String prompt) {
+                System.out.print(prompt);
+                try (Scanner scanner = new Scanner(System.in)) {
+                    return scanner.nextLine();
+                }
+            }
+
+            @Override
+            public String readPopup(String prompt) {
+                // Fallback to console read if popup requested in headless mode
+                return read(prompt);
             }
         };
         this.outputProvider = (msg) -> System.out.println(msg);
@@ -59,6 +71,20 @@ public class Interpreter {
                 String prompt = arguments.get(0).toString();
                 // CRITICAL CHANGE: Use the provider instead of hardcoded Scanner
                 return inputProvider.read(prompt);
+            }
+        }, "function", true);
+
+        // Define native "popup" function (Backward Compatibility)
+        globals.define("popup", new Callable() {
+            @Override
+            public int arity() {
+                return 1;
+            }
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                String prompt = arguments.get(0).toString();
+                return inputProvider.readPopup(prompt);
             }
         }, "function", true);
     }
