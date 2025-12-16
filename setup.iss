@@ -2,9 +2,10 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "PseudoPad"
-#define MyAppVersion "1.0"
-#define MyAppPublisher "gjpgabayeron"
+#define MyAppVersion "v0.0.1-dev1"
+#define MyAppPublisher "PseudoPad Team"
 #define MyAppExeName "PseudoPad.exe"
+#define MyAppURL "https://github.com/justCallMeJeg/PseudoPad"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
@@ -14,6 +15,9 @@ AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 ; Remove the following line to run in administrative install mode (install for all users.)
