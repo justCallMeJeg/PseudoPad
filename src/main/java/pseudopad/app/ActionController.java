@@ -1,5 +1,6 @@
 package pseudopad.app;
 
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.Toolkit;
@@ -9,9 +10,9 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
+import pseudopad.ui.settings.SettingsDialog;
 import pseudopad.utils.IconManager;
 import pseudopad.utils.ThemeManager;
-import pseudopad.utils.ThemeManager.THEMES;
 
 /**
  *
@@ -77,6 +78,21 @@ public class ActionController {
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Save");
             appController.saveCurrentFile();
+        }
+    };
+
+    public final Action OPEN_SETTINGS = new AbstractAction("Settings...") {
+        {
+            setup(this, "settings",
+                    KeyStroke.getKeyStroke(KeyEvent.VK_COMMA, Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx()));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("Action: Open Settings");
+            Frame frame = (Frame) SwingUtilities.getWindowAncestor(
+                    (java.awt.Component) e.getSource());
+            new SettingsDialog(frame).setVisible(true);
         }
     };
 
@@ -365,6 +381,7 @@ public class ActionController {
         refreshActionIcon(TOGGLE_OUTPUT, "terminal");
         refreshActionIcon(TOGGLE_PROBLEMS, "warning");
         refreshActionIcon(TOGGLE_LOGS, "log");
+        refreshActionIcon(OPEN_SETTINGS, "settings");
     }
 
     private void refreshActionIcon(Action action, String iconName) {

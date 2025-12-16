@@ -22,6 +22,8 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
+import pseudopad.settings.SettingsManager;
+
 /**
  * A TextPane that acts as a terminal emulator.
  * It interfaces with a TerminalBackend to send input and receive output.
@@ -41,7 +43,23 @@ public class TerminalPane extends JTextPane {
         setBackground(new Color(30, 30, 30)); // Dark background
         setForeground(new Color(200, 200, 200)); // Light text
         setCaretColor(Color.WHITE);
-        setFont(new Font("Monospaced", Font.PLAIN, 12));
+
+        // Apply font from settings
+        String fontFamily = SettingsManager.getInstance().get(SettingsManager.TERMINAL_FONT_FAMILY);
+        int fontSize = SettingsManager.getInstance().get(SettingsManager.TERMINAL_FONT_SIZE);
+        setFont(new Font(fontFamily, Font.PLAIN, fontSize));
+
+        // Listen for terminal font settings changes
+        SettingsManager.getInstance().addListener(SettingsManager.TERMINAL_FONT_FAMILY,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    Font currentFont = getFont();
+                    setFont(new Font(newVal, currentFont.getStyle(), currentFont.getSize()));
+                }));
+        SettingsManager.getInstance().addListener(SettingsManager.TERMINAL_FONT_SIZE,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    Font currentFont = getFont();
+                    setFont(new Font(currentFont.getFamily(), currentFont.getStyle(), newVal));
+                }));
 
         // Backend Setup
         backend.setOutputListener(this::appendOutput);

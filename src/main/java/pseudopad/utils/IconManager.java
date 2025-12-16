@@ -123,6 +123,7 @@ public class IconManager {
         registerIcon("outline", MaterialDesignF.FORMAT_LIST_BULLETED, COLOR_DEFAULT);
         registerIcon("sidebar", MaterialDesignP.PAGE_LAYOUT_SIDEBAR_LEFT, COLOR_DEFAULT);
         registerIcon("minimize", MaterialDesignC.CHEVRON_DOWN, COLOR_DEFAULT);
+        registerIcon("settings", MaterialDesignC.COG, COLOR_DEFAULT);
 
         // Theme Listener to clear cache on theme change so icons get new colors
         UIManager.addPropertyChangeListener(e -> {

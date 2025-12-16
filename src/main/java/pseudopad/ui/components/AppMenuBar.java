@@ -38,6 +38,8 @@ public class AppMenuBar extends JMenuBar {
         // this
         fileMenu.addSeparator();
         fileMenu.add(new JMenuItem(actions.SAVE));
+        fileMenu.addSeparator();
+        fileMenu.add(new JMenuItem(actions.OPEN_SETTINGS));
 
         add(fileMenu);
     }

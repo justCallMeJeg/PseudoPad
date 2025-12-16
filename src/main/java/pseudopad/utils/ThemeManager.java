@@ -10,6 +10,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import pseudopad.settings.SettingsManager;
+
 /**
  *
  * @author Geger John Paul Gabayeron
@@ -17,50 +19,56 @@ import javax.swing.UnsupportedLookAndFeelException;
 public class ThemeManager {
     private static ThemeManager INSTANCE;
     private static THEMES currentTheme;
-    
-    public enum THEMES { LIGHT, DARK, SYSTEM }
-    
+
+    public enum THEMES {
+        LIGHT, DARK, SYSTEM
+    }
+
     private final boolean isSystemDarkMode = OsThemeDetector.getDetector().isDark();
-    
-    private ThemeManager(){}
-    
+
+    private ThemeManager() {
+    }
+
     public static ThemeManager getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new ThemeManager();
         }
         return INSTANCE;
     }
-    
+
     public static void init() {
-        currentTheme = PreferenceManager.getInstance().loadTheme();
-        
+        // Use SettingsManager (primary) with PreferenceManager fallback for migration
+        currentTheme = SettingsManager.getInstance().getTheme();
+
         try {
             applyTheme(currentTheme);
-            
+
             UIManager.put("defaultFont", new Font("Segoe UI", Font.PLAIN, 12));
-//            UIManager.put("SplitPane.showsTypeZeroStub", false);
+            // UIManager.put("SplitPane.showsTypeZeroStub", false);
         } catch (Exception e) {
             System.err.println("Failed to initialize FlatLaf: " + e);
         }
     }
-    
+
     public void changeTheme(THEMES theme) {
+        // Save to both SettingsManager (new) and PreferenceManager (backwards compat)
+        SettingsManager.getInstance().setTheme(theme);
         PreferenceManager.getInstance().saveTheme(theme);
         currentTheme = theme;
-        
+
         switch (theme) {
             case LIGHT -> updateLookAndFeel(new FlatLightLaf());
             case DARK -> updateLookAndFeel(new FlatDarkLaf());
             default -> {
-                if (isSystemDarkMode) 
+                if (isSystemDarkMode)
                     updateLookAndFeel(new FlatDarkLaf());
-                else 
+                else
                     updateLookAndFeel(new FlatLightLaf());
             }
         }
     }
-    
-    private static void applyTheme(THEMES theme) {        
+
+    private static void applyTheme(THEMES theme) {
         switch (theme) {
             case LIGHT -> FlatLightLaf.setup();
             case DARK -> FlatDarkLaf.setup();
@@ -73,11 +81,11 @@ public class ThemeManager {
             }
         }
     }
-    
+
     private void updateLookAndFeel(FlatLaf newLaf) {
         try {
             UIManager.setLookAndFeel(newLaf);
-            
+
             for (Window window : Window.getWindows()) {
                 SwingUtilities.updateComponentTreeUI(window);
             }
@@ -85,11 +93,11 @@ public class ThemeManager {
             System.err.println("Failed to set LookAndFeel: " + ex);
         }
     }
-    
+
     public THEMES getCurrentTheme() {
         return currentTheme;
     }
-    
+
     public boolean isDarkMode() {
         if (currentTheme == THEMES.SYSTEM) {
             return isSystemDarkMode;

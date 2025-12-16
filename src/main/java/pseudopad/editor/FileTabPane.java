@@ -27,6 +27,7 @@ import pseudopad.app.MainFrame;
 import pseudopad.core.Errors.CompilationError;
 import pseudopad.editor.intellisense.AutoCompletion;
 import pseudopad.editor.intellisense.PseudoCompletionProvider;
+import pseudopad.settings.SettingsManager;
 import pseudopad.ui.components.TextPane;
 import pseudopad.utils.FileManager;
 
@@ -44,6 +45,9 @@ public class FileTabPane extends JPanel {
     private String originalContent;
     private boolean isDirty = false;
     private String tabTitle; // Store the clean title (without *)
+
+    // Settings-controlled values
+    private int tabWidth = 4;
 
     private final UndoManager undoManager = new UndoManager();
 
@@ -70,8 +74,24 @@ public class FileTabPane extends JPanel {
         // 1. Initialize Editor
         textPane = new TextPane();
         textPane.setText(this.originalContent);
-        textPane.setFont(new Font("Consolas", Font.PLAIN, 14));
+
+        // Apply font from settings
+        String fontFamily = SettingsManager.getInstance().get(SettingsManager.EDITOR_FONT_FAMILY);
+        int fontSize = SettingsManager.getInstance().get(SettingsManager.EDITOR_FONT_SIZE);
+        textPane.setFont(new Font(fontFamily, Font.PLAIN, fontSize));
         textPane.setCaretPosition(0);
+
+        // Listen for font settings changes
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_FONT_FAMILY,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    Font currentFont = textPane.getFont();
+                    textPane.setFont(new Font(newVal, currentFont.getStyle(), currentFont.getSize()));
+                }));
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_FONT_SIZE,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    Font currentFont = textPane.getFont();
+                    textPane.setFont(new Font(currentFont.getFamily(), currentFont.getStyle(), newVal));
+                }));
 
         // Colors
         boolean isDark = pseudopad.utils.ThemeManager.getInstance().isDarkMode();
@@ -90,7 +110,23 @@ public class FileTabPane extends JPanel {
         // 2. Scroll & Gutter
         scrollPane = new JScrollPane(textPane);
         lineNumbers = new RowNumberHeader(textPane);
-        scrollPane.setRowHeaderView(lineNumbers);
+
+        // Apply initial line numbers visibility from settings
+        boolean showLineNumbers = SettingsManager.getInstance().get(SettingsManager.EDITOR_SHOW_LINE_NUMBERS);
+        scrollPane.setRowHeaderView(showLineNumbers ? lineNumbers : null);
+
+        // Listen for line numbers visibility changes
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_SHOW_LINE_NUMBERS,
+                (key, oldVal, newVal) -> SwingUtilities.invokeLater(() -> {
+                    scrollPane.setRowHeaderView(newVal ? lineNumbers : null);
+                }));
+
+        // Apply initial tab width from settings
+        tabWidth = SettingsManager.getInstance().get(SettingsManager.EDITOR_TAB_WIDTH);
+
+        // Listen for tab width changes
+        SettingsManager.getInstance().addListener(SettingsManager.EDITOR_TAB_WIDTH,
+                (key, oldVal, newVal) -> tabWidth = newVal);
 
         add(scrollPane, BorderLayout.CENTER);
 
@@ -178,7 +214,7 @@ public class FileTabPane extends JPanel {
             }
         });
 
-        // 8. Consistent Tab indentation (4 spaces) - Skip if completion is showing
+        // 8. Consistent Tab indentation - Skip if completion is showing
         textPane.addKeyListener(new java.awt.event.KeyAdapter() {
             @Override
             public void keyPressed(java.awt.event.KeyEvent e) {
@@ -190,12 +226,13 @@ public class FileTabPane extends JPanel {
                     e.consume(); // Prevent default Tab behavior
                     try {
                         if (e.isShiftDown()) {
-                            // Shift+Tab: Remove 4 spaces from start of current line
+                            // Shift+Tab: Remove spaces from start of current line
                             handleShiftTab();
                         } else {
-                            // Tab: Insert 4 spaces
+                            // Tab: Insert spaces based on setting
+                            String spaces = " ".repeat(tabWidth);
                             textPane.getDocument().insertString(
-                                    textPane.getCaretPosition(), "    ", null);
+                                    textPane.getCaretPosition(), spaces, null);
                         }
                     } catch (Exception ex) {
                         // Ignore
@@ -272,7 +309,7 @@ public class FileTabPane extends JPanel {
     }
 
     /**
-     * Handle Shift+Tab to remove 4 spaces from start of current line (outdent).
+     * Handle Shift+Tab to remove spaces from start of current line (outdent).
      */
     private void handleShiftTab() {
         try {
@@ -282,9 +319,9 @@ public class FileTabPane extends JPanel {
             // Find the start of the current line
             int lineStart = text.lastIndexOf('\n', caretPos - 1) + 1;
 
-            // Check if line starts with at least 4 spaces
+            // Check if line starts with at least tabWidth spaces
             int spacesToRemove = 0;
-            for (int i = lineStart; i < text.length() && spacesToRemove < 4; i++) {
+            for (int i = lineStart; i < text.length() && spacesToRemove < tabWidth; i++) {
                 if (text.charAt(i) == ' ') {
                     spacesToRemove++;
                 } else {

@@ -60,20 +60,21 @@ public class RowNumberHeader extends JPanel {
     }
 
     /**
-     * Calculate the preferred width: "9" needs less space than "1000".
+     * Calculate the preferred width based on the number of digits in textPane's
+     * font.
      */
     @Override
     public Dimension getPreferredSize() {
         int lines = getLineCount();
-        int digits = String.valueOf(lines).length();
+        int digits = Math.max(2, String.valueOf(lines).length()); // Minimum 2 digits
 
-        // Get width of '0' character in the current font
-        FontMetrics fm = getFontMetrics(getFont());
+        // Use textPane's font for accurate width calculation
+        FontMetrics fm = getFontMetrics(textPane.getFont());
         int charWidth = fm.charWidth('0');
-        int padding = 20; // Extra space for comfort
+        int padding = 25; // Extra space for comfort + error dot
 
         int width = (digits * charWidth) + padding;
-        return new Dimension(width, textPane.getHeight()); // Height matches editor
+        return new Dimension(width, textPane.getHeight());
     }
 
     @Override
