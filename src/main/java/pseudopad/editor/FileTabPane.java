@@ -353,6 +353,11 @@ public class FileTabPane extends JPanel {
     }
 
     private void performAnalysis() {
+        // Skip analysis for files in the .pseudopad settings folder
+        if (fileSource != null && fileSource.getAbsolutePath().contains(".pseudopad")) {
+            return;
+        }
+
         String code = textPane.getText();
 
         // Run in background to avoid freezing UI if large

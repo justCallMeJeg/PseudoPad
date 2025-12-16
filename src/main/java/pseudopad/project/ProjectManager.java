@@ -12,7 +12,7 @@ import java.io.IOException;
  * @author Geger John Paul Gabayeron
  */
 public class ProjectManager {
-    private static final String CONFIG_FOLDER = ".pseudocode";
+    private static final String CONFIG_FOLDER = ".pseudopad";
     private static final String CONFIG_FILE = "project.json";
     private static final Gson gson = new Gson(); // Or use standard properties if no GSON
 

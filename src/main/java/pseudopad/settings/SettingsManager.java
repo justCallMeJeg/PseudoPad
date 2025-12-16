@@ -1,22 +1,36 @@
 package pseudopad.settings;
 
+import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.prefs.Preferences;
 
-import pseudopad.app.MainFrame;
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
+
 import pseudopad.utils.ThemeManager;
 
 /**
  * Central settings manager providing type-safe access to all application
  * settings.
- * Uses Java Preferences API for persistence and supports change listeners.
+ * Uses JSON files for persistence with two-tier support:
+ * - Global settings: ~/.pseudopad/settings.json
+ * - Project settings: <project>/.pseudopad/settings.json (overrides global)
  * 
  * @author Geger John Paul Gabayeron
  */
 public class SettingsManager {
     private static SettingsManager INSTANCE;
-    private final Preferences prefs;
+
+    // JSON storage
+    private static final String SETTINGS_DIR = ".pseudopad";
+    private static final String SETTINGS_FILE = "settings.json";
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+
+    // In-memory caches
+    private Map<String, Object> globalSettings = new LinkedHashMap<>();
+    private Map<String, Object> projectSettings = new LinkedHashMap<>();
+    private File currentProjectPath = null;
 
     // Listeners map: key -> list of listeners
     private final Map<SettingsKey<?>, List<SettingsChangeListener<?>>> listeners = new ConcurrentHashMap<>();
@@ -25,72 +39,72 @@ public class SettingsManager {
     private final List<SettingsKey<?>> allKeys = new ArrayList<>();
 
     // ═══════════════════════════════════════════════════════════════════════
-    // APPEARANCE SETTINGS
+    // APPEARANCE SETTINGS (Global only)
     // ═══════════════════════════════════════════════════════════════════════
 
     public static final SettingsKey<String> THEME = new SettingsKey<>(
             "appearance.theme", SettingsCategory.APPEARANCE, "SYSTEM",
-            String.class, "Theme", "Application color theme (LIGHT, DARK, SYSTEM)");
+            String.class, "Theme", "Application color theme (LIGHT, DARK, SYSTEM)", false);
 
     public static final SettingsKey<Integer> ICON_SIZE = new SettingsKey<>(
             "appearance.icon.size", SettingsCategory.APPEARANCE, 16,
-            Integer.class, "Icon Size", "Default icon size in pixels");
+            Integer.class, "Icon Size", "Default icon size in pixels", false);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // EDITOR SETTINGS
+    // EDITOR SETTINGS (Project overridable)
     // ═══════════════════════════════════════════════════════════════════════
 
     public static final SettingsKey<String> EDITOR_FONT_FAMILY = new SettingsKey<>(
             "editor.font.family", SettingsCategory.EDITOR, "Consolas",
-            String.class, "Font Family", "Font used in the code editor");
+            String.class, "Font Family", "Font used in the code editor", true);
 
     public static final SettingsKey<Integer> EDITOR_FONT_SIZE = new SettingsKey<>(
             "editor.font.size", SettingsCategory.EDITOR, 14,
-            Integer.class, "Font Size", "Font size in points");
+            Integer.class, "Font Size", "Font size in points", true);
 
     public static final SettingsKey<Integer> EDITOR_TAB_WIDTH = new SettingsKey<>(
             "editor.tab.width", SettingsCategory.EDITOR, 4,
-            Integer.class, "Tab Width", "Number of spaces per tab");
+            Integer.class, "Tab Width", "Number of spaces per tab", true);
 
     public static final SettingsKey<Boolean> EDITOR_SHOW_LINE_NUMBERS = new SettingsKey<>(
             "editor.show.line.numbers", SettingsCategory.EDITOR, true,
-            Boolean.class, "Show Line Numbers", "Display line numbers in the gutter");
+            Boolean.class, "Show Line Numbers", "Display line numbers in the gutter", true);
 
     public static final SettingsKey<Boolean> EDITOR_WORD_WRAP = new SettingsKey<>(
             "editor.word.wrap", SettingsCategory.EDITOR, false,
-            Boolean.class, "Word Wrap", "Wrap long lines to fit the editor width");
+            Boolean.class, "Word Wrap", "Wrap long lines to fit the editor width", true);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // BEHAVIOR SETTINGS
+    // BEHAVIOR SETTINGS (Mixed)
     // ═══════════════════════════════════════════════════════════════════════
 
     public static final SettingsKey<Boolean> AUTO_SAVE = new SettingsKey<>(
             "behavior.auto.save", SettingsCategory.BEHAVIOR, false,
-            Boolean.class, "Auto-Save", "Automatically save files");
+            Boolean.class, "Auto-Save", "Automatically save files", true);
 
     public static final SettingsKey<Integer> AUTO_SAVE_INTERVAL = new SettingsKey<>(
             "behavior.auto.save.interval", SettingsCategory.BEHAVIOR, 30,
-            Integer.class, "Auto-Save Interval", "Seconds between auto-saves");
+            Integer.class, "Auto-Save Interval", "Seconds between auto-saves", true);
 
     public static final SettingsKey<Boolean> CONFIRM_EXIT = new SettingsKey<>(
             "behavior.confirm.exit", SettingsCategory.BEHAVIOR, true,
-            Boolean.class, "Confirm Exit", "Show confirmation dialog before exiting");
+            Boolean.class, "Confirm Exit", "Show confirmation dialog before exiting", false);
 
     public static final SettingsKey<Boolean> REOPEN_LAST_PROJECT = new SettingsKey<>(
             "behavior.reopen.last.project", SettingsCategory.BEHAVIOR, true,
-            Boolean.class, "Reopen Last Project", "Automatically open the last project on startup");
+            Boolean.class, "Reopen Last Project", "Automatically open the last project on startup", false);
 
     // ═══════════════════════════════════════════════════════════════════════
-    // TERMINAL SETTINGS
+    // TERMINAL SETTINGS (Global only)
     // ═══════════════════════════════════════════════════════════════════════
 
     public static final SettingsKey<String> TERMINAL_FONT_FAMILY = new SettingsKey<>(
             "terminal.font.family", SettingsCategory.TERMINAL, "Consolas",
-            String.class, "Terminal Font", "Font used in the terminal");
+            String.class, "Terminal Font", "Font used in the terminal", false);
 
     public static final SettingsKey<Integer> TERMINAL_FONT_SIZE = new SettingsKey<>(
             "terminal.font.size", SettingsCategory.TERMINAL, 13,
-            Integer.class, "Terminal Font Size", "Terminal font size in points");
+            Integer.class, "Terminal Font Size", "Terminal font size in points", false);
 
     // ═══════════════════════════════════════════════════════════════════════
     // ADVANCED SETTINGS
@@ -98,15 +112,15 @@ public class SettingsManager {
 
     public static final SettingsKey<Boolean> DEBUG_MODE = new SettingsKey<>(
             "advanced.debug.mode", SettingsCategory.ADVANCED, false,
-            Boolean.class, "Debug Mode", "Enable debug logging and features");
+            Boolean.class, "Debug Mode", "Enable debug logging and features", false);
 
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR & SINGLETON
     // ═══════════════════════════════════════════════════════════════════════
 
     private SettingsManager() {
-        this.prefs = Preferences.userNodeForPackage(MainFrame.class);
         registerAllKeys();
+        loadGlobalSettings();
     }
 
     public static SettingsManager getInstance() {
@@ -117,7 +131,6 @@ public class SettingsManager {
     }
 
     private void registerAllKeys() {
-        // Register all keys for enumeration
         allKeys.add(THEME);
         allKeys.add(ICON_SIZE);
         allKeys.add(EDITOR_FONT_FAMILY);
@@ -135,74 +148,204 @@ public class SettingsManager {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // FILE PATHS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private Path getGlobalSettingsPath() {
+        String userHome = System.getProperty("user.home");
+        return Paths.get(userHome, SETTINGS_DIR, SETTINGS_FILE);
+    }
+
+    private Path getProjectSettingsPath() {
+        if (currentProjectPath == null)
+            return null;
+        return currentProjectPath.toPath().resolve(SETTINGS_DIR).resolve(SETTINGS_FILE);
+    }
+
+    public File getGlobalSettingsFile() {
+        return getGlobalSettingsPath().toFile();
+    }
+
+    public File getProjectSettingsFile() {
+        Path path = getProjectSettingsPath();
+        return path != null ? path.toFile() : null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // LOADING & SAVING
+    // ═══════════════════════════════════════════════════════════════════════
+
+    private void loadGlobalSettings() {
+        Path path = getGlobalSettingsPath();
+        globalSettings = loadFromJson(path);
+
+        // Create default file if it doesn't exist
+        if (!Files.exists(path)) {
+            saveGlobalSettings();
+        }
+    }
+
+    public void loadProjectSettings(File projectPath) {
+        this.currentProjectPath = projectPath;
+        if (projectPath != null) {
+            Path path = getProjectSettingsPath();
+            projectSettings = loadFromJson(path);
+        } else {
+            projectSettings = new LinkedHashMap<>();
+        }
+    }
+
+    private Map<String, Object> loadFromJson(Path path) {
+        if (path == null || !Files.exists(path)) {
+            return new LinkedHashMap<>();
+        }
+        try (Reader reader = Files.newBufferedReader(path)) {
+            java.lang.reflect.Type type = new TypeToken<LinkedHashMap<String, Object>>() {
+            }.getType();
+            Map<String, Object> loaded = GSON.fromJson(reader, type);
+            return loaded != null ? loaded : new LinkedHashMap<>();
+        } catch (Exception e) {
+            System.err.println("Failed to load settings from " + path + ": " + e.getMessage());
+            return new LinkedHashMap<>();
+        }
+    }
+
+    public void saveGlobalSettings() {
+        saveToJson(getGlobalSettingsPath(), globalSettings);
+    }
+
+    public void saveProjectSettings() {
+        Path path = getProjectSettingsPath();
+        if (path != null) {
+            saveToJson(path, projectSettings);
+        }
+    }
+
+    private void saveToJson(Path path, Map<String, Object> settings) {
+        try {
+            Files.createDirectories(path.getParent());
+            try (Writer writer = Files.newBufferedWriter(path)) {
+                GSON.toJson(settings, writer);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to save settings to " + path + ": " + e.getMessage());
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // GETTERS & SETTERS
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
      * Get a setting value with type safety.
-     * 
-     * @param <T> The setting value type
-     * @param key The settings key
-     * @return The current value, or the default if not set
+     * Resolution order: Project -> Global -> Default
      */
     @SuppressWarnings("unchecked")
     public <T> T get(SettingsKey<T> key) {
-        Class<T> type = key.getType();
+        String keyStr = key.getKey();
 
-        if (type == String.class) {
-            return (T) prefs.get(key.getKey(), (String) key.getDefaultValue());
-        } else if (type == Integer.class) {
-            Integer defaultVal = (Integer) key.getDefaultValue();
-            return (T) Integer.valueOf(prefs.getInt(key.getKey(), defaultVal != null ? defaultVal : 0));
-        } else if (type == Boolean.class) {
-            Boolean defaultVal = (Boolean) key.getDefaultValue();
-            return (T) Boolean.valueOf(prefs.getBoolean(key.getKey(), defaultVal != null ? defaultVal : false));
-        } else if (type == Double.class) {
-            Double defaultVal = (Double) key.getDefaultValue();
-            return (T) Double.valueOf(prefs.getDouble(key.getKey(), defaultVal != null ? defaultVal : 0.0));
-        } else if (type == Long.class) {
-            Long defaultVal = (Long) key.getDefaultValue();
-            return (T) Long.valueOf(prefs.getLong(key.getKey(), defaultVal != null ? defaultVal : 0L));
+        // Check project settings first (if overridable and project is set)
+        if (key.isProjectOverridable() && currentProjectPath != null && projectSettings.containsKey(keyStr)) {
+            return convertValue(projectSettings.get(keyStr), key.getType(), key.getDefaultValue());
         }
 
-        // Fallback for unknown types: try to get as string
-        String stored = prefs.get(key.getKey(), null);
-        if (stored == null) {
-            return key.getDefaultValue();
+        // Check global settings
+        if (globalSettings.containsKey(keyStr)) {
+            return convertValue(globalSettings.get(keyStr), key.getType(), key.getDefaultValue());
         }
-        return (T) stored;
+
+        // Return default
+        return key.getDefaultValue();
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T convertValue(Object value, Class<T> type, T defaultValue) {
+        if (value == null)
+            return defaultValue;
+
+        try {
+            if (type == String.class) {
+                return (T) value.toString();
+            } else if (type == Integer.class) {
+                if (value instanceof Number) {
+                    return (T) Integer.valueOf(((Number) value).intValue());
+                }
+                return (T) Integer.valueOf(value.toString());
+            } else if (type == Boolean.class) {
+                if (value instanceof Boolean) {
+                    return (T) value;
+                }
+                return (T) Boolean.valueOf(value.toString());
+            } else if (type == Double.class) {
+                if (value instanceof Number) {
+                    return (T) Double.valueOf(((Number) value).doubleValue());
+                }
+                return (T) Double.valueOf(value.toString());
+            } else if (type == Long.class) {
+                if (value instanceof Number) {
+                    return (T) Long.valueOf(((Number) value).longValue());
+                }
+                return (T) Long.valueOf(value.toString());
+            }
+        } catch (Exception e) {
+            return defaultValue;
+        }
+
+        return defaultValue;
     }
 
     /**
-     * Set a setting value and notify listeners.
-     * 
-     * @param <T>   The setting value type
-     * @param key   The settings key
-     * @param value The new value
+     * Set a setting value in global settings and notify listeners.
      */
     public <T> void set(SettingsKey<T> key, T value) {
-        T oldValue = get(key);
+        setGlobal(key, value);
+    }
 
-        // Store the value
-        Class<T> type = key.getType();
-        if (value == null) {
-            prefs.remove(key.getKey());
-        } else if (type == String.class) {
-            prefs.put(key.getKey(), (String) value);
-        } else if (type == Integer.class) {
-            prefs.putInt(key.getKey(), (Integer) value);
-        } else if (type == Boolean.class) {
-            prefs.putBoolean(key.getKey(), (Boolean) value);
-        } else if (type == Double.class) {
-            prefs.putDouble(key.getKey(), (Double) value);
-        } else if (type == Long.class) {
-            prefs.putLong(key.getKey(), (Long) value);
-        } else {
-            prefs.put(key.getKey(), value.toString());
+    /**
+     * Set a setting value in global settings.
+     */
+    public <T> void setGlobal(SettingsKey<T> key, T value) {
+        T oldValue = get(key);
+        globalSettings.put(key.getKey(), value);
+        saveGlobalSettings();
+        notifyListeners(key, oldValue, value);
+    }
+
+    /**
+     * Set a setting value in project settings (if overridable).
+     */
+    public <T> void setProject(SettingsKey<T> key, T value) {
+        if (!key.isProjectOverridable()) {
+            throw new IllegalArgumentException("Setting " + key.getKey() + " cannot be overridden at project level");
+        }
+        if (currentProjectPath == null) {
+            throw new IllegalStateException("No project is currently open");
         }
 
-        // Notify listeners
+        T oldValue = get(key);
+        projectSettings.put(key.getKey(), value);
+        saveProjectSettings();
         notifyListeners(key, oldValue, value);
+    }
+
+    /**
+     * Remove a project-level override, falling back to global setting.
+     */
+    public <T> void removeProjectOverride(SettingsKey<T> key) {
+        if (projectSettings.containsKey(key.getKey())) {
+            T oldValue = get(key);
+            projectSettings.remove(key.getKey());
+            saveProjectSettings();
+            T newValue = get(key);
+            notifyListeners(key, oldValue, newValue);
+        }
+    }
+
+    /**
+     * Check if a setting has a project-level override.
+     */
+    public boolean hasProjectOverride(SettingsKey<?> key) {
+        return projectSettings.containsKey(key.getKey());
     }
 
     /**
@@ -227,19 +370,29 @@ public class SettingsManager {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // PROJECT CONTEXT
+    // ═══════════════════════════════════════════════════════════════════════
+
+    public void setCurrentProject(File projectPath) {
+        loadProjectSettings(projectPath);
+    }
+
+    public File getCurrentProject() {
+        return currentProjectPath;
+    }
+
+    public boolean hasProject() {
+        return currentProjectPath != null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // LISTENERS
     // ═══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Add a listener for changes to a specific setting.
-     */
     public <T> void addListener(SettingsKey<T> key, SettingsChangeListener<T> listener) {
         listeners.computeIfAbsent(key, k -> new ArrayList<>()).add(listener);
     }
 
-    /**
-     * Remove a listener for a specific setting.
-     */
     public <T> void removeListener(SettingsKey<T> key, SettingsChangeListener<T> listener) {
         List<SettingsChangeListener<?>> list = listeners.get(key);
         if (list != null) {
@@ -261,16 +414,10 @@ public class SettingsManager {
     // QUERY METHODS
     // ═══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Get all registered settings keys.
-     */
     public List<SettingsKey<?>> getAllKeys() {
         return Collections.unmodifiableList(allKeys);
     }
 
-    /**
-     * Get all settings keys for a specific category.
-     */
     public List<SettingsKey<?>> getKeysForCategory(SettingsCategory category) {
         List<SettingsKey<?>> result = new ArrayList<>();
         for (SettingsKey<?> key : allKeys) {
@@ -285,9 +432,6 @@ public class SettingsManager {
     // THEME INTEGRATION (Legacy compatibility)
     // ═══════════════════════════════════════════════════════════════════════
 
-    /**
-     * Get the current theme setting as a ThemeManager.THEMES enum.
-     */
     public ThemeManager.THEMES getTheme() {
         String themeName = get(THEME);
         try {
@@ -297,9 +441,6 @@ public class SettingsManager {
         }
     }
 
-    /**
-     * Set the theme setting from a ThemeManager.THEMES enum.
-     */
     public void setTheme(ThemeManager.THEMES theme) {
         set(THEME, theme.name());
     }

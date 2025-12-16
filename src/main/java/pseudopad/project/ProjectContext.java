@@ -4,6 +4,7 @@ import java.io.File;
 import javax.swing.SwingUtilities;
 
 import pseudopad.app.MainFrame;
+import pseudopad.settings.SettingsManager;
 
 /**
  * Encapsulates the state and logic for a loaded project.
@@ -27,6 +28,12 @@ public class ProjectContext {
             this.config = new ProjectConfig(path.getName());
         }
 
+        // Load project-specific settings
+        SettingsManager.getInstance().setCurrentProject(path);
+
+        // Update action states
+        mainFrame.getAppActionInstance().updateProjectState(true);
+
         startFileWatcher();
     }
 
@@ -34,6 +41,12 @@ public class ProjectContext {
         stopFileWatcher();
         this.projectPath = null;
         this.config = null;
+
+        // Clear project settings context
+        SettingsManager.getInstance().setCurrentProject(null);
+
+        // Update action states
+        mainFrame.getAppActionInstance().updateProjectState(false);
     }
 
     private void startFileWatcher() {

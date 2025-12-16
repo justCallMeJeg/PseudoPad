@@ -4,12 +4,15 @@ import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.Toolkit;
+import java.io.File;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.JOptionPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
+import pseudopad.settings.SettingsManager;
 import pseudopad.ui.settings.SettingsDialog;
 import pseudopad.utils.IconManager;
 import pseudopad.utils.ThemeManager;
@@ -34,9 +37,8 @@ public class ActionController {
 
     public final Action NEW_PROJECT = new AbstractAction("New Project...", IconManager.get("new_project")) {
         {
-            setup(this, "new_project",
-                    KeyStroke.getKeyStroke(KeyEvent.VK_N,
-                            Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
+            setup(this, "new_project", KeyStroke.getKeyStroke(KeyEvent.VK_N,
+                    Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx() | KeyEvent.SHIFT_DOWN_MASK));
         }
 
         @Override
@@ -90,11 +92,73 @@ public class ActionController {
         @Override
         public void actionPerformed(ActionEvent e) {
             System.out.println("Action: Open Settings");
-            Frame frame = (Frame) SwingUtilities.getWindowAncestor(
-                    (java.awt.Component) e.getSource());
+            Frame frame = (Frame) SwingUtilities.getWindowAncestor((java.awt.Component) e.getSource());
             new SettingsDialog(frame).setVisible(true);
         }
     };
+
+    public final Action OPEN_GLOBAL_SETTINGS = new AbstractAction("Open Global Settings (JSON)") {
+        {
+            putValue(Action.SMALL_ICON, IconManager.get("settings"));
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("Action: Open Global Settings JSON");
+            File settingsFile = SettingsManager.getInstance().getGlobalSettingsFile();
+            openFileInEditor(settingsFile);
+        }
+    };
+
+    public final Action OPEN_PROJECT_SETTINGS = new AbstractAction("Open Project Settings (JSON)") {
+        {
+            putValue(Action.SMALL_ICON, IconManager.get("settings"));
+            setEnabled(false); // Disabled until a project is opened
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            System.out.println("Action: Open Project Settings JSON");
+            File settingsFile = SettingsManager.getInstance().getProjectSettingsFile();
+            if (settingsFile != null) {
+                // Create file if it doesn't exist
+                if (!settingsFile.exists()) {
+                    SettingsManager.getInstance().saveProjectSettings();
+                }
+                openFileInEditor(settingsFile);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "No project is currently open.",
+                        "Project Settings",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+    };
+
+    private void openFileInEditor(File file) {
+        if (file == null)
+            return;
+        try {
+            // Ensure parent directory exists
+            file.getParentFile().mkdirs();
+
+            // Create file with default JSON object if it doesn't exist
+            if (!file.exists()) {
+                java.nio.file.Files.writeString(file.toPath(), "{\n}");
+            }
+
+            // Open in the app's editor
+            MainFrame mainFrame = MainFrame.getInstance();
+            if (mainFrame != null && mainFrame.getEditorTabbedPane() != null) {
+                mainFrame.getEditorTabbedPane().openFileTab(file);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(null,
+                    "Failed to open settings file: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
     // <editor-fold defaultstate="collapsed" desc="Edit Actions">
     public final Action UNDO = new AbstractAction("Undo") {
@@ -382,11 +446,21 @@ public class ActionController {
         refreshActionIcon(TOGGLE_PROBLEMS, "warning");
         refreshActionIcon(TOGGLE_LOGS, "log");
         refreshActionIcon(OPEN_SETTINGS, "settings");
+        refreshActionIcon(OPEN_GLOBAL_SETTINGS, "settings");
+        refreshActionIcon(OPEN_PROJECT_SETTINGS, "settings");
     }
 
     private void refreshActionIcon(Action action, String iconName) {
         action.putValue(Action.SMALL_ICON, IconManager.get(iconName, 16));
         action.putValue(Action.LARGE_ICON_KEY, IconManager.get(iconName, 32));
+    }
+
+    /**
+     * Updates project-related action enabled states.
+     * Call this when a project is opened or closed.
+     */
+    public void updateProjectState(boolean projectOpen) {
+        OPEN_PROJECT_SETTINGS.setEnabled(projectOpen);
     }
     // </editor-fold>
 }

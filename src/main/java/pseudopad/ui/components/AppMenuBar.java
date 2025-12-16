@@ -39,7 +39,14 @@ public class AppMenuBar extends JMenuBar {
         fileMenu.addSeparator();
         fileMenu.add(new JMenuItem(actions.SAVE));
         fileMenu.addSeparator();
-        fileMenu.add(new JMenuItem(actions.OPEN_SETTINGS));
+
+        // Settings submenu
+        JMenu settingsMenu = new JMenu("Settings");
+        settingsMenu.add(new JMenuItem(actions.OPEN_SETTINGS));
+        settingsMenu.addSeparator();
+        settingsMenu.add(new JMenuItem(actions.OPEN_GLOBAL_SETTINGS));
+        settingsMenu.add(new JMenuItem(actions.OPEN_PROJECT_SETTINGS));
+        fileMenu.add(settingsMenu);
 
         add(fileMenu);
     }

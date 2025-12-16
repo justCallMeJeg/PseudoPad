@@ -16,20 +16,27 @@ public final class SettingsKey<T> {
     private final Class<T> type;
     private final String displayName;
     private final String description;
+    private final boolean projectOverridable;
 
     public SettingsKey(String key, SettingsCategory category, T defaultValue,
-            Class<T> type, String displayName, String description) {
+            Class<T> type, String displayName, String description, boolean projectOverridable) {
         this.key = Objects.requireNonNull(key, "Key cannot be null");
         this.category = Objects.requireNonNull(category, "Category cannot be null");
         this.defaultValue = defaultValue;
         this.type = Objects.requireNonNull(type, "Type cannot be null");
         this.displayName = Objects.requireNonNull(displayName, "Display name cannot be null");
         this.description = description != null ? description : "";
+        this.projectOverridable = projectOverridable;
+    }
+
+    public SettingsKey(String key, SettingsCategory category, T defaultValue,
+            Class<T> type, String displayName, String description) {
+        this(key, category, defaultValue, type, displayName, description, false);
     }
 
     public SettingsKey(String key, SettingsCategory category, T defaultValue,
             Class<T> type, String displayName) {
-        this(key, category, defaultValue, type, displayName, "");
+        this(key, category, defaultValue, type, displayName, "", false);
     }
 
     public String getKey() {
@@ -56,6 +63,10 @@ public final class SettingsKey<T> {
         return description;
     }
 
+    public boolean isProjectOverridable() {
+        return projectOverridable;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -73,6 +84,7 @@ public final class SettingsKey<T> {
 
     @Override
     public String toString() {
-        return "SettingsKey{" + key + ", type=" + type.getSimpleName() + "}";
+        return "SettingsKey{" + key + ", type=" + type.getSimpleName() +
+                ", projectOverridable=" + projectOverridable + "}";
     }
 }
