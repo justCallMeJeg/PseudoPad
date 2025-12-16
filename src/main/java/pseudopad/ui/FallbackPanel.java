@@ -33,18 +33,20 @@ public class FallbackPanel extends JPanel {
 
         if (appFrame.getCurrentProjectPath() == null) {
             initUIComponents();
-
-            UIManager.addPropertyChangeListener(e -> {
-                if ("lookAndFeel".equals(e.getPropertyName())) {
-                    if (ThemeManager.getInstance().isDarkMode()) {
-                        brandImage.setImageResourcePath("/img/PseudoPad_Logomark_Dark.png");
-                    } else {
-                        brandImage.setImageResourcePath("/img/PseudoPad_Logomark.png");
-                    }
-                }
-            });
         } else {
             this.add(new JLabel("Select a file to edit..."));
+        }
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        if (brandImage != null) {
+            if (ThemeManager.getInstance().isDarkMode()) {
+                brandImage.setImageResourcePath("/img/PseudoPad_Logomark_Dark.png");
+            } else {
+                brandImage.setImageResourcePath("/img/PseudoPad_Logomark.png");
+            }
         }
     }
 

@@ -218,6 +218,19 @@ public class MainLayout extends JPanel {
         setupTabCloseCallbacks();
     }
 
+    @Override
+    public void updateUI() {
+        super.updateUI();
+        // Re-apply divider listeners when LAF changes (which replaces SplitPaneUI)
+        if (mainSplitPane != null) {
+            SwingUtilities.invokeLater(() -> {
+                enableDividerDoubleClickListener(mainSplitPane, 0.25);
+                enableDividerDoubleClickListener(navigationSplitPane, 0.5);
+                enableDividerDoubleClickListener(editorSplitPane, 0.75);
+            });
+        }
+    }
+
     private void setupTabCloseCallbacks() {
         BiConsumer<JTabbedPane, Integer> topNavCallback = (tabbedPane, tabIndex) -> {
             Component comp = tabbedPane.getComponentAt(tabIndex);
