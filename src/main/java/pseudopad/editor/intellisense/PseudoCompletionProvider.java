@@ -67,9 +67,6 @@ public class PseudoCompletionProvider implements CompletionProvider {
             suggestions.add(clone);
         }
 
-        System.out.println("[DEBUG Provider] KEYWORDS.size=" + KEYWORDS.size() + ", suggestions after clone="
-                + suggestions.size());
-
         Set<String> seen = new HashSet<>();
         for (CompletionItem item : suggestions) {
             seen.add(item.getLabel());
@@ -155,28 +152,33 @@ public class PseudoCompletionProvider implements CompletionProvider {
                 // Verify there's no newline between dot and caret (dot must be on same line)
                 // Check for both Unix (\n) and Windows (\r\n) line endings
                 String segment = text.substring(i, caret);
-                System.out.println("[DEBUG Provider] Dot at i=" + i + ", caret=" + caret + ", segment='"
-                        + segment.replace("\n", "\\n").replace("\r", "\\r") + "'");
+                // System.out.println("[DEBUG Provider] Dot at i=" + i + ", caret=" + caret + ",
+                // segment='"
+                // + segment.replace("\n", "\\n").replace("\r", "\\r") + "'");
                 boolean hasNewline = segment.contains("\n") || segment.contains("\r");
                 if (!hasNewline) {
-                    System.out.println("[DEBUG Provider] Dot completion triggered at i=" + i);
+                    // System.out.println("[DEBUG Provider] Dot completion triggered at i=" + i);
                     // Determine the caret position effectively "at the dot" (i + 1)
                     // Pass the tokens we just lexed to avoid re-work
                     return resolveDotCompletion(tokens, text, i + 1);
                 } else {
-                    System.out.println("[DEBUG Provider] Dot at i=" + i + " rejected (cross-line)");
+                    // System.out.println("[DEBUG Provider] Dot at i=" + i + " rejected
+                    // (cross-line)");
                 }
             }
         } catch (Exception e) {
-            System.out.println("[DEBUG Provider] Exception in dot check: " + e.getMessage());
+            // System.out.println("[DEBUG Provider] Exception in dot check: " +
+            // e.getMessage());
         }
 
-        System.out.println("[DEBUG Provider] Reached sort, suggestions count=" + suggestions.size());
+        // System.out.println("[DEBUG Provider] Reached sort, suggestions count=" +
+        // suggestions.size());
 
         // Sort suggestions based on priority boost and alphabetically
         java.util.Collections.sort(suggestions);
 
-        System.out.println("[DEBUG Provider] Returning " + suggestions.size() + " suggestions");
+        // System.out.println("[DEBUG Provider] Returning " + suggestions.size() + "
+        // suggestions");
         return suggestions;
     }
 

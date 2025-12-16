@@ -45,7 +45,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: New Project");
+
             appController.newProject();
         }
     };
@@ -59,7 +59,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Open Project");
+
             appController.openProject();
         }
     };
@@ -67,7 +67,7 @@ public class ActionController {
     public final Action CLOSE_PROJECT = new AbstractAction(I18nManager.get("action.close_project")) {
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Close Project");
+
             appController.closeProject();
         }
     };
@@ -80,7 +80,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Save");
+
             appController.saveCurrentFile();
         }
     };
@@ -93,7 +93,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Open Settings");
+
             Frame frame = (Frame) SwingUtilities.getWindowAncestor((java.awt.Component) e.getSource());
             new SettingsDialog(frame).setVisible(true);
         }
@@ -106,7 +106,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Open Global Settings JSON");
+
             File settingsFile = SettingsManager.getInstance().getGlobalSettingsFile();
             openFileInEditor(settingsFile);
         }
@@ -120,7 +120,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Open Project Settings JSON");
+
             File settingsFile = SettingsManager.getInstance().getProjectSettingsFile();
             if (settingsFile != null) {
                 // Create file if it doesn't exist
@@ -267,7 +267,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Change Theme to Light");
+
             // Now valid: accessing instance variable from instance context
             appController.changeTheme(ThemeManager.THEMES.LIGHT);
         }
@@ -280,7 +280,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Change Theme to Dark");
+
             // Now valid: accessing instance variable from instance context
             appController.changeTheme(ThemeManager.THEMES.DARK);
         }
@@ -293,7 +293,7 @@ public class ActionController {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("Action: Change Theme to System");
+
             // Now valid: accessing instance variable from instance context
             appController.changeTheme(ThemeManager.THEMES.SYSTEM);
         }

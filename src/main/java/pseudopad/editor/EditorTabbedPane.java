@@ -98,7 +98,8 @@ public class EditorTabbedPane extends TabbedPane {
                 if (tabFile != null && tabFile.getAbsolutePath().equals(file.getAbsolutePath())) {
                     // 2. If it exists, select that existing tab and stop
                     this.setSelectedIndex(i);
-                    System.out.println("Tab '" + file.getName() + "' already open. Switched to existing tab.");
+                    // System.out.println("Tab '" + file.getName() + "' already open. Switched to
+                    // existing tab.");
                     return; // Exit the method
                 }
             }
@@ -109,7 +110,7 @@ public class EditorTabbedPane extends TabbedPane {
         this.addTab(file.getName(), newEditor);
         this.setSelectedComponent(newEditor);
         AppLogger.info("Opened file: " + file.getName());
-        System.out.println("Created new tab: '" + file.getName() + "'");
+        // System.out.println("Created new tab: '" + file.getName() + "'");
     }
 
     public void saveActiveTab() {

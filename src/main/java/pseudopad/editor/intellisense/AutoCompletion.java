@@ -211,9 +211,6 @@ public class AutoCompletion {
             }
         }
 
-        System.out.println("[DEBUG] prefix='" + prefix + "', allCompletions=" + allCompletions.size() + ", filtered="
-                + filtered.size());
-
         if (filtered.isEmpty()) {
             hidePopup();
         } else {
@@ -266,7 +263,7 @@ public class AutoCompletion {
     }
 
     private void showPopup(List<CompletionItem> items) {
-        System.out.println("[DEBUG] showPopup called with " + items.size() + " items");
+
         list.setListData(items.toArray(new CompletionItem[0]));
         list.setSelectedIndex(0);
 
@@ -275,7 +272,7 @@ public class AutoCompletion {
             Rectangle rect = textComponent.modelToView(caret);
 
             if (rect == null) {
-                System.out.println("[DEBUG] modelToView returned null");
+
                 return;
             }
 
@@ -289,7 +286,6 @@ public class AutoCompletion {
             popup.setSize(200, Math.min(items.size() * 20 + 5, 200)); // Dynamic height
             popup.setVisible(true);
             isShowing = true;
-            System.out.println("[DEBUG] popup shown at " + location);
 
         } catch (BadLocationException e) {
             e.printStackTrace();
